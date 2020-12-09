@@ -13,7 +13,7 @@ module purge
 module load anaconda3/5.3
 
 # Activate anaconda environment
-source activate /workdir/stylo/envs/stylo
+source activate /gpfs/users/piatc/.conda/envs/gr
 
 # Go to the directory where the job has been submitted 
 cd $PBS_O_WORKDIR
