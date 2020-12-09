@@ -1,1 +1,31 @@
-.ipynb_checkpoints/
+french_tweets.csv
+
+# python
+__pycache__
+.ipynb_checkpoints
+
+# IDE
+.vscode/
+
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+/data/10_fonts_100_sentences
+/data/10_fonts_2_sentences
