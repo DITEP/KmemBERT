@@ -84,8 +84,6 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch)
         if(i>max_size):
             break
 
-    print("Labels:\n", test_labels)
-    print("Predictions:\n", predictions)
     print(f"Test accuracy: {1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))}")
 
 if __name__ == "__main__":
