@@ -76,6 +76,7 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch)
 
     # Test
     predictions, test_labels = [], []
+    test_start_time = time()
     for i, (texts, labels) in enumerate(test_loader):
         encoding = tokenizer(texts, return_tensors='pt', padding=True, truncation=True)
         input_ids = encoding['input_ids'].to(device)
@@ -89,7 +90,8 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch)
         if(i>max_size):
             break
 
-    print(f"Test accuracy: {1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))}")
+    print(f"\n> Test accuracy: {1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))}")
+    print(f"> Test time: {pretty_time(time()-test_start_time)}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
