@@ -13,6 +13,8 @@ from dataset import TweetDataset
 from utils import get_root, pretty_time
 
 def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch):
+    torch.manual_seed(0)
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("Device:",device)
 
@@ -87,7 +89,7 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch)
         predictions += torch.softmax(output.logits, dim=1).argmax(axis=1).tolist()
         test_labels += labels.tolist()
 
-        if(i>max_size):
+        if(i*batch_size>max_size):
             break
 
     print(f"\n> Test accuracy: {1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))}")
