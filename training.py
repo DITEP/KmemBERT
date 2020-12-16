@@ -78,8 +78,8 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch)
     predictions, test_labels = [], []
     for i, (texts, labels) in enumerate(test_loader):
         encoding = tokenizer(texts, return_tensors='pt', padding=True, truncation=True)
-        input_ids = encoding['input_ids']
-        attention_mask = encoding['attention_mask']
+        input_ids = encoding['input_ids'].to(device)
+        attention_mask = encoding['attention_mask'].to(device)
 
         output = camembert(input_ids, attention_mask=attention_mask)
 
