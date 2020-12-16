@@ -13,6 +13,9 @@ from dataset import TweetDataset
 from utils import get_root, pretty_time
 
 def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print("Device:",device)
+
     path_root = get_root()
     print("PATH_ROOT:", path_root)
 
@@ -29,6 +32,7 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     camembert = CamembertForSequenceClassification.from_pretrained(model_name, num_labels=2)
+    camembert.to(device)
 
     optimizer = Adam(camembert.parameters(), lr=1e-4)
     tokenizer = CamembertTokenizer.from_pretrained(model_name)
@@ -41,11 +45,12 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch)
         epoch_start_time, k_batch_start_time = time(), time()
         for i, (texts, labels) in enumerate(train_loader):
             encoding = tokenizer(texts, return_tensors='pt', padding=True, truncation=True)
-            input_ids = encoding['input_ids']
-            attention_mask = encoding['attention_mask']
+            input_ids = encoding['input_ids'].to(device)
+            attention_mask = encoding['attention_mask'].to(device)
+            labels = labels.to(device)
 
             optimizer.zero_grad()
-            
+
             output = camembert(input_ids, attention_mask=attention_mask, labels=labels)
             loss = output.loss
 
