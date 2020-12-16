@@ -11,7 +11,7 @@ from transformers import CamembertForSequenceClassification, pipeline, Camembert
 from dataset import TweetDataset
 from utils import get_root
 
-def main(dataset, batch_size, epochs, train_size):
+def main(dataset, batch_size, epochs, train_size, max_size):
     path_root = get_root()
     print("PATH_ROOT:", path_root)
 
@@ -20,8 +20,8 @@ def main(dataset, batch_size, epochs, train_size):
     save_model_path = os.path.join(path_root, "camembert_model")
 
     dataset = TweetDataset(csv_path)
-    train_size = int(train_size * len(dataset))
-    test_size = len(dataset) - train_size
+    train_size = min(max_size, int(train_size * len(dataset)))
+    test_size = min(max_size, len(dataset) - train_size)
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -75,15 +75,17 @@ def main(dataset, batch_size, epochs, train_size):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--dataset", type=str, default="french_tweets_short.csv", 
+        help="dataset filename")
     parser.add_argument("-b", "--batch_size", type=int, default=64, 
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
     parser.add_argument("-t", "--train_size", type=float, default=0.8, 
         help="dataset train size")
-    parser.add_argument("-d", "--dataset", type=str, default="french_tweets_short.csv", 
-        help="dataset filename")
+    parser.add_argument("-max", "--max_size", type=int, default=10000, 
+        help="maximum number of samples for training and testing")
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
     
-    main(args.dataset, args.batch_size, args.epochs, args.train_size)
+    main(args.dataset, args.batch_size, args.epochs, args.train_size, args.max_size)
