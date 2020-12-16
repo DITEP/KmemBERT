@@ -19,4 +19,4 @@ source activate /gpfs/users/piatc/.conda/envs/gr
 cd ${SLURM_SUBMIT_DIR}
 
 # Execution
-python training.py -e 5 -d french_tweet.csv
+python training.py -e 5 -d french_tweets.csv
