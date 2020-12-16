@@ -11,11 +11,11 @@ from transformers import CamembertForSequenceClassification, pipeline, Camembert
 from dataset import TweetDataset
 from utils import get_root
 
-def main(batch_size, epochs, train_size):
+def main(dataset, batch_size, epochs, train_size):
     path_root = get_root()
     print("PATH_ROOT:", path_root)
 
-    csv_path = os.path.join(path_root, "french_tweets_short.csv")
+    csv_path = os.path.join(path_root, dataset)
     model_name = "camembert-base"
     save_model_path = os.path.join(path_root, "camembert_model")
 
@@ -81,7 +81,9 @@ if __name__ == "__main__":
         help="number of epochs")
     parser.add_argument("-t", "--train_size", type=float, default=0.8, 
         help="dataset train size")
+    parser.add_argument("-d", "--dataset", type=str, default="french_tweets_short.csv", 
+        help="dataset filename")
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
     
-    main(args.batch_size, args.epochs, args.train_size)
+    main(args.dataset, args.batch_size, args.epochs, args.train_size)
