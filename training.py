@@ -12,7 +12,7 @@ from transformers import CamembertForSequenceClassification, pipeline, Camembert
 from dataset import TweetDataset
 from utils import get_root, pretty_time
 
-def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch):
+def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch, freeze):
     torch.manual_seed(0)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -35,6 +35,9 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch)
 
     camembert = CamembertForSequenceClassification.from_pretrained(model_name, num_labels=2)
     camembert.to(device)
+    if(freeze):
+        for param in camembert.roberta.parameters():
+            param.requires_grad = False
 
     optimizer = Adam(camembert.parameters(), lr=1e-4)
     tokenizer = CamembertTokenizer.from_pretrained(model_name)
@@ -109,7 +112,9 @@ if __name__ == "__main__":
         help="maximum number of samples for training and testing")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=10, 
         help="maximum number of samples for training and testing")
+    parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
+        help="whether or not to freeze the Bert part")
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
     
-    main(args.dataset, args.batch_size, args.epochs, args.train_size, args.max_size, args.print_every_k_batch)
+    main(args.dataset, args.batch_size, args.epochs, args.train_size, args.max_size, args.print_every_k_batch, args.freeze)
