@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=gr_c
+#SBATCH --job-name=gr_uw
 #SBATCH --output=%x.o%j
 #SBATCH --ntasks=1
 #SBATCH --time=01:00:00
@@ -19,4 +19,4 @@ source activate /gpfs/users/piatc/.conda/envs/gr
 cd ${SLURM_SUBMIT_DIR}
 
 # Execution
-python -u correction.py -d french_tweets.csv
+python -u extract_unknown_words.py -p french_tweets.csv

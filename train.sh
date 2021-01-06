@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=train
+#SBATCH --job-name=gr_t
 #SBATCH --output=%x.o%j
 #SBATCH --ntasks=1
 #SBATCH --time=01:00:00
