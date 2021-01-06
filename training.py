@@ -11,8 +11,9 @@ from transformers import CamembertForSequenceClassification, pipeline, Camembert
 
 from dataset import TweetDataset
 from utils import get_root, pretty_time
+from health_bert import HealthBERT
 
-def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch, freeze, lr):
+def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch, freeze, lr, voc_path):
     torch.manual_seed(0)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -33,14 +34,15 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch,
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-    camembert = CamembertForSequenceClassification.from_pretrained(model_name, num_labels=2)
+    #camembert = CamembertForSequenceClassification.from_pretrained(model_name, num_labels=2)
+    camembert, tokenizer = HealthBERT.get_model_tokenizer(voc_path=voc_path, model_name=model_name)
     camembert.to(device)
     if(freeze):
         for param in camembert.roberta.parameters():
             param.requires_grad = False
 
     optimizer = Adam(camembert.parameters(), lr=lr)
-    tokenizer = CamembertTokenizer.from_pretrained(model_name)
+    #tokenizer = CamembertTokenizer.from_pretrained(model_name)
     classifier = pipeline('sentiment-analysis', model=camembert, tokenizer=tokenizer)
 
     # Train
@@ -117,7 +119,9 @@ if __name__ == "__main__":
         help="whether or not to freeze the Bert part")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
         help="dataset train size")
+    parser.add_argument("-v", "--voc_path", type=str, default="medical_voc/french_tweets.csv_1000_40.json", 
+        help="path to the new words to be added to the vocabulary of camembert")
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
     
-    main(args.dataset, args.batch_size, args.epochs, args.train_size, args.max_size, args.print_every_k_batch, args.freeze, args.learning_rate)
+    main(args.dataset, args.batch_size, args.epochs, args.train_size, args.max_size, args.print_every_k_batch, args.freeze, args.learning_rate, args.voc_path)
