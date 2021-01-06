@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH --job-name=gr_t
+#SBATCH --job-name=gr_uw
 #SBATCH --output=%x.o%j
 #SBATCH --ntasks=1
-#SBATCH --time=01:00:00
-#SBATCH --partition=cpu_short
-#SBATCH --mem=16gb
-#SBATCH --cpus-per-task=8
+#SBATCH --time=04:00:00
+#SBATCH --partition=cpu_med
+#SBATCH --mem=32gb
+#SBATCH --cpus-per-task=16
 
 # To clean and load modules defined at the compile and link phases
 module purge
@@ -19,4 +19,4 @@ source activate /gpfs/users/piatc/.conda/envs/gr
 cd ${SLURM_SUBMIT_DIR}
 
 # Execution
-python training.py -e 5 -d french_tweets.csv
+python -u extract_unknown_words.py -p french_tweets.csv
