@@ -3,10 +3,10 @@
 #SBATCH --job-name=gr_uw
 #SBATCH --output=%x.o%j
 #SBATCH --ntasks=1
-#SBATCH --time=01:00:00
-#SBATCH --partition=cpu_short
-#SBATCH --mem=64gb
-#SBATCH --cpus-per-task=32
+#SBATCH --time=04:00:00
+#SBATCH --partition=cpu_med
+#SBATCH --mem=32gb
+#SBATCH --cpus-per-task=16
 
 # To clean and load modules defined at the compile and link phases
 module purge

@@ -3,8 +3,8 @@
 #SBATCH --job-name=gr_c
 #SBATCH --output=%x.o%j
 #SBATCH --ntasks=1
-#SBATCH --time=01:00:00
-#SBATCH --partition=cpu_short
+#SBATCH --time=04:00:00
+#SBATCH --partition=cpu_med
 #SBATCH --mem=64gb
 #SBATCH --cpus-per-task=32
 
