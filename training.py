@@ -80,6 +80,7 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch,
     print("Model saved")
 
     # Test
+    camembert.eval()
     predictions, test_labels = [], []
     test_start_time = time()
     for i, (texts, labels) in enumerate(test_loader):
