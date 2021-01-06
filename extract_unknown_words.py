@@ -4,6 +4,7 @@ import pandas as pd
 from collections import Counter
 import os
 import re
+from tqdm import tqdm
 
 from transformers import CamembertTokenizer
 
@@ -18,7 +19,7 @@ def main(path, n_unknown_words, chunksize, max_chunk):
     tokenizer = CamembertTokenizer.from_pretrained("camembert-base")
     voc = set(tokenizer.get_vocab().keys())
 
-    for i, chunk in enumerate(df_chunk):
+    for i, chunk in enumerate(tqdm(df_chunk)):
         if max_chunk and i > max_chunk:
             break
         for tweet in chunk.text:
