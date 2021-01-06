@@ -16,7 +16,7 @@ from pandarallel import pandarallel
 spell = SpellChecker(language='fr')
 nlp = spacy.load('fr')
 
-pandarallel.initialize()
+pandarallel.initialize(progress_bar=True)
 
 def transform_one_sentence(sentence):
     """
