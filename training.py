@@ -119,7 +119,7 @@ if __name__ == "__main__":
         help="whether or not to freeze the Bert part")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
         help="dataset train size")
-    parser.add_argument("-v", "--voc_path", type=str, default="medical_voc/french_tweets.csv_1000_40.json", 
+    parser.add_argument("-v", "--voc_path", type=str, default="", 
         help="path to the new words to be added to the vocabulary of camembert")
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
