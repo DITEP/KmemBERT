@@ -11,35 +11,14 @@ from dataset import TweetDataset
 from utils import get_root, pretty_time
 from health_bert import HealthBERT
 
-def main(args):
-    torch.manual_seed(0)
+def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,
+                   batch_size, learning_rate, epochs, freeze):
 
-    batch_size, print_every_k_batch = args.batch_size, args.print_every_k_batch
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Device:",device)
-
-    path_root = get_root()
-    print("PATH_ROOT:", path_root)
-
-    csv_path = os.path.join(path_root, args.dataset)
-    model_name = "camembert-base"
-    save_model_path = os.path.join(path_root, "camembert_model")
-
-    dataset = TweetDataset(csv_path)
-    train_size = min(args.max_size, int(args.train_size * len(dataset)))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
-
-    #camembert = CamembertForSequenceClassification.from_pretrained(model_name, num_labels=2)
-    model = HealthBERT(device, args.learning_rate, voc_path=args.voc_path, model_name=model_name, classify=args.classify, freeze=args.freeze)
+    model = HealthBERT(device, learning_rate, voc_path=voc_path, model_name=model_name, classify=classify, freeze=freeze)
 
     # Train
     model.train()
-    for epoch in range(args.epochs):
+    for epoch in range(epochs):
         epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
         model.start_epoch_timers()
@@ -79,11 +58,35 @@ def main(args):
         predictions += torch.softmax(logits, dim=1).argmax(axis=1).tolist()
         test_labels += labels.tolist()
 
-        if(i*batch_size > args.max_size):
+        if(i*batch_size > max_size):
             break
-
-    print(f"\n> Test accuracy: {1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))}")
+    test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
+    print(f"\n> Test accuracy: {test_accuracy}")
     print(f"> Test time: {pretty_time(time()-test_start_time)}")
+    return test_accuracy
+
+def main(args):
+    torch.manual_seed(0)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print("Device:",device)
+
+    path_root = get_root()
+    print("PATH_ROOT:", path_root)
+
+    csv_path = os.path.join(path_root, args.dataset)
+    model_name = "camembert-base"
+    save_model_path = os.path.join(path_root, "camembert_model")
+
+    dataset = TweetDataset(csv_path)
+    train_size = min(args.max_size, int(args.train_size * len(dataset)))
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
+
+    _ = train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
+                   args.batch_size, args.learning_rate, args.epochs, args.freeze)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
