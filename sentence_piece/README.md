@@ -1,0 +1,1 @@
+`spm_train --input=voc.txt --model_prefix=test --vocab_size=80 --character_coverage=1.0 --model_type=bpe`
