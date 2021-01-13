@@ -35,7 +35,7 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     #camembert = CamembertForSequenceClassification.from_pretrained(model_name, num_labels=2)
-    model = HealthBERT(device, args.learning_rate, voc_path=args.voc_path, model_name=model_name, classify=args.classify, freeze=args.freeze)
+    model = HealthBERT(device, args.learning_rate, voc_path=args.voc_path, model_name=model_name, classify=args.classify, freeze=args.freeze, ratio_lr=args.ratio_lr_embeddings)
 
     # Train
     model.train()
@@ -105,6 +105,8 @@ if __name__ == "__main__":
         help="whether or not to freeze the Bert part")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
         help="dataset train size")
+    parser.add_argument("-r_lr", "--ratio_lr_embeddings", type=float, default=1, 
+        help="the ratio applied to lr for embeddings layer")
     parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
     args = parser.parse_args()

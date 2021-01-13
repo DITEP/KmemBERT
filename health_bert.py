@@ -8,7 +8,7 @@ from torch.optim import Adam
 
 from time import time
 class HealthBERT(nn.Module):
-    def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False):
+    def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False, ratio_lr=1):
         super(HealthBERT, self).__init__()
         
         self.device = device
@@ -26,7 +26,13 @@ class HealthBERT(nn.Module):
         self.camembert = CamembertForSequenceClassification.from_pretrained(
             self.model_name, num_labels=self.num_labels)
         self.camembert.to(self.device)
-        self.optimizer = Adam(self.camembert.parameters(), lr=self.lr)
+
+        self.ratio_lr = ratio_lr
+        decomposed_params = [{'params': self.camembert.roberta.embeddings.parameters(), 'lr': self.lr*self.ratio_lr},
+                        {'params': self.camembert.roberta.encoder.parameters()},
+                        {'params': self.camembert.classifier.parameters()}]
+        self.optimizer = Adam(decomposed_params, lr = self.lr)                    
+        #self.optimizer = Adam(self.camembert.parameters(), lr=self.lr)
 
         if freeze:
             self.freeze()
