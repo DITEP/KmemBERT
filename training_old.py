@@ -11,14 +11,31 @@ from dataset import TweetDataset
 from utils import get_root, pretty_time
 from health_bert import HealthBERT
 
-def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,
-                   batch_size, learning_rate, epochs, freeze):
+def main(args):
+    torch.manual_seed(0)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print("Device:",device)
 
-    model = HealthBERT(device, learning_rate, voc_path=voc_path, model_name=model_name, classify=classify, freeze=freeze)
+    path_root = get_root()
+    print("PATH_ROOT:", path_root)
+
+    csv_path = os.path.join(path_root, args.dataset)
+    model_name = "camembert-base"
+    save_model_path = os.path.join(path_root, "camembert_model")
+
+    dataset = TweetDataset(csv_path)
+    train_size = min(args.max_size, int(args.train_size * len(dataset)))
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
+
+    model = HealthBERT(device, args.learning_rate, voc_path=args.voc_path, model_name=model_name, classify=args.classify, freeze=args.freeze)
 
     # Train
     model.train()
-    for epoch in range(epochs):
+    for epoch in range(args.epochs):
         epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
         model.start_epoch_timers()
@@ -28,13 +45,13 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
             epoch_loss += loss.item()
             k_batch_loss += loss.item()
 
-            if (i+1) % print_every_k_batch == 0:
+            if (i+1) % args.print_every_k_batch == 0:
                 # TODO: more precise
-                n_samples = print_every_k_batch * batch_size
+                n_samples = args.print_every_k_batch * args.batch_size
                 print('{}> Epoch {} Batches [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {} - Time encoding: {} - Time forward: {}'.format(
-                    "=" * ((i+1)//print_every_k_batch),
+                    "=" * ((i+1)//args.print_every_k_batch),
                     epoch, 
-                    i+1-print_every_k_batch, i+1, 
+                    i+1-args.print_every_k_batch, i+1, 
                     k_batch_loss / n_samples, 
                     pretty_time(time()-k_batch_start_time), pretty_time(model.encoding_time), pretty_time(model.compute_time)
                 ))
@@ -58,35 +75,11 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
         predictions += torch.softmax(logits, dim=1).argmax(axis=1).tolist()
         test_labels += labels.tolist()
 
-        if(i*batch_size > max_size):
+        if(i*args.batch_size > args.max_size):
             break
     test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
     print(f"\n> Test accuracy: {test_accuracy}")
     print(f"> Test time: {pretty_time(time()-test_start_time)}")
-    return test_accuracy
-
-def main(args):
-    torch.manual_seed(0)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Device:",device)
-
-    path_root = get_root()
-    print("PATH_ROOT:", path_root)
-
-    csv_path = os.path.join(path_root, args.dataset)
-    model_name = "camembert-base"
-    save_model_path = os.path.join(path_root, "camembert_model")
-
-    dataset = TweetDataset(csv_path)
-    train_size = min(args.max_size, int(args.train_size * len(dataset)))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
-
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
-
-    _ = train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   args.batch_size, args.learning_rate, args.epochs, args.freeze)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
