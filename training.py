@@ -50,15 +50,21 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch,
     for epoch in range(epochs):
         epoch_loss, k_batch_loss = 0,0
         epoch_start_time, k_batch_start_time = time(), time()
+        encoding_time, compute_time = 0,0
         for i, (texts, labels) in enumerate(train_loader):
+            encoding_start_time = time()
             encoding = tokenizer(texts, return_tensors='pt', padding=True, truncation=True)
+            encoding_time += time()-encoding_start_time
+
             input_ids = encoding['input_ids'].to(device)
             attention_mask = encoding['attention_mask'].to(device)
             labels = labels.to(device)
 
             optimizer.zero_grad()
 
+            compute_start_time = time()
             output = camembert(input_ids, attention_mask=attention_mask, labels=labels)
+            compute_time += time()-compute_start_time
             loss = output.loss
 
             loss.backward()
@@ -69,11 +75,17 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch,
             if((i+1)%print_every_k_batch == 0):
                 # TODO: more precise
                 n_samples = print_every_k_batch * batch_size
-                print('{}> Epoch {} Batches [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {}'.format(
+                print('{}> Epoch {} Batches [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {} - Time encoding: {} - Time forward: {}'.format(
                     "=" * ((i+1)//print_every_k_batch),
-                    epoch, i+1-print_every_k_batch, i+1, k_batch_loss / n_samples, pretty_time(time()-k_batch_start_time)))
+                    epoch, 
+                    i+1-print_every_k_batch, i+1, 
+                    k_batch_loss / n_samples, 
+                    pretty_time(time()-k_batch_start_time), pretty_time(encoding_time), pretty_time(compute_time)
+                ))
+
                 k_batch_loss = 0
                 k_batch_start_time = time()
+                encoding_time, compute_time = 0,0
 
         print('> Epoch: {}  -  Global average loss: {:.4f}  -  Time elapsed: {}\n'.format(
             epoch, epoch_loss / len(train_loader.dataset), pretty_time(time()-epoch_start_time)))
