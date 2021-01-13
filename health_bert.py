@@ -9,6 +9,10 @@ from torch.optim import Adam
 
 from time import time
 class HealthBERT(nn.Module):
+    """
+    Model that instanciates a camembert model, a tokenizer and an optimizer.
+    It supports methods to train it.
+    """
     def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False):
         super(HealthBERT, self).__init__()
         
@@ -42,23 +46,36 @@ class HealthBERT(nn.Module):
         self.compute_time = 0
 
     def freeze(self):
+        """Freezes the encoder layer. Only the classification head on top will learn"""
         self.frozen = True
         for param in self.camembert.roberta.parameters():
             param.requires_grad = False
 
     def forward(self, *input, **kwargs):
+        """Camembert forward for classification or regression"""
         if self.classify:
             return self.camembert(*input, **kwargs)
         else:
             return torch.sigmoid(self.camembert(*input, **kwargs).logits)
 
     def get_loss(self, outputs, labels=None):
+        """Returns the loss given outputs and labels"""
         if self.classify:
             return outputs.loss
         else:
             return self.MSELoss(outputs.reshape(-1), labels)
 
     def step(self, texts, labels):
+        """
+        Encode and forward the given texts. Compute the loss, and its backward.
+
+        Inputs:
+        - texts: list of strings
+        - labels: list of 0-1 (classification) or float (regression)
+
+        Returns:
+        loss, camembert outputs
+        """
         encoding_start_time = time()
         encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
         self.encoding_time += time()-encoding_start_time
@@ -84,6 +101,12 @@ class HealthBERT(nn.Module):
         return loss, outputs.logits if self.classify else outputs
 
     def add_tokens_from_path(self, voc_path):
+        """
+        Read a file of vocabulary and add the given tokens into the model
+
+        Inputs
+        - voc_path: path to a json file whose keys are words
+        """
         with open(voc_path) as json_file:
             voc_list = json.load(json_file)
             new_tokens = self.tokenizer.add_tokens([ token for (token, _) in voc_list ])
@@ -92,8 +115,10 @@ class HealthBERT(nn.Module):
         self.camembert.resize_token_embeddings(len(self.tokenizer))
 
     def train(self):
+        """Training mode"""
         self.camembert.train()
 
     def eval(self):
+        """Eval mode (no random)"""
         self.camembert.eval()
 
