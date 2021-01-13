@@ -4,9 +4,10 @@
 #SBATCH --output=%x.o%j
 #SBATCH --ntasks=1
 #SBATCH --time=01:00:00
-#SBATCH --partition=cpu_short
-#SBATCH --mem=16gb
+#SBATCH --partition=gpu
+#SBATCH --mem=64gb
 #SBATCH --cpus-per-task=8
+#SBATCH --gres=gpu:1
 
 # To clean and load modules defined at the compile and link phases
 module purge
@@ -19,4 +20,4 @@ source activate /gpfs/users/piatc/.conda/envs/gr
 cd ${SLURM_SUBMIT_DIR}
 
 # Execution
-python training.py -e 5 -d french_tweets.csv
+python -u training.py -e 3 -d french_tweets.csv -max 100000 -lr 5e-5 -k 100 #-v medical_voc/french_tweets.csv_1000_0.csv
