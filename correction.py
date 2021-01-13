@@ -29,7 +29,7 @@ def main(dataset, distance):
     df = pd.read_csv(dataset)
     df.text = df.text.parallel_apply(transform_one_sentence)
     
-    correction_dataset = '_correction.csv'.join(dataset.split(".csv"))
+    correction_dataset = f'_correction_{distance}.csv'.join(dataset.split(".csv"))
     print(f"Saving the corrected dataset into {correction_dataset}...")
     df.to_csv(correction_dataset, index=False)
 
