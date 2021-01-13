@@ -82,9 +82,9 @@ class HealthBERT(nn.Module):
 
         input_ids = encoding['input_ids'].to(self.device)
         attention_mask = encoding['attention_mask'].to(self.device)
-        labels = labels.to(self.device)
         if not self.classify:
             labels = labels.type(torch.FloatTensor)
+        labels = labels.to(self.device)
 
         self.optimizer.zero_grad()
 
