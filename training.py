@@ -6,15 +6,15 @@ from time import time
 
 import torch
 from torch.utils.data import DataLoader
-from torch.optim import Adam
-from transformers import CamembertForSequenceClassification, pipeline, CamembertTokenizer
 
 from dataset import TweetDataset
 from utils import get_root, pretty_time
 from health_bert import HealthBERT
 
-def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch, freeze, lr, voc_path):
+def main(args):
     torch.manual_seed(0)
+
+    batch_size, print_every_k_batch = args.batch_size, args.print_every_k_batch
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("Device:",device)
@@ -22,12 +22,12 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch,
     path_root = get_root()
     print("PATH_ROOT:", path_root)
 
-    csv_path = os.path.join(path_root, dataset)
+    csv_path = os.path.join(path_root, args.dataset)
     model_name = "camembert-base"
     save_model_path = os.path.join(path_root, "camembert_model")
 
     dataset = TweetDataset(csv_path)
-    train_size = min(max_size, int(train_size * len(dataset)))
+    train_size = min(args.max_size, int(args.train_size * len(dataset)))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
@@ -35,38 +35,20 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch,
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     #camembert = CamembertForSequenceClassification.from_pretrained(model_name, num_labels=2)
-    camembert, tokenizer = HealthBERT.get_model_tokenizer(voc_path=voc_path, model_name=model_name)
-    camembert.to(device)
-    if(freeze):
-        for param in camembert.roberta.parameters():
-            param.requires_grad = False
-
-    optimizer = Adam(camembert.parameters(), lr=lr)
-    #tokenizer = CamembertTokenizer.from_pretrained(model_name)
-    classifier = pipeline('sentiment-analysis', model=camembert, tokenizer=tokenizer)
+    model = HealthBERT(device, args.learning_rate, voc_path=args.voc_path, model_name=model_name, classify=args.classify, freeze=args.freeze)
 
     # Train
-    camembert.train()
-    for epoch in range(epochs):
+    model.train()
+    for epoch in range(args.epochs):
         epoch_loss, k_batch_loss = 0,0
         epoch_start_time, k_batch_start_time = time(), time()
         for i, (texts, labels) in enumerate(train_loader):
-            encoding = tokenizer(texts, return_tensors='pt', padding=True, truncation=True)
-            input_ids = encoding['input_ids'].to(device)
-            attention_mask = encoding['attention_mask'].to(device)
-            labels = labels.to(device)
+            loss, _ = model.step(texts, labels)
 
-            optimizer.zero_grad()
-
-            output = camembert(input_ids, attention_mask=attention_mask, labels=labels)
-            loss = output.loss
-
-            loss.backward()
             epoch_loss += loss.item()
             k_batch_loss += loss.item()
-            optimizer.step()
 
-            if((i+1)%print_every_k_batch == 0):
+            if (i+1) % print_every_k_batch == 0:
                 # TODO: more precise
                 n_samples = print_every_k_batch * batch_size
                 print('{}> Epoch {} Batches [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {}'.format(
@@ -78,24 +60,20 @@ def main(dataset, batch_size, epochs, train_size, max_size, print_every_k_batch,
         print('> Epoch: {}  -  Global average loss: {:.4f}  -  Time elapsed: {}\n'.format(
             epoch, epoch_loss / len(train_loader.dataset), pretty_time(time()-epoch_start_time)))
     print("----- Ended Training\n")
-    torch.save(camembert, save_model_path)
+    #torch.save(model, save_model_path)
     print("Model saved")
 
     # Test
-    camembert.eval()
+    model.eval()
     predictions, test_labels = [], []
     test_start_time = time()
     for i, (texts, labels) in enumerate(test_loader):
-        encoding = tokenizer(texts, return_tensors='pt', padding=True, truncation=True)
-        input_ids = encoding['input_ids'].to(device)
-        attention_mask = encoding['attention_mask'].to(device)
+        loss, logits = model.step(texts, labels)
 
-        output = camembert(input_ids, attention_mask=attention_mask)
-
-        predictions += torch.softmax(output.logits, dim=1).argmax(axis=1).tolist()
+        predictions += torch.softmax(logits, dim=1).argmax(axis=1).tolist()
         test_labels += labels.tolist()
 
-        if(i*batch_size>max_size):
+        if(i*batch_size > args.max_size):
             break
 
     print(f"\n> Test accuracy: {1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))}")
@@ -105,6 +83,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dataset", type=str, default="french_tweets_short.csv", 
         help="dataset filename")
+    parser.add_argument("-c", "--classify", type=bool, default=False, const=True, nargs="?",
+        help="whether or not to train camembert for a classification task")
     parser.add_argument("-b", "--batch_size", type=int, default=64, 
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
@@ -119,9 +99,9 @@ if __name__ == "__main__":
         help="whether or not to freeze the Bert part")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
         help="dataset train size")
-    parser.add_argument("-v", "--voc_path", type=str, default="", 
+    parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
     
-    main(args.dataset, args.batch_size, args.epochs, args.train_size, args.max_size, args.print_every_k_batch, args.freeze, args.learning_rate, args.voc_path)
+    main(args)
