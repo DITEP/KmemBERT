@@ -40,8 +40,9 @@ def main(args):
     # Train
     model.train()
     for epoch in range(args.epochs):
-        epoch_loss, k_batch_loss = 0,0
+        epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
+        model.start_epoch_timers()
         for i, (texts, labels) in enumerate(train_loader):
             loss, _ = model.step(texts, labels)
 
@@ -51,9 +52,14 @@ def main(args):
             if (i+1) % print_every_k_batch == 0:
                 # TODO: more precise
                 n_samples = print_every_k_batch * batch_size
-                print('{}> Epoch {} Batches [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {}'.format(
+                print('{}> Epoch {} Batches [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {} - Time encoding: {} - Time forward: {}'.format(
                     "=" * ((i+1)//print_every_k_batch),
-                    epoch, i+1-print_every_k_batch, i+1, k_batch_loss / n_samples, pretty_time(time()-k_batch_start_time)))
+                    epoch, 
+                    i+1-print_every_k_batch, i+1, 
+                    k_batch_loss / n_samples, 
+                    pretty_time(time()-k_batch_start_time), pretty_time(model.encoding_time), pretty_time(model.compute_time)
+                ))
+
                 k_batch_loss = 0
                 k_batch_start_time = time()
 

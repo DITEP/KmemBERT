@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 
+from time import time
 class HealthBERT(nn.Module):
     def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False):
         super(HealthBERT, self).__init__()
@@ -37,6 +38,10 @@ class HealthBERT(nn.Module):
         if self.voc_path:
             self.add_tokens_from_path(self.voc_path)
 
+    def start_epoch_timers(self):
+        self.encoding_time = 0
+        self.compute_time = 0
+
     def freeze(self):
         self.frozen = True
         for param in self.camembert.roberta.parameters():
@@ -55,7 +60,10 @@ class HealthBERT(nn.Module):
             return self.MSELoss(outputs.reshape(-1), labels)
 
     def step(self, texts, labels):
+        encoding_start_time = time()
         encoding = self.tokenizer(texts, return_tensors='pt', padding=True, truncation=True)
+        self.encoding_time += time()-encoding_start_time
+
         input_ids = encoding['input_ids'].to(self.device)
         attention_mask = encoding['attention_mask'].to(self.device)
         labels = labels.to(self.device)
@@ -64,7 +72,11 @@ class HealthBERT(nn.Module):
 
         self.optimizer.zero_grad()
 
+        compute_start_time = time()
         outputs = self(input_ids, attention_mask=attention_mask, labels=labels)
+        self.compute_time += time()-compute_start_time
+
+
         loss = self.get_loss(outputs, labels=labels)
 
         loss.backward()
