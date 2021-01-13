@@ -1,6 +1,7 @@
 import json
 
-from transformers import CamembertForSequenceClassification, CamembertTokenizer
+from transformers import CamembertForSequenceClassification
+from farm.modeling.tokenization import Tokenizer
 
 import torch
 import torch.nn as nn
@@ -31,9 +32,7 @@ class HealthBERT(nn.Module):
         if freeze:
             self.freeze()
 
-        self.tokenizer = CamembertTokenizer.from_pretrained(self.model_name)
-
-        self.num_embeddings = self.camembert.get_input_embeddings().num_embeddings
+        self.tokenizer = Tokenizer.load(self.model_name, lower_case=False, fast=True)
 
         if self.voc_path:
             self.add_tokens_from_path(self.voc_path)
@@ -61,7 +60,7 @@ class HealthBERT(nn.Module):
 
     def step(self, texts, labels):
         encoding_start_time = time()
-        encoding = self.tokenizer(texts, return_tensors='pt', padding=True, truncation=True)
+        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
         self.encoding_time += time()-encoding_start_time
 
         input_ids = encoding['input_ids'].to(self.device)
@@ -90,8 +89,7 @@ class HealthBERT(nn.Module):
             new_tokens = self.tokenizer.add_tokens([ token for (token, _) in voc_list ])
             print(f"Added {new_tokens} tokens to the tokenizer")
 
-        self.num_embeddings += new_tokens
-        self.camembert.resize_token_embeddings(self.num_embeddings)
+        self.camembert.resize_token_embeddings(len(self.tokenizer))
 
     def train(self):
         self.camembert.train()
