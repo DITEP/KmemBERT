@@ -29,7 +29,7 @@ def main(args):
     def objective(trial):
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
         learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
-        epochs = trial.suggest_int('epochs', 3, 4)
+        epochs = trial.suggest_int('epochs', 3, 25)
         freeze = trial.suggest_categorical('freeze', [False, True])
 
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
