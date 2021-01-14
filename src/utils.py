@@ -2,7 +2,7 @@ import os
 import torch
 
 def get_root():
-    return os.sep.join(os.getcwd().split(os.sep)[0 : os.getcwd().split(os.sep).index("French-Transformers") + 1])
+    return os.sep.join(os.getcwd().split(os.sep)[0 : os.getcwd().split(os.sep).index("EHR_Transformers") + 1])
 
 def pretty_time(t):
     """Tranforms time t in seconds into a pretty string"""
