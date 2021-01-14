@@ -9,6 +9,10 @@ from torch.optim import Adam
 
 from time import time
 class HealthBERT(nn.Module):
+    """
+    Model that instanciates a camembert model, a tokenizer and an optimizer.
+    It supports methods to train it.
+    """
     def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False, ratio_lr=1):
         super(HealthBERT, self).__init__()
         
@@ -84,9 +88,9 @@ class HealthBERT(nn.Module):
 
         input_ids = encoding['input_ids'].to(self.device)
         attention_mask = encoding['attention_mask'].to(self.device)
+        labels = labels.to(self.device)
         if not self.classify:
             labels = labels.type(torch.FloatTensor)
-        labels = labels.to(self.device)
 
         self.optimizer.zero_grad()
 

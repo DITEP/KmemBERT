@@ -17,6 +17,12 @@ nlp = spacy.load('fr')
 pandarallel.initialize(progress_bar=True)
 
 def main(dataset, distance):
+    """
+    Corrects a dataset with SpellChecker and creates a new one.
+
+    Inputs: please refer bellow, to the argparse arguments.
+    """
+
     spell = SpellChecker(language='fr',distance=distance)
 
     def transform_one_sentence(sentence):

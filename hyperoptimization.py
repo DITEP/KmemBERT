@@ -18,7 +18,7 @@ def main(args):
     path_root = get_root()
     print("PATH_ROOT:", path_root)
 
-    csv_path = os.path.join(path_root, args.dataset)
+    csv_path = os.path.join(path_root, "data", args.dataset)
     model_name = "camembert-base"
 
     dataset = TweetDataset(csv_path)

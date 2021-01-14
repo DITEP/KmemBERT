@@ -1,3 +1,4 @@
+# data
 french_tweets.csv
 
 # python
@@ -27,6 +28,3 @@ Untitled.ipynb
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-/data/10_fonts_100_sentences
-/data/10_fonts_2_sentences

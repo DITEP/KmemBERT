@@ -12,9 +12,20 @@ from utils import get_root, pretty_time
 from health_bert import HealthBERT
 
 def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,
-                   batch_size, learning_rate, epochs, freeze):
+                   batch_size, learning_rate, epochs, freeze, ratio_lr_embeddings=1, save_model_path=None):
+    """
+    Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
-  model = HealthBERT(device, args.learning_rate, voc_path=args.voc_path, model_name=model_name, classify=args.classify, freeze=args.freeze, ratio_lr=args.ratio_lr_embeddings)
+    Inputs: please refer bellow, to the argparse arguments.
+    """
+
+    model = HealthBERT(device, 
+                       learning_rate, 
+                       voc_path=voc_path, 
+                       model_name=model_name, 
+                       classify=classify, 
+                       freeze=freeze, 
+                       ratio_lr=ratio_lr_embeddings)
 
     # Train
     model.train()
@@ -36,7 +47,9 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
                     epoch, 
                     i+1-print_every_k_batch, i+1, 
                     k_batch_loss / n_samples, 
-                    pretty_time(time()-k_batch_start_time), pretty_time(model.encoding_time), pretty_time(model.compute_time)
+                    pretty_time(time()-k_batch_start_time), 
+                    pretty_time(model.encoding_time), 
+                    pretty_time(model.compute_time)
                 ))
 
                 k_batch_loss = 0
@@ -45,8 +58,9 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
         print('> Epoch: {}  -  Global average loss: {:.4f}  -  Time elapsed: {}\n'.format(
             epoch, epoch_loss / len(train_loader.dataset), pretty_time(time()-epoch_start_time)))
     print("----- Ended Training\n")
-    #torch.save(model, save_model_path)
-    print("Model saved")
+    if save_model_path:
+        torch.save(model, save_model_path)
+        print("Model saved")
 
     # Test
     model.eval()
@@ -73,7 +87,7 @@ def main(args):
     path_root = get_root()
     print("PATH_ROOT:", path_root)
 
-    csv_path = os.path.join(path_root, args.dataset)
+    csv_path = os.path.join(path_root, "data", args.dataset)
     model_name = "camembert-base"
     save_model_path = os.path.join(path_root, "camembert_model")
 
@@ -86,7 +100,7 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
 
     _ = train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   args.batch_size, args.learning_rate, args.epochs, args.freeze)
+                   args.batch_size, args.learning_rate, args.epochs, args.freeze, args.ratio_lr_embeddings)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

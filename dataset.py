@@ -1,7 +1,10 @@
 from torch.utils.data import Dataset
 import pandas as pd
+import os
 
 class TweetDataset(Dataset):
+    """PyTorch Dataset class for tweets"""
+
     def __init__(self, csv_name):
         super(TweetDataset, self).__init__()
         self.csv_name = csv_name

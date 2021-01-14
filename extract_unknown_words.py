@@ -12,6 +12,12 @@ def in_camembert_voc(word, voc):
     return f'▁{word}' in voc
 
 def main(path, n_unknown_words, chunksize, max_chunk):
+    """
+    Extracts words that camembert doesn't know and creates a json file with the most frequent.
+
+    Inputs: please refer bellow, to the argparse arguments.
+    """
+
     df_chunk = pd.read_csv(path, chunksize=chunksize)
 
     counter = Counter()
