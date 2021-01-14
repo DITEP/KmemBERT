@@ -57,7 +57,7 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
                 k_batch_start_time = time()
 
         printc(f'    Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
-    printc("----- Ended Training\n")
+    printc("-----  Ended Training  -----\n")
     if save_model_path:
         torch.save(model, save_model_path)
         printc("Model saved", "SUCCESS")
