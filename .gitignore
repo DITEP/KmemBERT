@@ -1,6 +1,11 @@
 # data
 french_tweets.csv
 
+# results
+results/*
+!results/.gitkeep
+!results/README.md
+
 # python
 __pycache__
 .ipynb_checkpoints

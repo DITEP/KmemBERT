@@ -29,6 +29,8 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
 
     # Train
     model.train()
+
+    print("\n----- STARTING TRAINING -----")
     for epoch in range(epochs):
         epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
@@ -89,7 +91,7 @@ def main(args):
 
     csv_path = os.path.join(path_root, "data", args.dataset)
     model_name = "camembert-base"
-    save_model_path = os.path.join(path_root, "camembert_model")
+    save_model_path = os.path.join(path_root, "results", "camembert_model")
 
     dataset = TweetDataset(csv_path)
     train_size = min(args.max_size, int(args.train_size * len(dataset)))
