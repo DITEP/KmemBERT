@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import TweetDataset
-from utils import get_root, pretty_time
+from utils import get_root, pretty_time, printc
 from health_bert import HealthBERT
 
 def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,
@@ -30,8 +30,9 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
     # Train
     model.train()
 
-    print("\n----- STARTING TRAINING -----")
+    printc("\n----- STARTING TRAINING -----")
     for epoch in range(epochs):
+        print("> EPOCH", epoch)
         epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
         model.start_epoch_timers()
@@ -44,9 +45,7 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
             if (i+1) % print_every_k_batch == 0:
                 # TODO: more precise
                 n_samples = print_every_k_batch * batch_size
-                print('{}> Epoch {} Batches [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {} - Time encoding: {} - Time forward: {}'.format(
-                    "=" * ((i+1)//print_every_k_batch),
-                    epoch, 
+                print('    [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {} - Time encoding: {} - Time forward: {}'.format(
                     i+1-print_every_k_batch, i+1, 
                     k_batch_loss / n_samples, 
                     pretty_time(time()-k_batch_start_time), 
@@ -57,12 +56,11 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
                 k_batch_loss = 0
                 k_batch_start_time = time()
 
-        print('> Epoch: {}  -  Global average loss: {:.4f}  -  Time elapsed: {}\n'.format(
-            epoch, epoch_loss / len(train_loader.dataset), pretty_time(time()-epoch_start_time)))
-    print("----- Ended Training\n")
+        printc(f'    Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+    printc("----- Ended Training\n")
     if save_model_path:
         torch.save(model, save_model_path)
-        print("Model saved")
+        printc("Model saved", "SUCCESS")
 
     # Test
     model.eval()
@@ -77,17 +75,17 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
         if(i*batch_size > max_size):
             break
     test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
-    print(f"\n> Test accuracy: {test_accuracy}")
-    print(f"> Test time: {pretty_time(time()-test_start_time)}")
+    printc(f"\n> Test accuracy: {test_accuracy}", 'RESULTS')
+    printc(f"> Test time: {pretty_time(time()-test_start_time)}", 'RESULTS')
     return test_accuracy
 
 def main(args):
     torch.manual_seed(0)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Device:",device)
+    printc(f"Device: {device}", "INFO")
 
     path_root = get_root()
-    print("PATH_ROOT:", path_root)
+    printc(f"PATH_ROOT: {path_root}", "INFO")
 
     csv_path = os.path.join(path_root, "data", args.dataset)
     model_name = "camembert-base"
@@ -110,7 +108,7 @@ if __name__ == "__main__":
         help="dataset filename")
     parser.add_argument("-c", "--classify", type=bool, default=False, const=True, nargs="?",
         help="whether or not to train camembert for a classification task")
-    parser.add_argument("-b", "--batch_size", type=int, default=64, 
+    parser.add_argument("-b", "--batch_size", type=int, default=8, 
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
@@ -118,7 +116,7 @@ if __name__ == "__main__":
         help="dataset train size")
     parser.add_argument("-max", "--max_size", type=int, default=10000, 
         help="maximum number of samples for training and testing")
-    parser.add_argument("-k", "--print_every_k_batch", type=int, default=10, 
+    parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
         help="whether or not to freeze the Bert part")

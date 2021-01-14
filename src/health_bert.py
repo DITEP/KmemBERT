@@ -8,6 +8,9 @@ import torch.nn as nn
 from torch.optim import Adam
 
 from time import time
+
+from utils import printc
+
 class HealthBERT(nn.Module):
     """
     Model that instanciates a camembert model, a tokenizer and an optimizer.
@@ -28,7 +31,7 @@ class HealthBERT(nn.Module):
             self.num_labels = 1
             self.MSELoss = nn.MSELoss()
 
-        print("\n----- Loading camembert model and tokenizer")
+        printc("\n----- Loading camembert model and tokenizer", "INFO")
         self.camembert = CamembertForSequenceClassification.from_pretrained(
             self.model_name, num_labels=self.num_labels)
         self.camembert.to(self.device)
@@ -44,7 +47,7 @@ class HealthBERT(nn.Module):
             self.freeze()
 
         self.tokenizer = Tokenizer.load(self.model_name, lower_case=False, fast=True)
-        print("----- Successfully loaded camembert model and tokenizer\n")
+        printc("----- Successfully loaded camembert model and tokenizer\n", "SUCCESS")
 
         if self.voc_path:
             self.add_tokens_from_path(self.voc_path)
