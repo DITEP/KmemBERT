@@ -20,4 +20,4 @@ source activate /gpfs/users/piatc/.conda/envs/gr
 cd ${SLURM_SUBMIT_DIR}
 
 # Execution
-python -u hyperoptimization.py -d french_tweets.csv -n 50 --max_size 100000
+python -u src/hyperoptimization.py -d french_tweets.csv -n 50 --max_size 100000

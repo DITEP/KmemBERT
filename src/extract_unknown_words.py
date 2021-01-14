@@ -7,18 +7,19 @@ import re
 from tqdm import tqdm
 
 from transformers import CamembertTokenizer
+from utils import get_dataset_path
 
 def in_camembert_voc(word, voc):
     return f'▁{word}' in voc
 
-def main(path, n_unknown_words, chunksize, max_chunk):
+def main(dataset, n_unknown_words, chunksize, max_chunk):
     """
     Extracts words that camembert doesn't know and creates a json file with the most frequent.
 
     Inputs: please refer bellow, to the argparse arguments.
     """
-
-    df_chunk = pd.read_csv(path, chunksize=chunksize)
+    csv_path = get_dataset_path(dataset)
+    df_chunk = pd.read_csv(csv_path, chunksize=chunksize)
 
     counter = Counter()
 
@@ -34,14 +35,14 @@ def main(path, n_unknown_words, chunksize, max_chunk):
                 if not in_camembert_voc(word, voc):
                     counter[word] += 1
 
-    json_path = f"{os.path.split(path)[1]}_{n_unknown_words}_{max_chunk}.json"
+    json_path = f"{os.path.split(csv_path)[1]}_{n_unknown_words}_{max_chunk}.json"
     with open(os.path.join("medical_voc", json_path), 'w') as f:
         json.dump(counter.most_common(n_unknown_words), f, indent=4)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--path", type=str, default="french_tweets_short.csv", 
-        help="path to dataset")
+    parser.add_argument("-d", "--dataset", type=str, default="french_tweets_short.csv", 
+        help="dataset filename")
     parser.add_argument("-n", "--n_unknown_words", type=int, default=1000,
         help="save the n most frequent unknown words")
     parser.add_argument("-c", "--chunksize", type=int, default=10,
@@ -51,4 +52,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
     
-    main(args.path, args.n_unknown_words, args.chunksize, args.max_chunk)
+    main(args.dataset, args.n_unknown_words, args.chunksize, args.max_chunk)

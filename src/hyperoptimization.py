@@ -6,7 +6,7 @@ import optuna
 import torch
 from torch.utils.data import DataLoader
 
-from utils import get_root, printc
+from utils import get_dataset_path, printc
 from training import train_and_test
 from dataset import TweetDataset
 
@@ -15,10 +15,8 @@ def main(args):
     torch.manual_seed(0)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     printc(f"Device: {device}", 'INFO')
-    path_root = get_root()
-    printc(f"PATH_ROOT: {path_root}", 'INFO')
 
-    csv_path = os.path.join(path_root, "data", args.dataset)
+    csv_path = get_dataset_path(args.dataset)
     model_name = "camembert-base"
 
     dataset = TweetDataset(csv_path)

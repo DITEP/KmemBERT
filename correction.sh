@@ -19,4 +19,4 @@ source activate /gpfs/users/piatc/.conda/envs/gr
 cd ${SLURM_SUBMIT_DIR}
 
 # Execution
-python -u correction.py -d french_tweets.csv
+python -u src/correction.py -d french_tweets.csv

@@ -1,7 +1,7 @@
 import argparse
 import json
 import pandas as pd
-
+import os
 """
 pip install pyspellchecker
 pip install spacy
@@ -12,6 +12,8 @@ pip install pandarallel
 from spellchecker import SpellChecker
 import spacy
 from pandarallel import pandarallel
+
+from utils import get_dataset_path
 
 nlp = spacy.load('fr')
 pandarallel.initialize(progress_bar=True)
@@ -32,10 +34,12 @@ def main(dataset, distance):
         words = list(map(str, nlp(sentence)))
         return ' '.join(list(map(spell.correction, words)))
 
-    df = pd.read_csv(dataset)
+
+    csv_path = get_dataset_path(dataset)
+    df = pd.read_csv(csv_path)
     df.text = df.text.parallel_apply(transform_one_sentence)
     
-    correction_dataset = f'_correction_{distance}.csv'.join(dataset.split(".csv"))
+    correction_dataset = f'_correction_{distance}.csv'.join(csv_path.split(".csv"))
     print(f"Saving the corrected dataset into {correction_dataset}...")
     df.to_csv(correction_dataset, index=False)
 
