@@ -19,4 +19,4 @@ source activate /gpfs/users/piatc/.conda/envs/gr
 cd ${SLURM_SUBMIT_DIR}
 
 # Execution
-python -u extract_unknown_words.py -p french_tweets.csv
+python -u src/extract_unknown_words.py -p french_tweets.csv
