@@ -15,7 +15,7 @@ from utils import get_root, pretty_time, printc, create_session, save_json
 from health_bert import HealthBERT
 
 def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,
-                   batch_size, learning_rate, epochs, freeze, path_result, ratio_lr_embeddings=1):
+                   batch_size, learning_rate, epochs, freeze, weight_decay, path_result, ratio_lr_embeddings=1):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
@@ -28,6 +28,7 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
                        model_name=model_name, 
                        classify=classify, 
                        freeze=freeze, 
+                       weight_decay=weight_decay,
                        ratio_lr=ratio_lr_embeddings)
 
     # Train
@@ -109,7 +110,7 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
 
     train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   args.batch_size, args.learning_rate, args.epochs, args.freeze, path_result, args.ratio_lr_embeddings)
+                   args.batch_size, args.learning_rate, args.epochs, args.freeze, args.weight_decay, path_result, args.ratio_lr_embeddings)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -133,6 +134,8 @@ if __name__ == "__main__":
         help="dataset train size")
     parser.add_argument("-r_lr", "--ratio_lr_embeddings", type=float, default=1, 
         help="the ratio applied to lr for embeddings layer")
+    parser.add_argument("-wg", "--weight_decay", type=float, default=0, 
+        help="the weight decay for L2 regularization")
     parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
 

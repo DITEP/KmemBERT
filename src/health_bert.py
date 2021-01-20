@@ -16,7 +16,7 @@ class HealthBERT(nn.Module):
     Model that instanciates a camembert model, a tokenizer and an optimizer.
     It supports methods to train it.
     """
-    def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False, ratio_lr=1):
+    def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False, weight_decay=0, ratio_lr=1):
         super(HealthBERT, self).__init__()
         
         self.device = device
@@ -40,7 +40,7 @@ class HealthBERT(nn.Module):
         decomposed_params = [{'params': self.camembert.roberta.embeddings.parameters(), 'lr': self.lr*self.ratio_lr},
                         {'params': self.camembert.roberta.encoder.parameters()},
                         {'params': self.camembert.classifier.parameters()}]
-        self.optimizer = Adam(decomposed_params, lr = self.lr)                    
+        self.optimizer = Adam(decomposed_params, lr = self.lr, weight_decay=weight_decay)                    
         #self.optimizer = Adam(self.camembert.parameters(), lr=self.lr)
 
         if freeze:
