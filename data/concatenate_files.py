@@ -1,6 +1,7 @@
-import os 
+import os
 
-path_data = "/data/isilon/centraleNLP"
+#test
+path_data= "/data/isilon/centraleNLP"
 file_name_concatenated = "concatenate.txt"
 list_files = os.listdir(path_data)
 

@@ -74,7 +74,7 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
         if model.classify:
             predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
         else:
-            predictions += outputs.tolist()
+            predictions += outputs.flatten().tolist()
         
         test_labels += labels.tolist()
 
