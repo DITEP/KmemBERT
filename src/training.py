@@ -78,9 +78,13 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
     predictions, test_labels = [], []
     test_start_time = time()
     for i, (texts, labels) in enumerate(test_loader):
-        loss, logits = model.step(texts, labels)
-
-        predictions += torch.softmax(logits, dim=1).argmax(axis=1).tolist()
+        loss, outputs = model.step(texts, labels)
+        
+        if model.classify:
+            predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
+        else:
+            predictions += outputs.tolist()
+        
         test_labels += labels.tolist()
 
         if(i*batch_size > max_size):
