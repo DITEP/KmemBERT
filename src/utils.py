@@ -36,6 +36,10 @@ def printc(log, color='HEADER'):
 def now():
     return datetime.now().strftime('%y-%m-%d_%Hh%Mm%Ss')
 
+def save_json(path_result, name, x):
+    with open(os.path.join(path_result, f'{name}.json'), 'w') as f:
+        json.dump(x, f, indent=4)
+
 def create_session(args):
     torch.manual_seed(0)
 
@@ -53,7 +57,6 @@ def create_session(args):
     os.mkdir(path_result)
     printc(f"> SESSION: {path_result}", "INFO")
 
-    with open(os.path.join(path_result, "args.json"), 'w') as f:
-        json.dump(vars(args), f, indent=4)
+    save_json(path_result, 'args', vars(args))
 
     return path_root, path_result, device

@@ -32,7 +32,7 @@ def main(args):
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
         return -train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   batch_size, learning_rate, epochs, freeze)
+                   batch_size, learning_rate, epochs, freeze, path_result)
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=args.n_trials)
