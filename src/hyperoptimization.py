@@ -10,27 +10,24 @@ from dataset import TweetDataset
 
 
 def main(args):
-    path_dataset, path_result, device = create_session(args)
-
-    model_name = "camembert-base"
+    path_dataset, path_result, device, config = create_session(args)
 
     dataset = TweetDataset(path_dataset)
-    train_size = min(args.max_size, int(args.train_size * len(dataset)))
+    train_size = min(config.max_size, int(config.train_size * len(dataset)))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     def objective(trial):
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
-        learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
-        freeze = trial.suggest_categorical('freeze', [False, True])
-        weight_decay = trial.suggest_categorical('weight_decay', [0,1e-2,1e-1,1])
-        drop_rate = trial.suggest_categorical('drop_rate', [0., 0.1, 0.2, 0.5])
+        config.learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
+        config.freeze = trial.suggest_categorical('freeze', [False, True])
+        config.weight_decay = trial.suggest_categorical('weight_decay', [0,1e-2,1e-1,1])
+        config.drop_rate = trial.suggest_categorical('drop_rate', [0., 0.1, 0.2, 0.5])
 
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-        return -train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   batch_size, learning_rate, args.epochs, freeze, weight_decay, path_result, drop_rate=drop_rate)
+        return -train_and_test(train_loader, test_loader, device, config, path_result)
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=args.n_trials)

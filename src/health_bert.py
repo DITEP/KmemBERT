@@ -22,14 +22,14 @@ class HealthBERT(nn.Module):
     Model that instanciates a camembert model, a tokenizer and an optimizer.
     It supports methods to train it.
     """
-    def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False, weight_decay=0, ratio_lr=None, drop_rate=None):
+    def __init__(self, device, config):
         super(HealthBERT, self).__init__()
         
         self.device = device
-        self.lr = lr
-        self.voc_path = voc_path
-        self.model_name = model_name
-        self.classify = classify
+        self.learning_rate = config.learning_rate
+        self.voc_path = config.voc_path
+        self.model_name = config.model_name
+        self.classify = config.classify
 
         if self.classify:
             self.num_labels = 2
@@ -42,22 +42,19 @@ class HealthBERT(nn.Module):
             self.model_name, num_labels=self.num_labels)
         self.camembert.to(self.device)
 
-        self.ratio_lr = ratio_lr
-        if self.ratio_lr:
-            decomposed_params = [{'params': self.camembert.roberta.embeddings.parameters(), 'lr': self.lr*self.ratio_lr},
-                            {'params': self.camembert.roberta.encoder.parameters()},
-                            {'params': self.camembert.classifier.parameters()}]
-            self.optimizer = Adam(decomposed_params, lr = self.lr, weight_decay=weight_decay)                    
-        else:
-            self.optimizer = Adam(self.camembert.parameters(), lr=self.lr)
+        self.ratio_lr_embeddings = config.ratio_lr_embeddings if config.ratio_lr_embeddings else 1
+        decomposed_params = [{'params': self.camembert.roberta.embeddings.parameters(), 'lr': self.learning_rate*self.ratio_lr_embeddings},
+                        {'params': self.camembert.roberta.encoder.parameters()},
+                        {'params': self.camembert.classifier.parameters()}]
+        self.optimizer = Adam(decomposed_params, lr = self.learning_rate, weight_decay=config.weight_decay)
 
-        if freeze:
+        if config.freeze:
             self.freeze()
 
         self.tokenizer = Tokenizer.load(self.model_name, lower_case=False, fast=True)
         printc("----- Successfully loaded camembert model and tokenizer\n", "SUCCESS")
 
-        self.drop_rate = drop_rate
+        self.drop_rate = config.drop_rate
         if self.drop_rate:
             set_dropout(self.camembert, drop_rate=self.drop_rate)
             print(f"Dropout rate set to {self.drop_rate}")
