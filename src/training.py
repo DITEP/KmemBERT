@@ -1,17 +1,15 @@
 import numpy as np
 import os
 import argparse
-import json
 from time import time
 from collections import defaultdict
-from numpy.lib.function_base import average
 import matplotlib.pyplot as plt
 
 import torch
 from torch.utils.data import DataLoader
 
 from dataset import TweetDataset
-from utils import get_root, pretty_time, printc, create_session, save_json
+from utils import pretty_time, printc, create_session, save_json
 from health_bert import HealthBERT
 
 def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,

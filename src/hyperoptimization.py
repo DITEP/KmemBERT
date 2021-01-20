@@ -1,12 +1,10 @@
 import argparse
-import json
-import os
 
 import optuna
 import torch
 from torch.utils.data import DataLoader
 
-from utils import printc, create_session
+from utils import create_session
 from training import train_and_test
 from dataset import TweetDataset
 
