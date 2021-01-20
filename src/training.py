@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import TweetDataset
-from utils import get_root, pretty_time, printc
+from utils import get_root, pretty_time, printc, create_session
 from health_bert import HealthBERT
 
 def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,
@@ -80,16 +80,11 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
     return test_accuracy
 
 def main(args):
-    torch.manual_seed(0)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    printc(f"Device: {device}", "INFO")
-
-    path_root = get_root()
-    printc(f"PATH_ROOT: {path_root}", "INFO")
+    path_root, path_result, device = create_session(args)
 
     csv_path = os.path.join(path_root, "data", args.dataset)
     model_name = "camembert-base"
-    save_model_path = os.path.join(path_root, "results", "camembert_model")
+    save_model_path = os.path.join(path_result, "model")
 
     dataset = TweetDataset(csv_path)
     train_size = min(args.max_size, int(args.train_size * len(dataset)))
@@ -126,7 +121,5 @@ if __name__ == "__main__":
         help="the ratio applied to lr for embeddings layer")
     parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
-    args = parser.parse_args()
-    print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
-    
-    main(args)
+
+    main(parser.parse_args())

@@ -1,5 +1,8 @@
 import os
 import torch
+from datetime import datetime
+import sys
+import json
 
 def get_root():
     return os.sep.join(os.getcwd().split(os.sep)[0 : os.getcwd().split(os.sep).index("EHR_Transformers") + 1])
@@ -29,3 +32,28 @@ bcolors = {
 
 def printc(log, color='HEADER'):
     print(f"{bcolors[color]}{log}{bcolors['ENDC']}")
+
+def now():
+    return datetime.now().strftime('%y-%m-%d_%Hh%Mm%Ss')
+
+def create_session(args):
+    torch.manual_seed(0)
+
+    print(f"> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    printc(f"> DEVICE:  {device}", "INFO")
+
+    path_root = get_root()
+    printc(f"> ROOT:    {path_root}", "INFO")
+
+    main_file = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+    session_id = f"{main_file}_{now()}"
+    path_result = os.path.join(path_root, "results", session_id)
+    os.mkdir(path_result)
+    printc(f"> SESSION: {path_result}", "INFO")
+
+    with open(os.path.join(path_result, "args.json"), 'w') as f:
+        json.dump(vars(args), f, indent=4)
+
+    return path_root, path_result, device
