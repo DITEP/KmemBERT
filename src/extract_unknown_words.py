@@ -7,7 +7,7 @@ import re
 from tqdm import tqdm
 
 from transformers import CamembertTokenizer
-from utils import get_dataset_path
+from utils import get_root
 
 def in_camembert_voc(word, voc):
     return f'▁{word}' in voc
@@ -18,8 +18,9 @@ def main(dataset, n_unknown_words, chunksize, max_chunk):
 
     Inputs: please refer bellow, to the argparse arguments.
     """
-    csv_path = get_dataset_path(dataset)
-    df_chunk = pd.read_csv(csv_path, chunksize=chunksize)
+    path_root = get_root()
+    path_dataset = os.path.join(path_root, "data", dataset)
+    df_chunk = pd.read_csv(path_dataset, chunksize=chunksize)
 
     counter = Counter()
 
@@ -35,7 +36,7 @@ def main(dataset, n_unknown_words, chunksize, max_chunk):
                 if not in_camembert_voc(word, voc):
                     counter[word] += 1
 
-    json_path = f"{os.path.split(csv_path)[1]}_{n_unknown_words}_{max_chunk}.json"
+    json_path = f"{os.path.split(path_dataset)[1]}_{n_unknown_words}_{max_chunk}.json"
     with open(os.path.join("medical_voc", json_path), 'w') as f:
         json.dump(counter.most_common(n_unknown_words), f, indent=4)
 

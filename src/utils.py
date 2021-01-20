@@ -47,6 +47,8 @@ def create_session(args):
     path_root = get_root()
     printc(f"> ROOT:    {path_root}", "INFO")
 
+    path_dataset = os.path.join(path_root, "data", args.dataset)
+
     main_file = os.path.splitext(os.path.basename(sys.argv[0]))[0]
     session_id = f"{main_file}_{now()}"
     path_result = os.path.join(path_root, "results", session_id)
@@ -56,4 +58,4 @@ def create_session(args):
     with open(os.path.join(path_result, "args.json"), 'w') as f:
         json.dump(vars(args), f, indent=4)
 
-    return path_root, path_result, device
+    return path_dataset, path_result, device

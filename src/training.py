@@ -80,13 +80,12 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
     return test_accuracy
 
 def main(args):
-    path_root, path_result, device = create_session(args)
+    path_dataset, path_result, device = create_session(args)
 
-    csv_path = os.path.join(path_root, "data", args.dataset)
     model_name = "camembert-base"
     save_model_path = os.path.join(path_result, "model")
 
-    dataset = TweetDataset(csv_path)
+    dataset = TweetDataset(path_dataset)
     train_size = min(args.max_size, int(args.train_size * len(dataset)))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])

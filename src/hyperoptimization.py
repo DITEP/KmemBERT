@@ -6,18 +6,17 @@ import optuna
 import torch
 from torch.utils.data import DataLoader
 
-from utils import get_dataset_path, printc, create_session
+from utils import printc, create_session
 from training import train_and_test
 from dataset import TweetDataset
 
 
 def main(args):
-    path_root, path_result, device = create_session(args)
+    path_dataset, path_result, device = create_session(args)
 
-    csv_path = get_dataset_path(args.dataset)
     model_name = "camembert-base"
 
-    dataset = TweetDataset(csv_path)
+    dataset = TweetDataset(path_dataset)
     train_size = min(args.max_size, int(args.train_size * len(dataset)))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
@@ -25,14 +24,13 @@ def main(args):
     def objective(trial):
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
         learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
-        epochs = trial.suggest_int('epochs', 3, 25)
         freeze = trial.suggest_categorical('freeze', [False, True])
 
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
         return -train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   batch_size, learning_rate, epochs, freeze)
+                   batch_size, learning_rate, args.epochs, freeze)
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=args.n_trials)
@@ -55,5 +53,6 @@ if __name__ == "__main__":
         help="path to the new words to be added to the vocabulary of camembert")
     parser.add_argument("-max", "--max_size", type=int, default=10000, 
         help="maximum number of samples for training and testing")
-    
+    parser.add_argument("-e", "--epochs", type=int, default=10, 
+        help="number of epochs")
     main(parser.parse_args())

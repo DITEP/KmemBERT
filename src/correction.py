@@ -13,7 +13,7 @@ from spellchecker import SpellChecker
 import spacy
 from pandarallel import pandarallel
 
-from utils import get_dataset_path
+from utils import get_root
 
 nlp = spacy.load('fr')
 pandarallel.initialize(progress_bar=True)
@@ -34,12 +34,12 @@ def main(dataset, distance):
         words = list(map(str, nlp(sentence)))
         return ' '.join(list(map(spell.correction, words)))
 
-
-    csv_path = get_dataset_path(dataset)
-    df = pd.read_csv(csv_path)
+    path_root = get_root()
+    path_dataset = os.path.join(path_root, "data", args.dataset)
+    df = pd.read_csv(path_dataset)
     df.text = df.text.parallel_apply(transform_one_sentence)
     
-    correction_dataset = f'_correction_{distance}.csv'.join(csv_path.split(".csv"))
+    correction_dataset = f'_correction_{distance}.csv'.join(path_dataset.split(".csv"))
     print(f"Saving the corrected dataset into {correction_dataset}...")
     df.to_csv(correction_dataset, index=False)
 
