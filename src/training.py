@@ -13,7 +13,7 @@ from utils import pretty_time, printc, create_session, save_json
 from health_bert import HealthBERT
 
 def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,
-                   batch_size, learning_rate, epochs, freeze, weight_decay, path_result, ratio_lr_embeddings=1):
+                   batch_size, learning_rate, epochs, freeze, weight_decay, path_result, ratio_lr_embeddings=None, drop_rate=None):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
@@ -27,7 +27,8 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
                        classify=classify, 
                        freeze=freeze, 
                        weight_decay=weight_decay,
-                       ratio_lr=ratio_lr_embeddings)
+                       ratio_lr=ratio_lr_embeddings,
+                       drop_rate=drop_rate)
 
     # Train
     model.train()
@@ -108,7 +109,7 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
 
     train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   args.batch_size, args.learning_rate, args.epochs, args.freeze, args.weight_decay, path_result, args.ratio_lr_embeddings)
+                   args.batch_size, args.learning_rate, args.epochs, args.freeze, args.weight_decay, path_result, args.ratio_lr_embeddings, args.drop_rate)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -122,6 +123,8 @@ if __name__ == "__main__":
         help="number of epochs")
     parser.add_argument("-t", "--train_size", type=float, default=0.8, 
         help="dataset train size")
+    parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
+        help="dropout ratio")
     parser.add_argument("-max", "--max_size", type=int, default=10000, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 

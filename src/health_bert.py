@@ -11,12 +11,18 @@ from time import time
 
 from utils import printc
 
+def set_dropout(model, drop_rate=0.1):
+    for _, child in model.named_children():
+        if isinstance(child, torch.nn.Dropout):
+            child.p = drop_rate
+        set_dropout(child, drop_rate=drop_rate)
+
 class HealthBERT(nn.Module):
     """
     Model that instanciates a camembert model, a tokenizer and an optimizer.
     It supports methods to train it.
     """
-    def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False, weight_decay=0, ratio_lr=1):
+    def __init__(self, device, lr, voc_path=None, model_name="camembert-base", classify=False, freeze=False, weight_decay=0, ratio_lr=None, drop_rate=None):
         super(HealthBERT, self).__init__()
         
         self.device = device
@@ -37,17 +43,24 @@ class HealthBERT(nn.Module):
         self.camembert.to(self.device)
 
         self.ratio_lr = ratio_lr
-        decomposed_params = [{'params': self.camembert.roberta.embeddings.parameters(), 'lr': self.lr*self.ratio_lr},
-                        {'params': self.camembert.roberta.encoder.parameters()},
-                        {'params': self.camembert.classifier.parameters()}]
-        self.optimizer = Adam(decomposed_params, lr = self.lr, weight_decay=weight_decay)                    
-        #self.optimizer = Adam(self.camembert.parameters(), lr=self.lr)
+        if self.ratio_lr:
+            decomposed_params = [{'params': self.camembert.roberta.embeddings.parameters(), 'lr': self.lr*self.ratio_lr},
+                            {'params': self.camembert.roberta.encoder.parameters()},
+                            {'params': self.camembert.classifier.parameters()}]
+            self.optimizer = Adam(decomposed_params, lr = self.lr, weight_decay=weight_decay)                    
+        else:
+            self.optimizer = Adam(self.camembert.parameters(), lr=self.lr)
 
         if freeze:
             self.freeze()
 
         self.tokenizer = Tokenizer.load(self.model_name, lower_case=False, fast=True)
         printc("----- Successfully loaded camembert model and tokenizer\n", "SUCCESS")
+
+        self.drop_rate = drop_rate
+        if self.drop_rate:
+            set_dropout(self.camembert, drop_rate=self.drop_rate)
+            print(f"Dropout rate set to {self.drop_rate}")
 
         if self.voc_path:
             self.add_tokens_from_path(self.voc_path)

@@ -24,12 +24,13 @@ def main(args):
         learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
         freeze = trial.suggest_categorical('freeze', [False, True])
         weight_decay = trial.suggest_categorical('weight_decay', [0,1e-2,1e-1,1])
+        drop_rate = trial.suggest_categorical('drop_rate', [0., 0.1, 0.2, 0.5])
 
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
         return -train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   batch_size, learning_rate, args.epochs, freeze, weight_decay, path_result)
+                   batch_size, learning_rate, args.epochs, freeze, weight_decay, path_result, drop_rate=drop_rate)
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=args.n_trials)
