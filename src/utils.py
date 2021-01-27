@@ -4,6 +4,8 @@ from datetime import datetime
 import sys
 import json
 
+from config import Config
+
 def get_root():
     return os.sep.join(os.getcwd().split(os.sep)[0 : os.getcwd().split(os.sep).index("EHR_Transformers") + 1])
 
@@ -42,7 +44,8 @@ def save_json(path_result, name, x):
 
 def create_session(args):
     torch.manual_seed(0)
-
+    
+    config = Config(args)
     print(f"> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -61,4 +64,4 @@ def create_session(args):
 
     save_json(path_result, 'args', vars(args))
 
-    return path_dataset, path_result, device
+    return path_dataset, path_result, device, config

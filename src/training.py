@@ -12,32 +12,23 @@ from dataset import TweetDataset
 from utils import pretty_time, printc, create_session, save_json
 from health_bert import HealthBERT
 
-def train_and_test(train_loader, test_loader, device, voc_path, model_name, classify, print_every_k_batch, max_size,
-                   batch_size, learning_rate, epochs, freeze, weight_decay, path_result, ratio_lr_embeddings=None, drop_rate=None):
+def train_and_test(train_loader, test_loader, device, config, path_result):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
     Inputs: please refer bellow, to the argparse arguments.
     """
 
-    model = HealthBERT(device, 
-                       learning_rate, 
-                       voc_path=voc_path, 
-                       model_name=model_name, 
-                       classify=classify, 
-                       freeze=freeze, 
-                       weight_decay=weight_decay,
-                       ratio_lr=ratio_lr_embeddings,
-                       drop_rate=drop_rate)
+    model = HealthBERT(device, config)
 
     # Train
     model.train()
 
     printc("\n----- STARTING TRAINING -----")
     losses = defaultdict(list)
-    n_samples = print_every_k_batch * batch_size
+    n_samples = config.print_every_k_batch * config.batch_size
 
-    for epoch in range(epochs):
+    for epoch in range(config.epochs):
         print("> EPOCH", epoch)
         epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
@@ -48,10 +39,10 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
             epoch_loss += loss.item()
             k_batch_loss += loss.item()
 
-            if (i+1) % print_every_k_batch == 0:
+            if (i+1) % config.print_every_k_batch == 0:
                 average_loss = k_batch_loss / n_samples
                 print('    [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {} - Time encoding: {} - Time forward: {}'.format(
-                    i+1-print_every_k_batch, i+1, 
+                    i+1-config.print_every_k_batch, i+1, 
                     average_loss, 
                     pretty_time(time()-k_batch_start_time), 
                     pretty_time(model.encoding_time), 
@@ -64,7 +55,7 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
     
     printc("-----  Ended Training  -----\n")
     save_json(path_result, "loss", losses)
-    plt.plot(np.linspace(0, epochs, sum([len(l) for l in losses.values()])),
+    plt.plot(np.linspace(0, config.epochs, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
@@ -87,7 +78,7 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
         
         test_labels += labels.tolist()
 
-        if(i*batch_size > max_size):
+        if(i*config.batch_size > config.max_size):
             break
     save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
     test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
@@ -96,20 +87,17 @@ def train_and_test(train_loader, test_loader, device, voc_path, model_name, clas
     return test_accuracy
 
 def main(args):
-    path_dataset, path_result, device = create_session(args)
-
-    model_name = "camembert-base"
+    path_dataset, path_result, device, config = create_session(args)
 
     dataset = TweetDataset(path_dataset)
-    train_size = min(args.max_size, int(args.train_size * len(dataset)))
+    train_size = min(config.max_size, int(config.train_size * len(dataset)))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
 
-    train_and_test(train_loader, test_loader, device, args.voc_path, model_name, args.classify, args.print_every_k_batch, args.max_size,
-                   args.batch_size, args.learning_rate, args.epochs, args.freeze, args.weight_decay, path_result, args.ratio_lr_embeddings, args.drop_rate)
+    train_and_test(train_loader, test_loader, device, config, path_result)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
