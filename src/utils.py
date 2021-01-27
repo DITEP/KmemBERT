@@ -45,7 +45,6 @@ def save_json(path_result, name, x):
 def create_session(args):
     torch.manual_seed(0)
     
-    config = Config(args)
     print(f"> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -61,6 +60,9 @@ def create_session(args):
     path_result = os.path.join(path_root, "results", session_id)
     os.mkdir(path_result)
     printc(f"> SESSION: {path_result}", "INFO")
+
+    args.path_result = path_result
+    config = Config(args)
 
     save_json(path_result, 'args', vars(args))
 

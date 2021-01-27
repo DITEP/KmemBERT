@@ -12,6 +12,8 @@ class Config:
     ratio_lr_embeddings = None
     drop_rate = None
     train_size = 0.8
+    path_result = None
+    resume = None
 
     def __init__(self, args):
         for attr in dir(self):
