@@ -14,7 +14,7 @@ with open(os.path.join(path_data, file_name_concatenated), 'w') as outfile:
         if "dcd.txt" in file_name or  "texteSimbad" in file_name or "p2012.txt" in file_name:
             print(file_name)
             df = pd.read_csv(os.path.join(path_data, file_name), sep="£", nrows=10)
-            print(f"{df.shape[1]} columns")
+            print(df.shape[1])
             print(df.columns)
             with open(os.path.join(path_data, file_name)) as infile:
                 if header_is_written:
