@@ -17,9 +17,9 @@ with open(file_path_concatenated, "w") as outfile:
             with open(os.path.join(path_data, file_name)) as infile:
                 header = infile.readline()
                 if len(header.split("£")) == 9:
-                    df = pd.read_csv(os.path.join(path_data, file_name), sep="\\£")
+                    df = pd.read_csv(os.path.join(path_data, file_name), sep="\\£", delim_whitespace=True)
                 elif len(header.split("|")) == 9:
-                    df = pd.read_csv(os.path.join(path_data, file_name), sep="\\|")
+                    df = pd.read_csv(os.path.join(path_data, file_name), sep="\\|", delim_whitespace=True)
                 else:
                     continue
 
