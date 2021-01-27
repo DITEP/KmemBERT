@@ -4,7 +4,7 @@ Transformers for time of survival estimation based on french EHRs
 
 ## Getting started
 
-The environment can be install using conda.
+The environment can be installed using conda.
 
 ```bash
 conda env create -f environment.yml
@@ -20,18 +20,18 @@ python src/training.py
 
 ## Project structure
 
-The main files and folder are briefly described bellow. Some files that don't need to be described are not listed bellow.
+The main files and folders are briefly described bellow. Some files that don't need to be described are not listed bellow.
 
 ```bash
 .
 ├── data                         - folder of csv data files
-├── exploration                  - folder of notebooks used to develop
+├── exploration                  - folder of notebooks used for exploration
 ├── medical_voc                  - folder containing jsons of vocabulary
 ├── results                      - folder storing results
 ├── sentence_piece               - training a new sentencepiece
 ├── src                          - python package
-│   ├── config.py                - class containing basics config variables
-│   ├── correction.py            - corrects a dataset
+│   ├── config.py                - class containing config variables
+│   ├── correction.py            - corrects misplellings on a dataset
 │   ├── dataset.py               - PyTorch Dataset implementation
 │   ├── extract_unknown_words.py - extracts unknown words from a dataset
 │   ├── health_bert.py           - camembert EHR implementation
@@ -86,7 +86,7 @@ optional arguments:
                         result folder in with the saved checkpoint will be reused
 ```
 
-For example,
+For example, the following command line used the given csv input file, set the dropout rate to 0.5, and use the classification mode.
 
 ```bash
 python src/training.py --dataset file_name.csv -drop 0.5 --classify
@@ -113,18 +113,18 @@ This is an example of a result folder saved after training.
     ├── checkpoint.pth          - checkpoint (see bellow)
     ├── loss.png                - train and test loss evolution
     ├── losses.json             - json of all the losses
-    └── test.json               - predictions and label on the test dataset
+    └── test.json               - predictions and labels on the test dataset
 ```
 
 ### Checkpoint
 
-Use `checkpoint = torch.load(path_checkpoint, map_location=model.device)` to load a checkpoint on a given device.
+Use `checkpoint = torch.load(<path_checkpoint>, map_location=<device>)` to load a checkpoint on a given device.
 
 The checkpoint is composed of the following items.
 ```bash
 {
     'model': model.state_dict(),   - model state dict
-    'accuracy': test_accuracy,     - model accuracy of the test dataset
+    'accuracy': test_accuracy,     - model accuracy on the test dataset
     'epoch': epoch,                - at which epoch it was saved
     'tokenizer': model.tokenizer   - the model tokenizer
 }
