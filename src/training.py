@@ -34,7 +34,7 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
 
         if(i*config.batch_size > config.max_size):
             break
-    if test_losses:
+    if test_losses is not None:
         test_losses.append(total_loss/len(test_loader))
 
     test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
