@@ -22,10 +22,13 @@ with open(file_path_concatenated, "w") as outfile:
                     sep = '|'
                 else:
                     continue
-
-                for i, line in enumerate(infile, 1):
+                
+                n_errors = 0
+                for i, line in enumerate(infile):
                     row = line.split(sep)
                     if len(row) == 9:
                         outfile.write('£'.join(row))
                     else:
-                        print(f"Error with line {i}")
+                        n_errors+=1
+                        
+                print("{} errors out of {} lines".format(n_errors, i))
