@@ -15,7 +15,7 @@ with open(file_path_concatenated, "w") as outfile:
     for file_name in list_files:
         if "dcd.txt" in file_name or  "texteSimbad" in file_name or "p2012.txt" in file_name:
             print(file_name)        
-            with open(os.path.join(path_data, file_name)) as infile:
+            with open(os.path.join(path_data, file_name), encoding='utf-8') as infile:
                 header = infile.readline()
                 if len(header.split('£')) == 9:
                     df = pd.read_csv(os.path.join(path_data, file_name), sep='£', encoding='utf-8', engine='python', error_bad_lines=False)
