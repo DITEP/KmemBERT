@@ -103,7 +103,7 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
     
     printc("-----  Ended Training  -----\n")
 
-    print("\nSaving losses...")
+    print("Saving losses...")
     save_json(path_result, "losses", { "train": losses, "test": test_losses })
     plt.plot(np.linspace(0, config.epochs, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
