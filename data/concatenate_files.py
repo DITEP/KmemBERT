@@ -1,4 +1,5 @@
-# This Python file uses the following encoding: utf-8
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 import os
 import pandas as pd
 
@@ -23,5 +24,5 @@ with open(file_path_concatenated, "w") as outfile:
                 else:
                     continue
 
-                df.to_csv(file_path_concatenated, header=header, index=None, sep=str('£'), mode='a', encoding='utf-8') 
+                df.to_csv(file_path_concatenated, header=header, index=None, sep=b'£', mode='a', encoding='utf-8') 
                 header = None
