@@ -6,7 +6,7 @@ path_data= "/data/isilon/centraleNLP"
 file_name_concatenated = "concatenate.txt"
 file_name_wanted = ["dcd.txt", "texteSimbad*"]
 
-header = ["Noigr","clef","Date deces","Date cr","Code nature","Nature doct","Sce","Contexte","Texte"]
+columns = ["Noigr","clef","Date deces","Date cr","Code nature","Nature doct","Sce","Contexte","Texte"]
 
 list_files = os.listdir(path_data)
 file_path_concatenated = os.path.join(path_data, file_name_concatenated)
@@ -22,7 +22,11 @@ with open(file_path_concatenated, "w") as outfile:
                     sep = '|'
                 else:
                     continue
-                
+
+                if columns:
+                    outfile.write('£'.join(columns))
+                    columns = None
+                    
                 n_errors = 0
                 for i, line in enumerate(infile):
                     row = line.split(sep)
