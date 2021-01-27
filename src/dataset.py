@@ -25,9 +25,10 @@ class EHRDataset(Dataset):
     """PyTorch Dataset class for tweets"""
 
     def __init__(self, csv_name):
-        super(TweetDataset, self).__init__()
+        super(EHRDataset, self).__init__()
         self.csv_name = csv_name
         self.df = pd.read_csv(self.csv_name, sep='£', engine='python')
+        # TODO: labels_to_uniform
         self.labels = list(self.df[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1))
         self.texts = list(self.df["Texte"])
         
