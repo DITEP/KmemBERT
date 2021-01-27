@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 RUN ONLY ONCE
 This code splits the concatenated dataset into a train and test one.
