@@ -24,14 +24,14 @@ with open(file_path_concatenated, "w") as outfile:
                     continue
 
                 if columns:
-                    outfile.write('£'.join(columns) + '\n')
+                    outfile.write('£'.join(columns) + u'\r\n')
                     columns = None
 
                 n_errors = 0
                 for i, line in enumerate(infile):
                     row = line.split(sep)
                     if len(row) == 9 and (sep=='£' or len(line.split('£'))==1):
-                        outfile.write('£'.join(row) + '\n')
+                        outfile.write('£'.join(row) + u'\r\n')
                     else:
                         n_errors+=1
                         
