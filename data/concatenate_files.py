@@ -1,4 +1,5 @@
 # This Python file uses the following encoding: utf-8
+from __future__ import unicode_literals
 import os
 import pandas as pd
 
@@ -17,11 +18,11 @@ with open(file_path_concatenated, "w") as outfile:
             with open(os.path.join(path_data, file_name)) as infile:
                 header = infile.readline()
                 if len(header.split("£")) == 9:
-                    df = pd.read_csv(os.path.join(path_data, file_name), sep='£', encoding='utf-8', engine="python",error_bad_lines=False)
+                    df = pd.read_csv(os.path.join(path_data, file_name), sep=str('£'), encoding='utf-8', engine="python", error_bad_lines=False)
                 elif len(header.split("|")) == 9:
                     df = pd.read_csv(os.path.join(path_data, file_name), sep="\\|")
                 else:
                     continue
 
-                df.to_csv(file_path_concatenated, header=header, index=None, sep="£", mode="a") 
+                df.to_csv(file_path_concatenated, header=header, index=None, sep=str('£'), mode="a", encoding='utf-8') 
                 header = None
