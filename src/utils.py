@@ -1,6 +1,6 @@
 import os
 import torch
-from datetime import datetime
+from datetime import datetime, date
 import sys
 import json
 
@@ -67,3 +67,24 @@ def create_session(args):
     save_json(path_result, 'args', vars(args))
 
     return path_dataset, path_result, device, config
+
+def get_date(str_date):
+    """
+    Being given the string 20160211 returns date(2016,2,11)
+    """
+    year = int(str_date[:4])
+    month = int(str_date[4:6])
+    day = int(str_date[6:])
+    return date(year, month, day)
+
+def get_label(str_date_deces, str_date_cr):
+    """
+    Being given 2 strings like 20160201 and 20170318 returns the corresponding time difference in number of days.
+    Date format: yyyymmdd
+    """
+    
+    date_deces = get_date(str_date_deces)
+    date_cr = get_date(str_date_cr)
+
+    delta = date_deces - date_cr
+    return delta.days
