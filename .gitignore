@@ -9,7 +9,7 @@ results/*
 # python
 __pycache__
 .ipynb_checkpoints
-Untitled.ipynb
+Untitled*
 
 # IDE
 .vscode/

@@ -13,6 +13,9 @@ from utils import pretty_time, printc, create_session, save_json
 from health_bert import HealthBERT
 
 def test(model, test_loader, config, epoch=-1, test_losses=None):
+    """
+    Tests a model on a test_loader and compute its accuracy
+    """
     model.eval()
     predictions, test_labels = [], []
     test_start_time = time()
@@ -31,7 +34,8 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
 
         if(i*config.batch_size > config.max_size):
             break
-    test_losses.append(total_loss/len(test_loader))
+    if test_losses:
+        test_losses.append(total_loss/len(test_loader))
 
     test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
     printc(f"\n    Test accuracy: {test_accuracy}  -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
