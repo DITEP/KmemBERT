@@ -12,6 +12,45 @@ from dataset import TweetDataset
 from utils import pretty_time, printc, create_session, save_json
 from health_bert import HealthBERT
 
+def test(model, test_loader, config, epoch=-1, test_losses=None):
+    model.eval()
+    predictions, test_labels = [], []
+    test_start_time = time()
+
+    total_loss = 0
+    for i, (texts, labels) in enumerate(test_loader):
+        loss, outputs = model.step(texts, labels)
+        
+        if model.classify:
+            predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
+        else:
+            predictions += outputs.flatten().tolist()
+        
+        test_labels += labels.tolist()
+        total_loss += loss.item()
+
+        if(i*config.batch_size > config.max_size):
+            break
+    test_losses.append(total_loss/len(test_loader))
+
+    test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
+    printc(f"\n    Test accuracy: {test_accuracy}  -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
+
+    if test_accuracy > model.best_acc:
+        model.best_acc = test_accuracy
+        printc("    Best accuracy so far", "SUCCESS")
+        print('    Saving predictions...')
+        save_json(config.path_result, "test", {"labels": test_labels, "predictions": predictions})
+        print('    Saving model state...\n')
+        state = {
+            'model': model.state_dict(),
+            'accuracy': test_accuracy,
+            'epoch': epoch,
+            'tokenizer': model.tokenizer
+        }
+        torch.save(state, os.path.join(config.path_result, './checkpoint.pth'))
+    return test_accuracy
+
 def train_and_test(train_loader, test_loader, device, config, path_result):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
@@ -20,16 +59,24 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
     """
 
     model = HealthBERT(device, config)
+    if config.resume:
+        printc(f"Resuming with model at {config.resume}", "INFO")
+        path_checkpoint = os.path.join(os.path.dirname(config.path_result), config.resume, 'checkpoint.pth')
+        assert os.path.isfile(path_checkpoint), 'Error: no checkpoint found!'
+        checkpoint = torch.load(path_checkpoint, map_location=model.device)
+        model.load_state_dict(checkpoint['model'])
+        model.tokenizer = checkpoint['tokenizer']
 
-    # Train
-    model.train()
 
     printc("\n----- STARTING TRAINING -----")
+
     losses = defaultdict(list)
+    test_losses = []
     n_samples = config.print_every_k_batch * config.batch_size
 
     for epoch in range(config.epochs):
         print("> EPOCH", epoch)
+        model.train()
         epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
         model.start_epoch_timers()
@@ -52,39 +99,23 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
                 k_batch_loss = 0
                 k_batch_start_time = time()
         printc(f'    Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+        test(model, test_loader, config, epoch=epoch, test_losses=test_losses)
     
     printc("-----  Ended Training  -----\n")
-    save_json(path_result, "loss", losses)
+
+    print("\nSaving losses...")
+    save_json(path_result, "losses", { "train": losses, "test": test_losses })
     plt.plot(np.linspace(0, config.epochs, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
+    plt.plot(test_losses)
+    plt.legend(["Train loss", "Test loss"])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    plt.title("Training Loss")
+    plt.title("Loss evolution")
     plt.savefig(os.path.join(path_result, "loss.png"))
-    #torch.save(model, os.path.join(path_result, "model"))
-    #printc("Model saved", "SUCCESS")
+    print("[DONE]")
 
-    # Test
-    model.eval()
-    predictions, test_labels = [], []
-    test_start_time = time()
-    for i, (texts, labels) in enumerate(test_loader):
-        loss, outputs = model.step(texts, labels)
-        
-        if model.classify:
-            predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
-        else:
-            predictions += outputs.flatten().tolist()
-        
-        test_labels += labels.tolist()
-
-        if(i*config.batch_size > config.max_size):
-            break
-    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
-    test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
-    printc(f"\n> Test accuracy: {test_accuracy}", 'RESULTS')
-    printc(f"> Test time: {pretty_time(time()-test_start_time)}", 'RESULTS')
-    return test_accuracy
+    return model.best_acc
 
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
@@ -127,5 +158,7 @@ if __name__ == "__main__":
         help="the weight decay for L2 regularization")
     parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
+    parser.add_argument("-r", "--resume", type=str, default=None, 
+        help="result folder in with the saved checkpoint will be reused")
 
     main(parser.parse_args())
