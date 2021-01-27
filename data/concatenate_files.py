@@ -18,7 +18,7 @@ with open(file_path_concatenated, "w") as outfile:
                 header = infile.readline()
                 if len(header.split('£')) == 9:
                     sep = '£'
-                elif len(header.split('|')) == 9 and len(header.split('£')) == 1:
+                elif len(header.split('|')) == 9:
                     sep = '|'
                 else:
                     continue
@@ -30,7 +30,7 @@ with open(file_path_concatenated, "w") as outfile:
                 n_errors = 0
                 for i, line in enumerate(infile):
                     row = line.split(sep)
-                    if len(row) == 9:
+                    if len(row) == 9 and (sep=='£' or len(line.split('£'))==1):
                         outfile.write('£'.join(row))
                     else:
                         n_errors+=1
