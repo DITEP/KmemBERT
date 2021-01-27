@@ -19,7 +19,7 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
     raise BaseException("File exists: can't overwrite existing train and test datasets.")
 
 
-df = pd.read_csv(file_path, sep='£', error_bad_lines=False, engine='python')
+df = pd.read_csv(file_path, sep='£', error_bad_lines=False)
 
 train=df.sample(frac=train_size, random_state=seed) 
 test=df.drop(train.index)
