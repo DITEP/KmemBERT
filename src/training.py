@@ -22,7 +22,7 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
     test_start_time = time()
 
     total_loss = 0
-    for i, (texts, labels) in enumerate(test_loader):
+    for _, (texts, labels) in enumerate(test_loader):
         loss, outputs = model.step(texts, labels)
         
         if model.classify:
