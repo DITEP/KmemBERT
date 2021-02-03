@@ -31,6 +31,7 @@ class HealthBERT(nn.Module):
         self.model_name = config.model_name
         self.classify = config.classify
         self.best_acc = 0
+        self.early_stopping = 0
 
         if self.classify:
             self.num_labels = 2

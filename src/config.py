@@ -14,6 +14,7 @@ class Config:
     train_size = 0.8
     path_result = None
     resume = None
+    patience = None
 
     def __init__(self, args):
         for attr in dir(self):
