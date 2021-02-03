@@ -12,8 +12,8 @@ from dataset import TweetDataset
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
 
-    dataset = TweetDataset(path_dataset)
-    train_size = min(config.max_size, int(config.train_size * len(dataset)))
+    dataset = TweetDataset(path_dataset, config)
+    train_size = int(config.train_size * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         help="maximum number of samples for training and testing")
     parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
-    parser.add_argument("-max", "--max_size", type=int, default=10000, 
+    parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-e", "--epochs", type=int, default=10, 
         help="number of epochs")
