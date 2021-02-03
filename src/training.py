@@ -16,6 +16,7 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
     """
     Tests a model on a test_loader and compute its accuracy
     """
+    
     model.eval()
     predictions, test_labels = [], []
     test_start_time = time()
@@ -51,6 +52,12 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
             'tokenizer': model.tokenizer
         }
         torch.save(state, os.path.join(config.path_result, './checkpoint.pth'))
+        model.early_stopping = 0
+    else : 
+        model.early_stopping += 1
+    
+
+
     return test_accuracy
 
 def train_and_test(train_loader, test_loader, device, config, path_result):
@@ -59,7 +66,6 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
 
     Inputs: please refer bellow, to the argparse arguments.
     """
-
     model = HealthBERT(device, config)
     if config.resume:
         printc(f"Resuming with model at {config.resume}", "INFO")
@@ -82,6 +88,7 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
         epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
         model.start_epoch_timers()
+
         for i, (texts, labels) in enumerate(train_loader):
             loss, _ = model.step(texts, labels)
 
@@ -102,6 +109,8 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
                 k_batch_start_time = time()
         printc(f'    Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         test(model, test_loader, config, epoch=epoch, test_losses=test_losses)
+        if (config.patience is not None) and (model.early_stopping >= config.patience):
+            break
     
     printc("-----  Ended Training  -----\n")
 
@@ -162,5 +171,7 @@ if __name__ == "__main__":
         help="path to the new words to be added to the vocabulary of camembert")
     parser.add_argument("-r", "--resume", type=str, default=None, 
         help="result folder in with the saved checkpoint will be reused")
+    parser.add_argument("-p", "--patience", type=int, default=4, 
+        help="Number of decreasing accuracy epochs to stop the training")
 
     main(parser.parse_args())
