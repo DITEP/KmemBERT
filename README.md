@@ -4,15 +4,15 @@ Transformers for time of survival estimation based on french EHRs
 
 ## Getting started
 
-The environment can be installed using conda.
+The environment can be installed using pip.
 
 ```bash
-conda env create -f environment.yml
+pip install -r requirements.txt
 ```
 
 It creates a `gr` environment.
 
-On this environment and at the root of the project, make sure the following command line is correctly running.
+Before to continue, please make sure the following command line is correctly running.
 
 ```bash
 python src/training.py
