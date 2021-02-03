@@ -4,8 +4,8 @@ import pandas as pd
 path_data= "/data/isilon/centraleNLP"
 file_name_concatenated = "concatenate.txt"
 file_name_wanted = ["dcd.txt", "texteSimbad*"]
-sep = "\xc2\xa3"
-new_sep = "gr_random_separator_impossible_that_it_appears"
+seps = ["\xc2\xa3", "|"]
+new_sep = "\xc2\xa3"
 new_line = "\n"
 
 columns = ["Noigr","clef","Date deces","Date cr","Code nature","Nature doct","Sce","Contexte","Texte"]
@@ -18,19 +18,23 @@ with open(file_path_concatenated, "w") as outfile:
             print(file_name)        
             with open(os.path.join(path_data, file_name)) as infile:
                 header = infile.readline()
+                for sep in seps:
+                    if len(header.split(sep)) == 9:
+                        break
+
                 if len(header.split(sep)) != 9:
                     print(repr(header))
                     continue
 
                 if columns:
-                    outfile.write(sep.join(columns) + new_line)
+                    outfile.write(new_sep.join(columns) + new_line)
                     columns = None
 
                 n_errors = 0
                 for i, line in enumerate(infile):
                     row = line.split(sep)
                     if len(row) == 9:
-                        line = sep.join(row)
+                        line = new_sep.join(row)
                         if line[-1] != new_line:
                             line += new_line
 
