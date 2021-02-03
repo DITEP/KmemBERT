@@ -32,8 +32,6 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
         test_labels += labels.tolist()
         total_loss += loss.item()
 
-        if(i*config.batch_size > config.max_size):
-            break
     if test_losses is not None:
         test_losses.append(total_loss/len(test_loader))
 
@@ -124,8 +122,8 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
 
-    dataset = TweetDataset(path_dataset)
-    train_size = min(config.max_size, int(config.train_size * len(dataset)))
+    dataset = TweetDataset(path_dataset, config)
+    train_size = int(config.train_size * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
@@ -148,7 +146,7 @@ if __name__ == "__main__":
         help="dataset train size")
     parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
         help="dropout ratio")
-    parser.add_argument("-max", "--max_size", type=int, default=10000, 
+    parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
         help="maximum number of samples for training and testing")
