@@ -22,10 +22,10 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 print("Reading csv...")
 df = pd.read_csv(file_path, sep='\xc2\xa3', engine='python')
 
-noigrs = pd.unique(df["label"])
+noigrs = pd.unique(df["Noigr"])
 train_noigrs, test_noigrs = train_test_split(noigrs, train_size=train_size, random_state=seed)
 
-train=df[df["label"].isin(train_noigrs)]
+train=df[df["Noigr"].isin(train_noigrs)]
 test=df.drop(train.index)
 
 train.to_csv(train_path, index=False)
