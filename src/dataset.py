@@ -6,6 +6,7 @@ import os
 import sys
 
 from utils import get_label, time_survival_to_label, save_json, printc
+from preprocesser import EHRPreprocesser
 
 class TweetDataset(Dataset):
     """PyTorch Dataset class for tweets"""
@@ -36,6 +37,7 @@ class EHRDataset(Dataset):
         self.train = train
         self.csv_path = os.path.join(self.path_dataset, "train.csv" if train else "test.csv")
         self.config_path = os.path.join(self.path_dataset, "config.json")
+        self.preprocesser = EHRPreprocesser()
 
         self.df = pd.read_csv(self.csv_path, nrows=self.nrows)
 
@@ -53,7 +55,7 @@ class EHRDataset(Dataset):
         config.mean_time_survival = self.mean_time_survival
 
         self.labels = time_survival_to_label(self.labels, self.mean_time_survival)
-        self.texts = list(self.df["Texte"])
+        self.texts = list(self.df["Texte"].apply(self.preprocesser))
         
     def __getitem__(self, index):
         return self.texts[index], self.labels[index]
