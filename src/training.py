@@ -36,7 +36,7 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
         test_losses.append(total_loss/len(test_loader))
 
     test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
-    printc(f"\n    Test accuracy: {test_accuracy}  -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
+    printc(f"\n    Valudation accuracy: {test_accuracy}  -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
 
     if test_accuracy > model.best_acc:
         model.best_acc = test_accuracy
@@ -106,11 +106,11 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
     printc("-----  Ended Training  -----\n")
 
     print("Saving losses...")
-    save_json(path_result, "losses", { "train": losses, "test": test_losses })
+    save_json(path_result, "losses", { "train": losses, "validation": test_losses })
     plt.plot(np.linspace(0, config.epochs, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
     plt.plot(test_losses)
-    plt.legend(["Train loss", "Test loss"])
+    plt.legend(["Train loss", "Validation loss"])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Loss evolution")
