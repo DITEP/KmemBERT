@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 RUN ONLY ONCE
 This code splits the concatenated dataset into a train and test one.
@@ -19,7 +18,7 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
     raise BaseException("File exists: can't overwrite existing train and test datasets.")
 
 
-df = pd.read_csv(file_path, sep='£', error_bad_lines=False)
+df = pd.read_csv(file_path, sep='\xc2\xa3', engine='python')
 
 train=df.sample(frac=train_size, random_state=seed) 
 test=df.drop(train.index)
