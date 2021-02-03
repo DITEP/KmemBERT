@@ -75,7 +75,7 @@ def get_date(str_date):
     """
     year = int(str_date[:4])
     month = int(str_date[4:6])
-    day = int(str_date[6:])
+    day = int(str_date[6:8])
     return date(year, month, day)
 
 def get_label(str_date_deces, str_date_cr):

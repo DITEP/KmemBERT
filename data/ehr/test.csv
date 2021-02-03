@@ -1,10 +1,2 @@
-Date deces£Date cr£Texte
-20200209£20180101£le patient est mourant
-20190703£20050101£En bonne santé !
-20140202£20070203£En rémission.
-20200209£20180101£le patient va bien
-20190703£20050101£ok
-20140202£20070203£rémission totale
-20200209£20180101£je sais plus quoi écrire
-20190703£20050101£là non plus
-20140202£20070203£fin !
+Noigr,clef,Date deces,Date cr,Code nature,Nature doct,Sce,Contexte,Texte
+201618607,NS,20191025,20200701.0,CC,C.R. consultation,MEDECINE A,Consultation d'Onco-Urologie - Docteur Laurence ALBIGES," #$ DEPARTEMENT DE MEDECINE - ONCO-UROLOGIE - COMPTE RENDU DE  #$ CONSULTATION  #$"
