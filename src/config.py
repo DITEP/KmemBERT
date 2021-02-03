@@ -1,9 +1,10 @@
 class Config:
     voc_path = None
     model_name = "camembert-base"
+    data_folder = None
     classify = False
     print_every_k_batch = 8
-    max_size = 100000
+    nrows = None
     batch_size = 64
     learning_rate = 1e-5
     epochs = 20

@@ -10,8 +10,6 @@ The environment can be installed using pip.
 pip install -r requirements.txt
 ```
 
-It creates a `gr` environment.
-
 Before to continue, please make sure the following command line is correctly running.
 
 ```bash

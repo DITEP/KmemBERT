@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from dataset import TweetDataset
+from dataset import EHRDataset
 from utils import pretty_time, printc, create_session, save_json
 from health_bert import HealthBERT
 
@@ -33,13 +33,11 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
         test_labels += labels.tolist()
         total_loss += loss.item()
 
-        if(i*config.batch_size > config.max_size):
-            break
     if test_losses is not None:
         test_losses.append(total_loss/len(test_loader))
 
     test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
-    printc(f"\n    Test accuracy: {test_accuracy}  -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
+    printc(f"\n    Valudation accuracy: {test_accuracy}  -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
 
     if test_accuracy > model.best_acc:
         model.best_acc = test_accuracy
@@ -117,11 +115,11 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
     printc("-----  Ended Training  -----\n")
 
     print("Saving losses...")
-    save_json(path_result, "losses", { "train": losses, "test": test_losses })
+    save_json(path_result, "losses", { "train": losses, "validation": test_losses })
     plt.plot(np.linspace(0, config.epochs, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
     plt.plot(test_losses)
-    plt.legend(["Train loss", "Test loss"])
+    plt.legend(["Train loss", "Validation loss"])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Loss evolution")
@@ -133,8 +131,8 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
 
-    dataset = TweetDataset(path_dataset)
-    train_size = min(config.max_size, int(config.train_size * len(dataset)))
+    dataset = EHRDataset(path_dataset, config)
+    train_size = int(config.train_size * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
@@ -145,8 +143,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dataset", type=str, default="french_tweets_short.csv", 
-        help="dataset filename")
+    parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
+        help="data folder name")
     parser.add_argument("-c", "--classify", type=bool, default=False, const=True, nargs="?",
         help="whether or not to train camembert for a classification task")
     parser.add_argument("-b", "--batch_size", type=int, default=8, 
@@ -157,7 +155,7 @@ if __name__ == "__main__":
         help="dataset train size")
     parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
         help="dropout ratio")
-    parser.add_argument("-max", "--max_size", type=int, default=10000, 
+    parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
         help="maximum number of samples for training and testing")
