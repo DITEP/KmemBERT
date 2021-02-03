@@ -19,6 +19,7 @@ with open(file_path_concatenated, "w") as outfile:
             with open(os.path.join(path_data, file_name)) as infile:
                 header = infile.readline()
                 if len(header.split(sep)) != 9:
+                    print(repr(header))
                     continue
 
                 if columns:
@@ -32,7 +33,7 @@ with open(file_path_concatenated, "w") as outfile:
                         line = sep.join(row)
                         if line[-1] != new_line:
                             line += new_line
-                            
+
                         outfile.write(line)
                     else:
                         n_errors+=1
