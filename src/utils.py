@@ -3,6 +3,7 @@ import torch
 from datetime import datetime, date
 import sys
 import json
+import numpy as np
 
 from config import Config
 
@@ -15,11 +16,11 @@ def pretty_time(t):
 
 def time_survival_to_label(ts, mean_time_survival):
     """Transforms times of survival into uniform labels in ]0,1["""
-    return 1 - torch.exp(-ts/mean_time_survival)
+    return 1 - np.exp(-ts/mean_time_survival)
 
 def label_to_time_survival(label, mean_time_survival):
     """Transforms labels in ]0,1[ into times of survival"""
-    return - mean_time_survival*torch.log(1-label)
+    return - mean_time_survival*np.log(1-label)
 
 bcolors = {
     'RESULTS': '\033[95m',
@@ -53,7 +54,7 @@ def create_session(args):
     path_root = get_root()
     printc(f"> ROOT:    {path_root}", "INFO")
 
-    path_dataset = os.path.join(path_root, "data", args.dataset)
+    path_dataset = os.path.join(path_root, "data", args.data_folder)
 
     main_file = os.path.splitext(os.path.basename(sys.argv[0]))[0]
     session_id = f"{main_file}_{now()}"
@@ -83,8 +84,8 @@ def get_label(str_date_deces, str_date_cr):
     Date format: yyyymmdd
     """
     
-    date_deces = get_date(str_date_deces)
-    date_cr = get_date(str_date_cr)
+    date_deces = get_date(str(str_date_deces))
+    date_cr = get_date(str(str_date_cr))
 
     delta = date_deces - date_cr
     return delta.days

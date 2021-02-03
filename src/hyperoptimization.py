@@ -6,13 +6,13 @@ from torch.utils.data import DataLoader
 
 from utils import create_session
 from training import train_and_test
-from dataset import TweetDataset
+from dataset import EHRDataset
 
 
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
 
-    dataset = TweetDataset(path_dataset, config)
+    dataset = EHRDataset(config, path_dataset)
     train_size = int(config.train_size * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
@@ -36,8 +36,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dataset", type=str, default="french_tweets_short.csv", 
-        help="dataset filename")
+    parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
+        help="data folder name")
     parser.add_argument("-n", "--n_trials", type=int, default=10, 
         help="number of trials")
     parser.add_argument("-c", "--classify", type=bool, default=False, const=True, nargs="?",

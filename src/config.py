@@ -1,6 +1,7 @@
 class Config:
     voc_path = None
     model_name = "camembert-base"
+    data_folder = None
     classify = False
     print_every_k_batch = 8
     nrows = None

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from dataset import TweetDataset
+from dataset import EHRDataset
 from utils import pretty_time, printc, create_session, save_json
 from health_bert import HealthBERT
 
@@ -122,7 +122,7 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
 
-    dataset = TweetDataset(path_dataset, config)
+    dataset = EHRDataset(path_dataset, config)
     train_size = int(config.train_size * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
@@ -134,8 +134,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dataset", type=str, default="french_tweets_short.csv", 
-        help="dataset filename")
+    parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
+        help="data folder name")
     parser.add_argument("-c", "--classify", type=bool, default=False, const=True, nargs="?",
         help="whether or not to train camembert for a classification task")
     parser.add_argument("-b", "--batch_size", type=int, default=8, 
