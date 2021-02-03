@@ -33,7 +33,7 @@ with open(file_path_concatenated, "w") as outfile:
                 n_errors = 0
                 for i, line in enumerate(infile):
                     row = line.split(sep)
-                    if len(row) == 9:
+                    if len(row) == 9 and len(line.split(new_sep)) == 1:
                         line = new_sep.join(row)
                         if line[-1] != new_line:
                             line += new_line
