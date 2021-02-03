@@ -29,7 +29,11 @@ with open(file_path_concatenated, "w") as outfile:
                 for i, line in enumerate(infile):
                     row = line.split(sep)
                     if len(row) == 9:
-                        outfile.write(sep.join(row))
+                        line = sep.join(row)
+                        if line[-1] != new_line:
+                            line += new_line
+                            
+                        outfile.write(line)
                     else:
                         n_errors+=1
                         
