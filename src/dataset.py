@@ -47,9 +47,10 @@ class EHRDataset(Dataset):
         elif self.train:
             printc("No config.json found. Building it..", "WARNING")
             self.mean_time_survival = self.labels.mean()
-            save_json(self.path_dataset, "config.json", {"mean_time_survival": self.mean_time_survival})
+            save_json(self.path_dataset, "config", {"mean_time_survival": self.mean_time_survival})
         else:
             sys.exit("config.json is needed for testing. Exiting..")
+        config.mean_time_survival = self.mean_time_survival
 
         self.labels = time_survival_to_label(self.labels, self.mean_time_survival)
         self.texts = list(self.df["Texte"])

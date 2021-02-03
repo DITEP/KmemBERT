@@ -30,7 +30,7 @@ class HealthBERT(nn.Module):
         self.voc_path = config.voc_path
         self.model_name = config.model_name
         self.classify = config.classify
-        self.best_acc = 0
+        self.best_error = 0
         self.early_stopping = 0
 
         if self.classify:
