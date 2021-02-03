@@ -19,6 +19,7 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
     raise BaseException("File exists: can't overwrite existing train and test datasets.")
 
 
+print("Reading csv...")
 df = pd.read_csv(file_path, sep='\xc2\xa3', engine='python')
 
 noigrs = pd.unique(df["label"])
@@ -29,3 +30,5 @@ test=df.drop(train.index)
 
 train.to_csv(train_path, index=False)
 test.to_csv(test_path, index=False)
+n_train, n_test = len(train), len(test)
+print(f"\nTrain samples: {n_train}\nTest samples: {n_test}\nTrain ratio: {n_train/(n_train + n_test)}")
