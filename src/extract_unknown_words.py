@@ -44,7 +44,8 @@ def main(args):
 
     txt_path = f"{args.data_folder}_{args.n_unknown_words}_{args.max_chunk}.txt"
     with open(os.path.join("sentence_piece", txt_path), "w") as text_file:
-        text_file.write(' '.join([ word for word, occurence in counter for _ in range(occurence)]))
+        min_occurence = counter[-1][1]
+        text_file.write(' '.join([ word for word, occurence in counter for _ in range(occurence // min_occurence)]))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
