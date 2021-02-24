@@ -2,12 +2,16 @@ import numpy as np
 import os
 import argparse
 from time import time
+import matplotlib.pyplot as plt
+import json
+
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix
 
 import torch
 from torch.utils.data import DataLoader
 
 from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json, label_to_time_survival
+from utils import pretty_time, printc, create_session, save_json, label_to_time_survival, time_survival_to_label
 from health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
@@ -56,12 +60,48 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         else: 
             model.early_stopping += 1
     else:
-        save_json(path_result, 'results', {'mean_error': mean_error})
+        plt.scatter(predictions, test_labels)
+        plt.xlabel("Predictions")
+        plt.ylabel("Labels")
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.title("Predictions / Labels correlation")
+        plt.savefig(os.path.join(path_result, "correlations.png"))
+
+        predictions = np.array(predictions)
+        test_labels = np.array(test_labels)
+
+        bin_predictions = (predictions >= config.label_threshold).astype(int)
+        bin_labels = (test_labels >= config.label_threshold).astype(int)
+
+        metrics = {}
+        metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
+        metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
+        metrics['f1_score'] = f1_score(bin_labels, bin_predictions)
+        metrics['auc'] = roc_auc_score(bin_labels, predictions)
+        metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
+        print("Classification metrics:\n", metrics)
+
+        save_json(path_result, 'results', 
+            {'mean_error': mean_error,
+             'predictions': predictions.tolist(),
+             'test_labels': test_labels.tolist(),
+             'label_threshold': config.label_threshold,
+             'bin_predictions': bin_predictions.tolist(),
+             'bin_labels': bin_labels.tolist(),
+             'metrics': metrics})
 
     return mean_error
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
+
+    config_path = os.path.join(path_dataset, "config.json")
+    assert os.path.isfile(config_path), 'Config file not existing, please train a model first'
+    with open(config_path) as json_file:
+        mean_time_survival = json.load(json_file)["mean_time_survival"]
+
+    config.label_threshold = time_survival_to_label(args.days_threshold, mean_time_survival)
 
     dataset = EHRDataset(path_dataset, config, train=False)
     loader = DataLoader(dataset, batch_size=config.batch_size)
@@ -82,11 +122,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
+    parser.add_argument("-r", "--resume", type=str, required=True, 
+        help="result folder in with the saved checkpoint will be reused")
+    parser.add_argument("-dt", "--days_threshold", type=int, default=90, 
+        help="days threshold to convert into classification task")
     parser.add_argument("-b", "--batch_size", type=int, default=8, 
         help="dataset batch size")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and testing")
-    parser.add_argument("-r", "--resume", type=str, required=True, 
-        help="result folder in with the saved checkpoint will be reused")
 
     main(parser.parse_args())
