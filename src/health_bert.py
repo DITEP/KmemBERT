@@ -52,7 +52,7 @@ class HealthBERT(nn.Module):
                         {'params': self.camembert.roberta.encoder.parameters()},
                         {'params': self.camembert.classifier.parameters()}]
         self.optimizer = Adam(decomposed_params, lr = self.learning_rate, weight_decay=config.weight_decay)
-        
+        self.scheduler = ReduceLROnPlateau(self.optimizer)
 
         if config.freeze:
             self.freeze()
