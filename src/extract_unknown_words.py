@@ -28,7 +28,7 @@ def main(args):
     voc = set(tokenizer.get_vocab().keys())
 
     for i, chunk in enumerate(tqdm(df_chunk)):
-        if args.max_chunk and i > args.max_chunk:
+        if args.max_chunk and i >= args.max_chunk:
             break
         for ehr in chunk.Texte:
             for word in re.findall(r'\w+', ehr):
@@ -40,7 +40,7 @@ def main(args):
 
     json_path = f"{args.data_folder}_{args.n_unknown_words}_{args.max_chunk}.json"
     with open(os.path.join("medical_voc", json_path), 'w') as f:
-        json.dump(counter, f, indent=4)
+        json.dump(counter, f, indent=4, ensure_ascii=False)
 
     txt_path = f"{args.data_folder}_{args.n_unknown_words}_{args.max_chunk}.txt"
     with open(os.path.join("sentence_piece", txt_path), "w") as text_file:
