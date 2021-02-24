@@ -83,10 +83,10 @@ def main(arg):
 
     sample_from_geom = -np.sort(-np.random.exponential(beta, len(survival_time)))
     fig, ax = plt.subplots()
-    ax.step(list(range(len(survival_time))), survival_time, label = "survival time")
-    ax.step(list(range(len(survival_time))), sample_from_geom, label = "sample from exp law - beta = {}".format(round(beta,1)))
+    ax.step(survival_time, list(range(len(survival_time))), label = "survival time")
+    ax.step(sample_from_geom, list(range(len(survival_time))), label = "sample from exp law - beta = {}".format(round(beta,1)))
     ax.set_title('Distribution survival time')
-    ax.set_ylabel('Survival time')
+    ax.set_xlabel('Survival time')
     ax.legend()
     plt.savefig(os.path.join(folder_to_save, "survival_time.jpg"))
 
