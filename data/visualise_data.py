@@ -56,16 +56,19 @@ def main(arg):
     # Words by sentence / sentence by cr
     df_count = df.apply(count_sentence, axis=1)
 
-    plt.figure(2)
-    df_count["total_sentence"].plot.hist(bins=50)
     total_sentence_max = df_count["total_sentence"].max()
     max_value_desired = 150
+    plt.figure(2)
+    plt.xlim((0, min(total_sentence_max, max_value_desired)))
+    df_count["total_sentence"].plot.hist(bins=50)
     plt.title("Sentences per EHR")
     plt.xlabel("Nb of sentences")
-    plt.xlim((0, min(total_sentence_max, max_value_desired)))
     plt.savefig(os.path.join(folder_to_save, "sentences_by_ehr.jpg"))
 
     plt.figure(3)
+    words_max = df_count["mean_word"].max()
+    words_max_desired = 200 
+    plt.xlim((0, min(words_max, words_max_desired)))
     df_count["mean_word"].plot.hist(bins=50)
     plt.title("Mean words per sentence per EHR")
     plt.xlabel("Mean number of words")
