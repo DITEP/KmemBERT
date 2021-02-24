@@ -57,7 +57,7 @@ class HealthBERT(nn.Module):
         if config.freeze:
             self.freeze()
 
-        self.tokenizer = Tokenizer.load(self.model_name, lower_case=False, fast=True)
+        self.tokenizer = Tokenizer.load(self.model_name, lower_case=True, fast=True)
         printc("----- Successfully loaded camembert model and tokenizer\n", "SUCCESS")
 
         self.drop_rate = config.drop_rate
