@@ -5,9 +5,35 @@ This code splits the concatenated dataset into a train and test one.
 import pandas as pd 
 import os
 from sklearn.model_selection import train_test_split
-import sys
-sys.path.append("../src/")
-from utils import get_label, save_json
+from datetime import date
+import json
+
+# CRAPPY: copy from utils but works for python 2.7
+# TODO: make it work for python 3.6, probably need to change concatenate_files.py as well, or do a utils.py without f strings
+def save_json(path_result, name, x):
+    with open(os.path.join(path_result, "{}.json".format(name)), 'w') as f:
+        json.dump(x, f, indent=4)
+
+def get_date(str_date):
+    """
+    Being given the string 20160211 returns date(2016,2,11)
+    """
+    year = int(str_date[:4])
+    month = int(str_date[4:6])
+    day = int(str_date[6:8])
+    return date(year, month, day)
+
+def get_label(str_date_deces, str_date_cr):
+    """
+    Being given 2 strings like 20160201 and 20170318 returns the corresponding time difference in number of days.
+    Date format: yyyymmdd
+    """
+    
+    date_deces = get_date(str(str_date_deces))
+    date_cr = get_date(str(str_date_cr))
+
+    delta = date_deces - date_cr
+    return delta.days
 
 train_size = 0.7
 seed = 0
@@ -23,7 +49,7 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 
 
 print("Reading csv...")
-df = pd.read_csv(file_path, sep="£", engine='python')
+df = pd.read_csv(file_path, sep='\xc2\xa3', engine='python')
 
 print("\nCounting EHR categories...\n")
 counter = df.groupby("Nature doct").count()["Noigr"]
