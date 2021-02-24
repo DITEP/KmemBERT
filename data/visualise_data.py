@@ -10,7 +10,7 @@ from numpy.core.numeric import NaN
 def count_sentence(x):
     total_sentence = 0
     count_word = 0
-    splitted_by_sentence = re.split(r'[.!?]+', x["Texte"])
+    splitted_by_sentence = re.split(r'[.!?]+', str(x["Texte"]))
     total_sentence += len(splitted_by_sentence) - 1
     for s in splitted_by_sentence :
         if len(s) == 0 :
@@ -34,7 +34,6 @@ def compute_survival_time(x):
         return diff
 
 def main(arg):
-
     if not os.path.isdir(arg.folder_to_save):
         os.mkdir(arg.folder_to_save)
 
@@ -43,6 +42,8 @@ def main(arg):
         df = pd.read_csv(arg.data_file)
     else :
         df = pd.read_csv(arg.data_file, nrows=arg.number_of_lines)
+    
+    df = df.dropna()
 
     # EHR by patient
     plt.figure(1)
