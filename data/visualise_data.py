@@ -39,7 +39,10 @@ def main(arg):
         os.mkdir(arg.folder_to_save)
 
     folder_to_save = arg.folder_to_save
-    df = pd.read_csv(arg.data_file)
+    if arg.number_of_lines == 0 :
+        df = pd.read_csv(arg.data_file)
+    else :
+        df = pd.read_csv(arg.data_file, nrows=arg.number_of_lines)
 
     # EHR by patient
     plt.figure(1)
@@ -89,5 +92,7 @@ if __name__ == "__main__" :
         help="data file path")
     parser.add_argument("-f", "--folder_to_save", type=str, default="data_viz", 
         help="folder to save the figures")
+    parser.add_argument("-nl", "--number_of_lines", type=int, default=0, 
+        help="number of lines of the csv to read, 0 for all")
 
     main(parser.parse_args())
