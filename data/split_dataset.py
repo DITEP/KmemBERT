@@ -28,6 +28,8 @@ print(counter)
 
 print("\nFiltering EHR...")
 df = df[df["Nature doct"] == "C.R. consultation"]
+df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
+df = df[df["Date cr"]<df["Date deces"]]
 
 noigrs = pd.unique(df["Noigr"])
 train_noigrs, test_noigrs = train_test_split(noigrs, train_size=train_size, random_state=seed)
