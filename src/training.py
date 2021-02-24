@@ -62,7 +62,8 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
                 k_batch_start_time = time()
         printc(f'    Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
-        #model.lr_scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
+        
+        model.scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             break
     
