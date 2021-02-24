@@ -40,6 +40,8 @@ class EHRDataset(Dataset):
         self.preprocesser = EHRPreprocesser()
 
         self.df = pd.read_csv(self.csv_path, nrows=self.nrows)
+        # TODO: probably do that upstream, in split_dataset for instance
+        self.df.dropna(subset=["Date deces", "Date cr", "Texte"], inplace=True)
 
         self.labels = np.array(list(self.df[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 
