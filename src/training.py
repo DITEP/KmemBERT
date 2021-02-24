@@ -109,7 +109,8 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
                 k_batch_loss = 0
                 k_batch_start_time = time()
         printc(f'    Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
-        test(model, test_loader, config, epoch=epoch, test_losses=test_losses)
+        test_error = test(model, test_loader, config, epoch=epoch, test_losses=test_losses)
+        model.lr_scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             break
     
