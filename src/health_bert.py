@@ -66,6 +66,8 @@ class HealthBERT(nn.Module):
         if self.voc_path:
             self.add_tokens_from_path(self.voc_path)
 
+        self.start_epoch_timers()
+
     def start_epoch_timers(self):
         self.encoding_time = 0
         self.compute_time = 0
