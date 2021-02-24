@@ -11,57 +11,9 @@ from torch.utils.data import DataLoader
 from dataset import EHRDataset
 from utils import pretty_time, printc, create_session, save_json, label_to_time_survival
 from health_bert import HealthBERT
+from testing import test
 
-def test(model, test_loader, config, epoch=-1, test_losses=None):
-    """
-    Tests a model on a test_loader and compute its accuracy
-    """
-    
-    model.eval()
-    predictions, test_labels = [], []
-    test_start_time = time()
-
-    total_loss = 0
-    for _, (texts, labels) in enumerate(test_loader):
-        loss, outputs = model.step(texts, labels)
-        
-        if model.classify:
-            predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
-        else:
-            predictions += outputs.flatten().tolist()
-        
-        test_labels += labels.tolist()
-        total_loss += loss.item()
-
-    if test_losses is not None:
-        test_losses.append(total_loss/len(test_loader))
-
-    mean_error = np.abs(label_to_time_survival(np.array(test_labels), config.mean_time_survival) - 
-                  label_to_time_survival(np.array(predictions), config.mean_time_survival)).mean()
-    printc(f"    Validation mean error: {mean_error:.3f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
-
-    if mean_error < model.best_error:
-        model.best_error = mean_error
-        printc("    Best accuracy so far", "SUCCESS")
-        print('    Saving predictions...')
-        save_json(config.path_result, "test", {"labels": test_labels, "predictions": predictions})
-        print('    Saving model state...\n')
-        state = {
-            'model': model.state_dict(),
-            'mean_error': mean_error,
-            'epoch': epoch,
-            'tokenizer': model.tokenizer
-        }
-        torch.save(state, os.path.join(config.path_result, './checkpoint.pth'))
-        model.early_stopping = 0
-    else: 
-        model.early_stopping += 1
-    
-
-
-    return mean_error
-
-def train_and_test(train_loader, test_loader, device, config, path_result):
+def train_and_validate(train_loader, test_loader, device, config, path_result):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
@@ -109,8 +61,12 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
                 k_batch_loss = 0
                 k_batch_start_time = time()
         printc(f'    Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+<<<<<<< HEAD
         test_error = test(model, test_loader, config, epoch=epoch, test_losses=test_losses)
         model.lr_scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
+=======
+        test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
+>>>>>>> 050f21a76fc4a98862193fa0a1c8a61b917415a8
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             break
     
@@ -131,7 +87,7 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
     return model.best_error
 
 def main(args):
-    path_dataset, path_result, device, config = create_session(args)
+    path_dataset, _, device, config = create_session(args)
 
     dataset = EHRDataset(path_dataset, config)
     train_size = int(config.train_size * len(dataset))
@@ -141,7 +97,7 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
 
-    train_and_test(train_loader, test_loader, device, config, path_result)
+    train_and_validate(train_loader, test_loader, device, config, config.path_result)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

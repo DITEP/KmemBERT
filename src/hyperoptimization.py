@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from utils import create_session
-from training import train_and_test
+from training import train_and_validate
 from dataset import EHRDataset
 
 
@@ -27,7 +27,7 @@ def main(args):
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-        return -train_and_test(train_loader, test_loader, device, config, path_result)
+        return -train_and_validate(train_loader, test_loader, device, config, path_result)
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=args.n_trials)
