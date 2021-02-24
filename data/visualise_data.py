@@ -47,7 +47,7 @@ def main(arg):
     # EHR by patient
     plt.figure(1)
     ehr_by_id = df["Noigr"].value_counts()
-    ehr_by_id.plot.hist()
+    ehr_by_id.plot.hist(bins=20)
     plt.title("EHR by patient")
     plt.xlabel("Nb of EHR")
     plt.savefig(os.path.join(folder_to_save, "ehr_by_id.jpg"))
@@ -56,13 +56,16 @@ def main(arg):
     df_count = df.apply(count_sentence, axis=1)
 
     plt.figure(2)
-    df_count["total_sentence"].plot.hist()
+    df_count["total_sentence"].plot.hist(bins=50)
+    total_sentence_max = df_count["total_sentence"].max()
+    max_value_desired = 150
     plt.title("Sentences per EHR")
     plt.xlabel("Nb of sentences")
+    plt.xlim((0, min(total_sentence_max, max_value_desired)))
     plt.savefig(os.path.join(folder_to_save, "sentences_by_ehr.jpg"))
 
     plt.figure(3)
-    df_count["mean_word"].plot.hist()
+    df_count["mean_word"].plot.hist(bins=50)
     plt.title("Mean words per sentence per EHR")
     plt.xlabel("Mean number of words")
     plt.savefig(os.path.join(folder_to_save, "mean_words.jpg"))
