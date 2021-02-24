@@ -1,5 +1,7 @@
 import json
 
+import numpy as np
+
 from transformers import CamembertForSequenceClassification
 from farm.modeling.tokenization import Tokenizer
 
@@ -30,7 +32,7 @@ class HealthBERT(nn.Module):
         self.voc_path = config.voc_path
         self.model_name = config.model_name
         self.classify = config.classify
-        self.best_error = 0
+        self.best_error = np.inf
         self.early_stopping = 0
 
         if self.classify:

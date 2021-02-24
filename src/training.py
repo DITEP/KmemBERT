@@ -38,7 +38,7 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
 
     mean_error = np.abs(label_to_time_survival(np.array(test_labels), config.mean_time_survival) - 
                   label_to_time_survival(np.array(predictions), config.mean_time_survival)).mean()
-    printc(f"\n    Validation mean error: {mean_error:.3f} days -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
+    printc(f"    Validation mean error: {mean_error:.3f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if mean_error < model.best_error:
         model.best_error = mean_error
