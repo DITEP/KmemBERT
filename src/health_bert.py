@@ -1,11 +1,14 @@
 import json
 
+import numpy as np
+
 from transformers import CamembertForSequenceClassification
 from farm.modeling.tokenization import Tokenizer
 
 import torch
 import torch.nn as nn
 from torch.optim import Adam
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from time import time
 
@@ -30,7 +33,7 @@ class HealthBERT(nn.Module):
         self.voc_path = config.voc_path
         self.model_name = config.model_name
         self.classify = config.classify
-        self.best_error = 0
+        self.best_error = np.inf
         self.early_stopping = 0
 
         if self.classify:
@@ -49,6 +52,7 @@ class HealthBERT(nn.Module):
                         {'params': self.camembert.roberta.encoder.parameters()},
                         {'params': self.camembert.classifier.parameters()}]
         self.optimizer = Adam(decomposed_params, lr = self.learning_rate, weight_decay=config.weight_decay)
+        
 
         if config.freeze:
             self.freeze()
@@ -63,6 +67,8 @@ class HealthBERT(nn.Module):
 
         if self.voc_path:
             self.add_tokens_from_path(self.voc_path)
+
+        self.start_epoch_timers()
 
     def start_epoch_timers(self):
         self.encoding_time = 0
@@ -120,6 +126,7 @@ class HealthBERT(nn.Module):
 
         loss.backward()
         self.optimizer.step()
+        
 
         return loss, outputs.logits if self.classify else outputs
 
