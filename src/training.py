@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json
+from utils import pretty_time, printc, create_session, save_json, label_to_time_survival
 from health_bert import HealthBERT
 
 def test(model, test_loader, config, epoch=-1, test_losses=None):
@@ -22,7 +22,7 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
     test_start_time = time()
 
     total_loss = 0
-    for i, (texts, labels) in enumerate(test_loader):
+    for _, (texts, labels) in enumerate(test_loader):
         loss, outputs = model.step(texts, labels)
         
         if model.classify:
@@ -36,29 +36,30 @@ def test(model, test_loader, config, epoch=-1, test_losses=None):
     if test_losses is not None:
         test_losses.append(total_loss/len(test_loader))
 
-    test_accuracy = 1 - np.mean(np.abs(np.array(test_labels)-np.array(predictions)))
-    printc(f"\n    Valudation accuracy: {test_accuracy}  -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
+    mean_error = np.abs(label_to_time_survival(np.array(test_labels), config.mean_time_survival) - 
+                  label_to_time_survival(np.array(predictions), config.mean_time_survival)).mean()
+    printc(f"\n    Validation mean error: {mean_error:.3f} days -  Time elapsed: {pretty_time(time()-test_start_time)}", 'RESULTS')
 
-    if test_accuracy > model.best_acc:
-        model.best_acc = test_accuracy
+    if mean_error < model.best_error:
+        model.best_error = mean_error
         printc("    Best accuracy so far", "SUCCESS")
         print('    Saving predictions...')
         save_json(config.path_result, "test", {"labels": test_labels, "predictions": predictions})
         print('    Saving model state...\n')
         state = {
             'model': model.state_dict(),
-            'accuracy': test_accuracy,
+            'mean_error': mean_error,
             'epoch': epoch,
             'tokenizer': model.tokenizer
         }
         torch.save(state, os.path.join(config.path_result, './checkpoint.pth'))
         model.early_stopping = 0
-    else : 
+    else: 
         model.early_stopping += 1
     
 
 
-    return test_accuracy
+    return mean_error
 
 def train_and_test(train_loader, test_loader, device, config, path_result):
     """
@@ -126,7 +127,7 @@ def train_and_test(train_loader, test_loader, device, config, path_result):
     plt.savefig(os.path.join(path_result, "loss.png"))
     print("[DONE]")
 
-    return model.best_acc
+    return model.best_error
 
 def main(args):
     path_dataset, path_result, device, config = create_session(args)

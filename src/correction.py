@@ -49,7 +49,11 @@ def main(dataset, distance):
     path_root = get_root()
     path_dataset = os.path.join(path_root, "data", args.dataset)
     df = pd.read_csv(path_dataset)
+<<<<<<< HEAD
     df.text = df.text.parallel_apply(transform_one_sentence, method= args.method)
+=======
+    df["Texte"] = df["Texte"].parallel_apply(transform_one_sentence)
+>>>>>>> 130c271cf6641ad94d8f94254de81e49fced46e0
     
     correction_dataset = f'_correction_{distance}.csv'.join(path_dataset.split(".csv"))
     print(f"Saving the corrected dataset into {correction_dataset}...")

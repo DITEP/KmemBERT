@@ -22,6 +22,13 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 print("Reading csv...")
 df = pd.read_csv(file_path, sep='\xc2\xa3', engine='python')
 
+print("\nCounting EHR categories...\n")
+counter = df.groupby("Nature doct").count()["Noigr"]
+print(counter)
+
+print("\nFiltering EHR...")
+df = df[df["Nature doct"] == "C.R. consultation"]
+
 noigrs = pd.unique(df["Noigr"])
 train_noigrs, test_noigrs = train_test_split(noigrs, train_size=train_size, random_state=seed)
 

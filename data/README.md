@@ -1,16 +1,39 @@
 # Data
 
-Folder containing data files used to train the transformer.
+The data is stored inside this folder. A folder corresponds to one single dataset, and has to contain three files. For example, the `ehr` dataset bellow has the right format.
 
-## Format
+```
+.
+└── ehr              - one dataset
+    ├── config.json  - config file
+    ├── test.csv     - test set
+    └── train.csv    - train set
+```
 
-The data file has to be a `csv` file with at least the following columns:
+## Train and Test csv
 
-- a sentence or a full text
-- a label (either 0/1 for binary classification or a survival time for regression tasks)
+You will need a `train.csv` file to train a model, and a `test.csv` to test it. If one is missing, you will be able to run only one of the two previous scripts.
 
-## Example
+The CSV separator has to be a comma.
 
-`french_tweets_short.csv` is a dataset example that we use while we are waiting for the real dataset.
+### Columns
 
-You can also load the complete `french_tweets.csv` dataset (1M+ tweets) on [this Kaggle challenge](https://www.kaggle.com/hbaflast/french-twitter-sentiment-analysis/version/1).
+The required columns are:
+- Data deces
+- Date cr
+- Texte
+
+For example,
+```
+Noigr,clef,Date deces,Date cr,Code nature,Nature doct,Sce,Contexte,Texte
+```
+## Config file
+
+The config file has to be named `config.json`. Do not create it manually, as it will be automatically generated the first time to launch a training.
+
+This is a config file example.
+```
+{
+    "mean_time_survival": 800
+}
+```

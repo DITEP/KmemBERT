@@ -10,7 +10,7 @@ The environment can be installed using pip.
 pip install -r requirements.txt
 ```
 
-Before to continue, please make sure the following command line is correctly running.
+Before to continue, please make sure the following command line is correctly running. If if runs until printing "DONE" then you can move on to the next section.
 
 ```bash
 python src/training.py
@@ -20,9 +20,9 @@ python src/training.py
 
 The main files and folders are briefly described bellow. Some files that don't need to be described are not listed bellow.
 
-```bash
+```
 .
-├── data                         - folder of csv data files
+├── data                         - folder of csv data files (details bellow)
 ├── exploration                  - folder of notebooks used for exploration
 ├── medical_voc                  - folder containing jsons of vocabulary
 ├── results                      - folder storing results
@@ -39,6 +39,21 @@ The main files and folders are briefly described bellow. Some files that don't n
 └── ****.sh                      - scripts used to run a job on the cluster of centralesupelec
 ```
 
+## Data
+
+The data is stored inside `./data`. A folder inside `./data` corresponds to one single dataset, and has to contain three files. For example, the `ehr` dataset bellow has the right format.
+
+```
+.
+└── data                 - data folder
+    └── ehr              - one dataset
+        ├── config.json  - config file
+        ├── test.csv     - test set
+        └── train.csv    - train set
+```
+
+For more details, please refer to `./data/README.md`. 
+
 ## Training a model
 
 Retrain a pre-trained camembert model on a given csv dataset for a classification or regression task.
@@ -51,11 +66,11 @@ python src/training.py <command-line-arguments>
 
 Execute `python src/training.py -h` to know more about all the possible command line parameters (e.g. see bellow).
 
-```bash
+```
 optional arguments:
   -h, --help            show this help message and exit
-  -d DATASET, --dataset DATASET
-                        dataset filename
+  -d DATASET, --data_folder DATA_FOLDER
+                        data folder name (inside /data)
   -c [CLASSIFY], --classify [CLASSIFY]
                         whether or not to train camembert for a classification task
   -b BATCH_SIZE, --batch_size BATCH_SIZE
@@ -84,10 +99,10 @@ optional arguments:
                         result folder in with the saved checkpoint will be reused
 ```
 
-For example, the following command line used the given csv input file, set the dropout rate to 0.5, and use the classification mode.
+For example, the following command line gets the csv files inside `./data/ehr`, set the dropout rate to 0.5, and use the classification mode.
 
 ```bash
-python src/training.py --dataset file_name.csv -drop 0.5 --classify
+python src/training.py --dataset ehr -drop 0.5 --classify
 ```
 
 ## Fine tuning hyperparameters
@@ -104,7 +119,7 @@ Execute `python src/hyperoptimization.py -h` to know more about all the possible
 
 This is an example of a result folder saved after training.
 
-```bash
+```
 .
 └── training_21-01-27_16h25m41s - folder name (script name + date)
     ├── args.json               - command line arguments
@@ -118,8 +133,8 @@ This is an example of a result folder saved after training.
 
 Use `checkpoint = torch.load(<path_checkpoint>, map_location=<device>)` to load a checkpoint on a given device.
 
-The checkpoint is composed of the following items.
-```bash
+The checkpoints are composed of the following items.
+```
 {
     'model': model.state_dict(),   - model state dict
     'accuracy': test_accuracy,     - model accuracy on the test dataset

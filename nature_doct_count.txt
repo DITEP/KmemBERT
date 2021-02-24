@@ -1,0 +1,27 @@
+Attestation                      24672
+C.R. Anatomophatologie          118962
+C.R. Anesthésie                     11
+C.R. Diététique                   2733
+C.R. Examen                      72701
+C.R. Hematologie                  9142
+C.R. Hospitalisation            147692
+C.R. Operatoire                  54776
+C.R. Petite chirurgie              681
+C.R. Radio                      437110
+C.R. Staff                       17147
+C.R. Thérapie Cellulaire          1202
+C.R. consultation              1347612
+C.R. d'intervention              25063
+CR. Infirmière                   12217
+Juridique                            1
+Lettre                           89391
+Lettre de liaison                 2198
+Medical Report                      42
+Note                            330159
+RCP                              20822
+Radiothérapie                     9959
+Res. labo. CERBA                     1
+Resumé d'Hospitalisation        158620
+Resumé fin de Radiothérapie       8365
+Résumé de dossier                12593
+
