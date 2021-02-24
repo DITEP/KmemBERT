@@ -23,7 +23,7 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 
 
 print("Reading csv...")
-df = pd.read_csv(file_path, sep='£', engine='python')
+df = pd.read_csv(file_path, sep="£", engine='python')
 
 print("\nCounting EHR categories...\n")
 counter = df.groupby("Nature doct").count()["Noigr"]
