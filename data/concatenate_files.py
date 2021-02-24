@@ -3,7 +3,6 @@ import pandas as pd
 
 path_data= "/data/isilon/centraleNLP"
 file_name_concatenated = "concatenate.txt"
-file_name_wanted = ["dcd.txt", "texteSimbad*"]
 seps = ["\xc2\xa3", "|", "@"]
 new_sep = "\xc2\xa3"
 new_line = "\n"
