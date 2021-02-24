@@ -5,6 +5,7 @@ This code splits the concatenated dataset into a train and test one.
 import pandas as pd 
 import os
 from sklearn.model_selection import train_test_split
+import numpy as np
 from datetime import date
 import json
 
