@@ -9,8 +9,10 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-
+import logging
 from time import time
+logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("farm").setLevel(logging.ERROR)
 
 from utils import printc
 
@@ -42,7 +44,7 @@ class HealthBERT(nn.Module):
             self.num_labels = 1
             self.MSELoss = nn.MSELoss()
 
-        printc("\n----- Loading camembert model and tokenizer", "INFO")
+        printc("\nLoading camembert and its tokenizer...", "INFO")
         self.camembert = CamembertForSequenceClassification.from_pretrained(
             self.model_name, num_labels=self.num_labels)
         self.camembert.to(self.device)
@@ -58,7 +60,7 @@ class HealthBERT(nn.Module):
             self.freeze()
 
         self.tokenizer = Tokenizer.load(self.model_name, lower_case=True, fast=True)
-        printc("----- Successfully loaded camembert model and tokenizer\n", "SUCCESS")
+        printc("Successfully loaded\n", "SUCCESS")
 
         self.drop_rate = config.drop_rate
         if self.drop_rate:
