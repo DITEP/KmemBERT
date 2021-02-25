@@ -4,30 +4,31 @@ import optuna
 import torch
 from torch.utils.data import DataLoader
 
-from utils import create_session
+from utils import create_session, get_label_threshold
 from training import train_and_validate
 from dataset import EHRDataset
 
 
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
+    config.label_threshold = get_label_threshold(config, path_dataset)
 
-    dataset = EHRDataset(config, path_dataset)
+    dataset = EHRDataset(path_dataset, config)
     train_size = int(config.train_size * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     def objective(trial):
-        batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
+        batch_size = 8 # trial.suggest_categorical('batch_size', [32, 64, 128])
         config.learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
-        config.freeze = trial.suggest_categorical('freeze', [False, True])
-        config.weight_decay = trial.suggest_categorical('weight_decay', [0,1e-2,1e-1,1])
-        config.drop_rate = trial.suggest_categorical('drop_rate', [0., 0.1, 0.2, 0.5])
+        config.freeze = False # trial.suggest_categorical('freeze', [False, True])
+        config.weight_decay = trial.suggest_categorical('weight_decay', [0,1e-2,1e-1])
+        config.drop_rate = trial.suggest_categorical('drop_rate', [0., 0.1, 0.2])
 
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-        return -train_and_validate(train_loader, test_loader, device, config, path_result)
+        return train_and_validate(train_loader, test_loader, device, config, path_result)
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=args.n_trials)
