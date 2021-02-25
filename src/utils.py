@@ -89,3 +89,11 @@ def get_label(str_date_deces, str_date_cr):
 
     delta = date_deces - date_cr
     return delta.days
+
+def get_label_threshold(config, path_dataset):
+    config_path = os.path.join(path_dataset, "config.json")
+    assert os.path.isfile(config_path), 'Config file not existing, please train a model first'
+    with open(config_path) as json_file:
+        mean_time_survival = json.load(json_file)["mean_time_survival"]
+
+    return time_survival_to_label(config.days_threshold, mean_time_survival)

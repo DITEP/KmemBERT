@@ -16,6 +16,7 @@ class Config:
     path_result = None
     resume = None
     patience = None
+    days_threshold = 90
 
     def __init__(self, args):
         for attr in dir(self):
