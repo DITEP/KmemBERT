@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json, label_to_time_survival
+from utils import pretty_time, printc, create_session, save_json, get_label_threshold
 from health_bert import HealthBERT
 from testing import test
 
@@ -86,6 +86,8 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
 def main(args):
     path_dataset, _, device, config = create_session(args)
 
+    config.label_threshold = get_label_threshold(config, path_dataset)
+
     dataset = EHRDataset(path_dataset, config)
     train_size = int(config.train_size * len(dataset))
     test_size = len(dataset) - train_size
@@ -116,6 +118,8 @@ if __name__ == "__main__":
         help="maximum number of samples for training and testing")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
         help="whether or not to freeze the Bert part")
+    parser.add_argument("-dt", "--days_threshold", type=int, default=90, 
+        help="days threshold to convert into classification task")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
         help="dataset train size")
     parser.add_argument("-r_lr", "--ratio_lr_embeddings", type=float, default=1, 
