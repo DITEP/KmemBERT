@@ -115,8 +115,6 @@ class HealthBERT(nn.Module):
             labels = labels.type(torch.FloatTensor)
         labels = labels.to(self.device)
 
-        self.optimizer.zero_grad()
-
         compute_start_time = time()
         outputs = self(input_ids, attention_mask=attention_mask, labels=labels)
         self.compute_time += time()-compute_start_time
@@ -124,8 +122,10 @@ class HealthBERT(nn.Module):
 
         loss = self.get_loss(outputs, labels=labels)
 
-        loss.backward()
-        self.optimizer.step()
+        if self.camembert.training:
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
         
 
         return loss, outputs.logits if self.classify else outputs
