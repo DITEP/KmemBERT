@@ -95,7 +95,7 @@ def main(args):
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
     train_and_validate(train_loader, test_loader, device, config, config.path_result)
 
