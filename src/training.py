@@ -71,7 +71,8 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
 
     print("Saving losses...")
     save_json(path_result, "losses", { "train": losses, "validation": test_losses })
-    plt.plot(np.linspace(0, config.epochs, sum([len(l) for l in losses.values()])),
+    plt.close()
+    plt.plot(np.linspace(0, config.epochs-1, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
     plt.plot(test_losses)
     plt.legend(["Train loss", "Validation loss"])

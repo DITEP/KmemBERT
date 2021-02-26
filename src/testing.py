@@ -60,6 +60,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         else: 
             model.early_stopping += 1
 
+    plt.close()
     plt.scatter(predictions, test_labels)
     plt.xlabel("Predictions")
     plt.ylabel("Labels")
