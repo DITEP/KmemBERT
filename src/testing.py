@@ -3,9 +3,8 @@ import os
 import argparse
 from time import time
 import matplotlib.pyplot as plt
-import json
 
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix, roc_curve
 
 import torch
 from torch.utils.data import DataLoader
@@ -60,7 +59,6 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         else: 
             model.early_stopping += 1
 
-    plt.close()
     plt.scatter(predictions, test_labels)
     plt.xlabel("Predictions")
     plt.ylabel("Labels")
@@ -68,6 +66,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     plt.ylim(0, 1)
     plt.title("Predictions / Labels correlation")
     plt.savefig(os.path.join(path_result, "correlations.png"))
+    plt.close()
 
     predictions = np.array(predictions)
     test_labels = np.array(test_labels)
@@ -79,11 +78,24 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
     metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
     metrics['f1_score'] = f1_score(bin_labels, bin_predictions)
+    metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
+
     try:
         metrics['auc'] = roc_auc_score(bin_labels, predictions)
+
+        fpr, tpr, thresholds = roc_curve(bin_labels, predictions)
+        metrics['thresholds'] = thresholds.tolist()
+
+        plt.plot(fpr, tpr)
+        plt.xlabel("False Positive rate")
+        plt.ylabel("True Positive rate")
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.title("ROC curve")
+        plt.savefig(os.path.join(path_result, "roc_curve.png"))
+        plt.close()
     except:
         pass
-    metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
 
     if not validation:
         print("Classification metrics:\n", metrics)
