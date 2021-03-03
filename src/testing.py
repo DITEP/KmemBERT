@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json, label_to_time_survival, time_survival_to_label, get_label_threshold
+from utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
 from health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
@@ -37,20 +37,19 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     if test_losses is not None:
         test_losses.append(total_loss/len(test_loader))
 
-    mean_error = np.abs(label_to_time_survival(np.array(test_labels), config.mean_time_survival) - 
-                  label_to_time_survival(np.array(predictions), config.mean_time_survival)).mean()
-    printc(f"    {'Validation' if validation else 'Test'} mean error: {mean_error:.3f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
+    error = mean_error(test_labels, predictions, config.mean_time_survival)
+    printc(f"    {'Validation' if validation else 'Test'} mean error: {error:.2f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if validation:
-        if mean_error < model.best_error:
-            model.best_error = mean_error
+        if error < model.best_error:
+            model.best_error = error
             printc('    Best accuracy so far', 'SUCCESS')
             print('    Saving predictions...')
             save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
             print('    Saving model state...\n')
             state = {
                 'model': model.state_dict(),
-                'mean_error': mean_error,
+                'mean_error': error,
                 'epoch': epoch,
                 'tokenizer': model.tokenizer
             }
@@ -101,7 +100,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         print("Classification metrics:\n", metrics)
 
     save_json(path_result, 'results', 
-        {'mean_error': mean_error,
+        {'mean_error': error,
             'predictions': predictions.tolist(),
             'test_labels': test_labels.tolist(),
             'label_threshold': config.label_threshold,
@@ -109,7 +108,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             'bin_labels': bin_labels.tolist(),
             'metrics': metrics})
 
-    return mean_error
+    return error
 
 def main(args):
     path_dataset, _, device, config = create_session(args)

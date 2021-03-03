@@ -97,3 +97,7 @@ def get_label_threshold(config, path_dataset):
         mean_time_survival = json.load(json_file)["mean_time_survival"]
 
     return time_survival_to_label(config.days_threshold, mean_time_survival)
+
+def mean_error(labels, predictions, mean_time_survival):
+    return np.abs(label_to_time_survival(np.array(labels), mean_time_survival) - 
+                  label_to_time_survival(np.array(predictions), mean_time_survival)).mean()
