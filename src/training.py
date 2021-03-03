@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json, label_to_time_survival
+from utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
 from health_bert import HealthBERT
 from testing import test
 
@@ -41,9 +41,17 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
         epoch_loss, k_batch_loss = 0, 0
         epoch_start_time, k_batch_start_time = time(), time()
         model.start_epoch_timers()
+        predictions, train_labels = [], []
 
         for i, (texts, labels) in enumerate(train_loader):
-            loss, _ = model.step(texts, labels)
+            loss, outputs = model.step(texts, labels)
+
+            if model.classify:
+                predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
+            else:
+                predictions += outputs.flatten().tolist()
+
+            train_labels += labels.tolist()
 
             epoch_loss += loss.item()
             k_batch_loss += loss.item()
@@ -60,7 +68,10 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
                 losses[epoch].append(average_loss)
                 k_batch_loss = 0
                 k_batch_start_time = time()
-        printc(f'    Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+
+        train_error = mean_error(train_labels, predictions, config.mean_time_survival)
+        printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+
         test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
         
         model.scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
@@ -71,7 +82,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
 
     print("Saving losses...")
     save_json(path_result, "losses", { "train": losses, "validation": test_losses })
-    plt.plot(np.linspace(0, config.epochs, sum([len(l) for l in losses.values()])),
+    plt.plot(np.linspace(0, config.epochs-1, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
     plt.plot(test_losses)
     plt.legend(["Train loss", "Validation loss"])
@@ -79,6 +90,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
     plt.ylabel("Loss")
     plt.title("Loss evolution")
     plt.savefig(os.path.join(path_result, "loss.png"))
+    plt.close()
     print("[DONE]")
 
     return model.best_error
@@ -86,13 +98,15 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
 def main(args):
     path_dataset, _, device, config = create_session(args)
 
+    config.label_threshold = get_label_threshold(config, path_dataset)
+
     dataset = EHRDataset(path_dataset, config)
     train_size = int(config.train_size * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
     train_and_validate(train_loader, test_loader, device, config, config.path_result)
 
@@ -116,6 +130,8 @@ if __name__ == "__main__":
         help="maximum number of samples for training and testing")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
         help="whether or not to freeze the Bert part")
+    parser.add_argument("-dt", "--days_threshold", type=int, default=90, 
+        help="days threshold to convert into classification task")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
         help="dataset train size")
     parser.add_argument("-r_lr", "--ratio_lr_embeddings", type=float, default=1, 
