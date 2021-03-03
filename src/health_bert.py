@@ -2,8 +2,7 @@ import json
 
 import numpy as np
 
-from transformers import CamembertForSequenceClassification
-from farm.modeling.tokenization import Tokenizer
+from transformers import CamembertForSequenceClassification, CamembertTokenizerFast
 
 import torch
 import torch.nn as nn
@@ -12,7 +11,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import logging
 from time import time
 logging.getLogger("transformers").setLevel(logging.ERROR)
-logging.getLogger("farm").setLevel(logging.ERROR)
 
 from utils import printc
 
@@ -59,7 +57,7 @@ class HealthBERT(nn.Module):
         if config.freeze:
             self.freeze()
 
-        self.tokenizer = Tokenizer.load(self.model_name, lower_case=True, fast=True)
+        self.tokenizer = CamembertTokenizerFast.from_pretrained(self.model_name)
         printc("Successfully loaded\n", "SUCCESS")
 
         self.drop_rate = config.drop_rate
