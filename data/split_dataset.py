@@ -51,7 +51,7 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 
 
 print("Reading csv...")
-df = pd.read_csv(file_path, sep='\xc2\xa3', engine='python')
+df = pd.DataFrame(list(filter(lambda x: len(x)==9, [line.split('£') for line in open(file_path)])))
 
 print("\nCounting EHR categories...\n")
 counter = df.groupby("Nature doct").count()["Noigr"]
