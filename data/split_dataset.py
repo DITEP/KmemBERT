@@ -55,7 +55,9 @@ def f_line(line):
     row = line.split('£')
     row[-1] = row[-1][:-1] # get rid of \n
     return row 
-df = pd.DataFrame(list(filter(lambda x: len(x)==9, [f_line(line) for line in open(file_path)])))
+
+rows = list(filter(lambda x: len(x)==9, [f_line(line) for line in open(file_path)]))
+df = pd.DataFrame(rows[1:], columns=rows[0])
 
 print("\nCounting EHR categories...\n")
 counter = df.groupby("Nature doct").count()["Noigr"]
