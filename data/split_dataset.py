@@ -43,6 +43,7 @@ data_path = "/data/isilon/centraleNLP"
 file_path = os.path.join(data_path, "concatenate.txt")
 train_path = os.path.join(data_path, "train.csv")
 test_path = os.path.join(data_path, "test.csv")
+custom_separator = 'secrettoken749386453728394027'
 
 
 if os.path.isfile(train_path) or os.path.isfile(test_path):
@@ -50,15 +51,18 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 
 
 print("Reading csv...")
-df = pd.read_csv(file_path, sep='\xc2\xa3', engine='python')
+df = pd.DataFrame(list(filter(lambda x: len(x)==9, [line.split('£') for line in open(file_path)])))
 
 print("\nCounting EHR categories...\n")
 counter = df.groupby("Nature doct").count()["Noigr"]
 print(counter)
 
 print("\nFiltering EHR...")
+# 2904066
 df = df[df["Nature doct"] == "C.R. consultation"]
+# 1347612
 df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
+# 1347572
 df = df[df["Date cr"]<df["Date deces"]]
 
 # Shuffle
@@ -72,8 +76,10 @@ train=df[df["Noigr"].isin(train_noigrs)]
 test=df.drop(train.index)
 mean_time_survival = np.mean(list(train[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 
-train.to_csv(train_path, index=False)
-test.to_csv(test_path, index=False)
+np.savetxt(train_path, train, delimiter=custom_separator, fmt='%s')
+np.savetxt(test_path, test, delimiter=custom_separator, fmt='%s')
+# train.to_csv(train_path, index=False)
+# test.to_csv(test_path, index=False)
 save_json(data_path, "config", {"mean_time_survival": mean_time_survival})
 n_train, n_test = len(train), len(test)
 print("\nTrain samples: {}\nTest samples: {}\nTrain ratio: {}".format(n_train, n_test, n_train/(n_train + n_test)))
