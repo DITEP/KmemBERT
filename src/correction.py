@@ -2,68 +2,58 @@ import argparse
 import json
 import pandas as pd
 import os
-"""
-pip install pyspellchecker
-pip install spacy
-python -m spacy download fr
-python -m spacy download fr_core_news_md
-pip install pandarallel
-"""
-from spellchecker import SpellChecker
-import spacy
 from pandarallel import pandarallel
-
-from utils import get_root
-
-import pkg_resources
-from symspellpy import SymSpell, Verbosity
-from time import time
-
-nlp = spacy.load('fr')
+from symspellpy import SymSpell
+from tqdm import tqdm
+tqdm.pandas()
 pandarallel.initialize(progress_bar=True)
 
-def main(dataset, distance):
+from utils import get_root, printc
+
+def main(args):
     """
-    Corrects a dataset with SpellChecker and creates a new one.
+    Corrects a dataset with SymSpell and creates a new one.
 
     Inputs: please refer bellow, to the argparse arguments.
     """
 
-    spell = SpellChecker(language='fr',distance=distance)
+    sym_spell = SymSpell()
+    sym_spell.load_dictionary(args.dict_path, term_index=0, count_index=1)
 
-    def transform_one_sentence(sentence, method='SpellChecker'):
-        """
-        Transforms a sentence as a string into another setence with the unknown words being corrected
-        # """
-
-        if method=='SymSpell':
-            sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-            sym_spell.load_dictionary('../data/fr-100k.txt', term_index=0, count_index=1)
-            suggestions = sym_spell.lookup_compound(sentence, max_edit_distance=2)
-            return suggestions[0].term
-
-        elif method=='SpellChecker':
-            words = list(map(str, nlp(sentence)))
-            return ' '.join(list(map(spell.correction, words)))
+    corrector = lambda sentence: sym_spell.lookup_compound(sentence.lower(), max_edit_distance=2, ignore_non_words=True)[0].term
 
     path_root = get_root()
-    path_dataset = os.path.join(path_root, "data", args.dataset)
-    df = pd.read_csv(path_dataset)
-    df["Texte"] = df["Texte"].parallel_apply(transform_one_sentence, method=args.method)
-    
-    correction_dataset = f'_correction_{distance}.csv'.join(path_dataset.split(".csv"))
-    print(f"Saving the corrected dataset into {correction_dataset}...")
-    df.to_csv(correction_dataset, index=False)
+    path_dataset = os.path.join(path_root, "data", args.data_folder)
+    path_dataset_corrected = os.path.join(path_root, "data", f"{args.data_folder}_corrected_{args.distance}")
+
+    os.mkdir(path_dataset_corrected)
+
+    for csv_name in ['train.csv', 'test.csv']:
+        path_csv = os.path.join(path_dataset, csv_name)
+        path_corrected_csv = os.path.join(path_dataset_corrected, csv_name)
+        print(f"Correcting {path_csv}...")
+
+        df = pd.read_csv(path_csv)
+        if args.parallel_apply:
+            df["Texte"] = df["Texte"].parallel_apply(corrector)
+        else:
+            df["Texte"] = df["Texte"].progress_apply(corrector)
+
+        df.to_csv(path_corrected_csv, index=False)
+        printc(f" > Corrected csv saved into {path_corrected_csv}\n", 'SUCCESS')
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dataset", type=str, default="../data/french_tweets_short.csv", 
-        help="dataset filename")
-    parser.add_argument("-n", "--distance", type=int, default=2, 
-        help="distance parameter for SpellChecker")
-    parser.add_argument("-m", "--method", type=str, default='SpellChecker', 
-        help="Method of correction")
+    parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
+        help="data folder name")
+    parser.add_argument("-dict", "--dict_path", type=str, default="data/fr-100k.txt", 
+        help="dict path")
+    parser.add_argument("-dist", "--distance", type=int, default=2, 
+        help="distance parameter")
+    parser.add_argument("-pa", "--parallel_apply", type=bool, default=False, const=True, nargs="?", 
+        help="use parallel_apply")
+    
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
-    main(args.dataset, args.distance)
+    main(args)
