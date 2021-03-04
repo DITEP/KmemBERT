@@ -51,7 +51,11 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 
 
 print("Reading csv...")
-df = pd.DataFrame(list(filter(lambda x: len(x)==9, [line.split('£') for line in open(file_path)])))
+def f_line(line):
+    row = line.split('£')
+    row[-1] = row[-1][:-1] # get rid of \n
+    return row 
+df = pd.DataFrame(list(filter(lambda x: len(x)==9, [f_line(line) for line in open(file_path)])))
 
 print("\nCounting EHR categories...\n")
 counter = df.groupby("Nature doct").count()["Noigr"]
