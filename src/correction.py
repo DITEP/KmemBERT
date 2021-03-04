@@ -63,7 +63,7 @@ def main(args):
         path_corrected_csv = os.path.join(path_dataset_corrected, csv_name)
         print(f"Correcting {path_csv}...")
 
-        df = pd.read_csv(path_csv)
+        df = pd.read_csv(path_csv, sep='secrettoken749386453728394027', engine='python')
         if args.parallel_apply:
             df["Texte"] = df["Texte"].parallel_apply(text_corrector)
         else:

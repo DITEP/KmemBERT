@@ -39,7 +39,7 @@ class EHRDataset(Dataset):
         self.config_path = os.path.join(self.path_dataset, "config.json")
         self.preprocesser = EHRPreprocesser()
 
-        self.df = pd.read_csv(self.csv_path, nrows=self.nrows)
+        self.df = pd.read_csv(self.csv_path, nrows=self.nrows, sep='secrettoken749386453728394027', engine='python')
         # TODO: probably do that upstream, in split_dataset for instance
         self.df.dropna(subset=["Date deces", "Date cr", "Texte"], inplace=True)
         self.df = self.df[self.df["Date cr"] < self.df["Date deces"]]

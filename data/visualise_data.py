@@ -39,9 +39,9 @@ def main(arg):
 
     folder_to_save = arg.folder_to_save
     if arg.number_of_lines == 0 :
-        df = pd.read_csv(arg.data_file)
+        df = pd.read_csv(arg.data_file, sep='secrettoken749386453728394027', engine='python')
     else :
-        df = pd.read_csv(arg.data_file, nrows=arg.number_of_lines)
+        df = pd.read_csv(arg.data_file, nrows=arg.number_of_lines, sep='secrettoken749386453728394027', engine='python')
     
     df = df.dropna()
 
