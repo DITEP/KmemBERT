@@ -82,8 +82,14 @@ train=df[df["Noigr"].isin(train_noigrs)]
 test=df.drop(train.index)
 mean_time_survival = np.mean(list(train[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 
-np.savetxt(train_path, train, delimiter=custom_separator, fmt='%s')
-np.savetxt(test_path, test, delimiter=custom_separator, fmt='%s')
+def save_df(df, path):
+    # A bit crappy
+    columns = np.array(df.columns)[np.newaxis,:]
+    arr = np.concatenate((columns, df))
+    np.savetxt(path, arr, delimiter=custom_separator, fmt='%s')
+
+save_df(train, train_path)
+save_df(test, test_path)
 # train.to_csv(train_path, index=False)
 # test.to_csv(test_path, index=False)
 save_json(data_path, "config", {"mean_time_survival": mean_time_survival})
