@@ -34,6 +34,10 @@ class TextCorrector:
         self.capitalize(tokens)
         return ' '.join(tokens)
 
+def get_corrector(args):
+    sym_spell = SymSpell()
+    sym_spell.load_dictionary(args.dict_path, term_index=0, count_index=1)
+    return lambda word: sym_spell.lookup(word, Verbosity.CLOSEST, max_edit_distance=args.distance, include_unknown=True)[0].term
 
 def main(args):
     """
@@ -46,9 +50,7 @@ def main(args):
 
     nlp = spacy.load('fr')
 
-    sym_spell = SymSpell()
-    sym_spell.load_dictionary(args.dict_path, term_index=0, count_index=1)
-    corrector = lambda word: sym_spell.lookup(word, Verbosity.CLOSEST, max_edit_distance=args.distance, include_unknown=True)[0].term
+    corrector = get_corrector(args)
 
     text_corrector = TextCorrector(nlp, corrector, min_token_length=args.min_token_length)
 
