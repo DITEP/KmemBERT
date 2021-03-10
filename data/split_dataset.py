@@ -60,7 +60,7 @@ def f_line(line):
     return row 
 
 def debug(df):
-    print(df.where(df["Noigr"] == "200107846"))
+    print(df.where(df["Noigr"] == "200107846").dropna())
     print(df.shape)
     print(df.dropna().shape)
     print(df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"]).shape)
