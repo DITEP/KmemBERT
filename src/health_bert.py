@@ -114,7 +114,7 @@ class HealthBERT(nn.Module):
         loss, camembert outputs
         """
         encoding_start_time = time()
-        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True)
+        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
         self.encoding_time += time()-encoding_start_time
 
         input_ids = encoding['input_ids'].to(self.device)
