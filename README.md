@@ -64,31 +64,37 @@ For more details, please refer to `./data/README.md`.
 
 ## Preprocessing
 
-Many scripts are available under `./src/preprocessing` and all deals with preprocessing. The preprocessing pipeline is described bellow.
+Many scripts are available under `./src/preprocessing` and all deals with preprocessing. The preprocessing pipeline is described below.
 
 1. `concatenate_files.py`
 
-Get all data files on the VM and create a concatenated csv out of it.
+Get all data files on the VM and create a uniform concatenated file out of it.
+The final table stored in `concatenate.txt` is separated with `£` and has 9 columns: `["Noigr","clef","Date deces","Date cr","Code nature","Nature doct","Sce","Contexte","Texte"]`
 
 2. `split_dataset.py`
 
-Creates a dataset folder under `./data` containing three files: `train.csv`, `test.csv`, `config.json`.
+This is one of the main script. Assuming that we already have the `concatenate.txt` file, it creates three other files from it: `train.csv`, `test.csv`, `config.json`.
 
-The data is split according to the IGR numbers such that no IGR number of the test set is inside the train set.
-Also, some processing is done to make sure the data is clean (filtering EHR, removing NaN and empty strings, ...).
+The data are split according to the IGR numbers, so that no IGR number in the test set can be found within the train set.
+This is also where we compute the mean survival time, which is then stored in `config.json`.
+We also perform some preprocessing in this script, notably:
+- **Filtering**: we only keep EHRs with the type `"C.R. consultation"`. This step reduces the number of samples from 2,904,066 to 1,347,612
+- **Missing Values**: we get rid of samples where one of this value is missing: `["Date deces", "Date cr", "Texte", "Noigr"]`. This step removes about 100 samples
+- **Negative survival time**: some EHRs are signed or completed after the decease, we get rid of those samples. This step removes about 5k samples
+
 
 3. (`visualize_data.py`)
 
-Optionnal. Data visualization can be produced after the execution of the previous scripts. 
+Optional. Data visualization can be produced only after the execution of the previous scripts. 
 
 4. `extract_unknown_words.py`
 
 Extract unknwon words and their occurences among a whole dataset. Unknown = according to Camembert vocabulary.
-It creates a json under `./medical_voc`.
+It creates a json file under `./medical_voc`.
 
 5. `preprocess_voc.py`
 
-Modifies a medical_voc json previously created. It removes duplicates (words that exists with **and** without an `s`) and missplelled words.
+Modifies a medical_voc json previously created. It removes duplicates (words that exist with **and** without an `s`) and misspelled words.
 
 6. `correction.py`
 
