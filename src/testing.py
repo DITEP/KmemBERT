@@ -77,9 +77,9 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     errors_dict = defaultdict(list)
 
     thresholds = [int(label_to_time_survival(0.1*quantile, config.mean_time_survival)) for quantile in range(1, 10)]
-    quantiles = np.floor(test_labels*10).astype(int)
+    quantiles = np.floor(test_labels*10).astype(int).tolist()
 
-    for pred, label, quantile in zip(predictions.tolist(), test_labels.tolist(), quantiles.tolist()):
+    for pred, label, quantile in zip(predictions.tolist(), test_labels.tolist(), quantiles):
         errors_dict[quantile].append(
             np.abs(label_to_time_survival(pred, config.mean_time_survival)
                    - label_to_time_survival(label, config.mean_time_survival)))
@@ -97,7 +97,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
 
     try:
-        metrics['auc'] = roc_auc_score(bin_labels, predictions)
+        metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
 
         fpr, tpr, thresholds = roc_curve(bin_labels, predictions)
         metrics['thresholds'] = thresholds.tolist()
@@ -124,8 +124,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             'bin_predictions': bin_predictions.tolist(),
             'bin_labels': bin_labels.tolist(),
             'metrics': metrics,
-            'std_mae_quantile': std_mae_quantile,
-            'thresholds': thresholds})
+            'std_mae_quantile': std_mae_quantile})
 
     return error
 
