@@ -10,7 +10,7 @@ from datetime import date
 import json
 import sys
 sys.path.append("../src/")
-from utils import save_json
+from utils import save_json, get_label, get_date
 
 
 train_size = 0.7
