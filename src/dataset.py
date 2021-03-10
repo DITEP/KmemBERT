@@ -5,7 +5,7 @@ import json
 import os
 import sys
 
-from utils import get_label, time_survival_to_label, save_json, printc
+from utils import get_label, time_survival_to_label
 from preprocesser import EHRPreprocesser
 
 class TweetDataset(Dataset):
@@ -39,10 +39,7 @@ class EHRDataset(Dataset):
         self.config_path = os.path.join(self.path_dataset, "config.json")
         self.preprocesser = EHRPreprocesser()
 
-        self.df = pd.read_csv(self.csv_path, nrows=self.nrows)
-        # TODO: probably do that upstream, in split_dataset for instance
-        self.df.dropna(subset=["Date deces", "Date cr", "Texte"], inplace=True)
-        self.df = self.df[self.df["Date cr"] < self.df["Date deces"]]
+        self.df = pd.read_csv(self.csv_path)
 
         self.labels = np.array(list(self.df[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 
@@ -50,9 +47,7 @@ class EHRDataset(Dataset):
             with open(self.config_path) as json_file:
                 self.mean_time_survival = json.load(json_file)["mean_time_survival"]
         elif self.train:
-            printc("No config.json found. Building it..", "WARNING")
-            self.mean_time_survival = self.labels.mean()
-            save_json(self.path_dataset, "config", {"mean_time_survival": self.mean_time_survival})
+            pass
         else:
             sys.exit("config.json is needed for testing. Exiting..")
         config.mean_time_survival = self.mean_time_survival

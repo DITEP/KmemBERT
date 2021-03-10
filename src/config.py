@@ -2,7 +2,7 @@ class Config:
     voc_path = None
     model_name = "camembert-base"
     data_folder = None
-    classify = False
+    mode = "regression"
     print_every_k_batch = 8
     nrows = None
     batch_size = 64
@@ -16,6 +16,7 @@ class Config:
     path_result = None
     resume = None
     patience = None
+    days_threshold = 90
 
     def __init__(self, args):
         for attr in dir(self):

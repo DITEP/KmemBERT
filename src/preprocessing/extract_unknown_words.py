@@ -5,8 +5,11 @@ from collections import Counter
 import os
 import re
 from tqdm import tqdm
-
 from transformers import CamembertTokenizer
+
+import os,sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 from utils import get_root
 
 def in_camembert_voc(word, voc):
@@ -39,13 +42,8 @@ def main(args):
     counter = counter.most_common(args.n_unknown_words)
 
     json_path = f"{args.data_folder}_{args.n_unknown_words}_{args.max_chunk}.json"
-    with open(os.path.join("medical_voc", json_path), 'w') as f:
+    with open(os.path.join("..", "medical_voc", json_path), 'w') as f:
         json.dump(counter, f, indent=4, ensure_ascii=False)
-
-    txt_path = f"{args.data_folder}_{args.n_unknown_words}_{args.max_chunk}.txt"
-    with open(os.path.join("sentence_piece", txt_path), "w") as text_file:
-        min_occurence = counter[-1][1]
-        text_file.write(' '.join([ word for word, occurence in counter for _ in range(occurence // min_occurence)]))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

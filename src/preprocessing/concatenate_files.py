@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 
 path_data= "/data/isilon/centraleNLP"
 file_name_concatenated = "concatenate.txt"

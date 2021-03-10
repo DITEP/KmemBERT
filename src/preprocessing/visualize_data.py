@@ -56,17 +56,20 @@ def main(arg):
     # Words by sentence / sentence by cr
     df_count = df.apply(count_sentence, axis=1)
 
-    plt.figure(2)
-    df_count["total_sentence"].plot.hist(bins=50)
     total_sentence_max = df_count["total_sentence"].max()
     max_value_desired = 150
+    plt.figure(2)
+    plt.xlim((0, min(total_sentence_max, max_value_desired)))
+    df_count["total_sentence"].plot.hist(bins=100)
     plt.title("Sentences per EHR")
     plt.xlabel("Nb of sentences")
-    plt.xlim((0, min(total_sentence_max, max_value_desired)))
     plt.savefig(os.path.join(folder_to_save, "sentences_by_ehr.jpg"))
 
     plt.figure(3)
-    df_count["mean_word"].plot.hist(bins=50)
+    words_max = df_count["mean_word"].max()
+    words_max_desired = 200 
+    plt.xlim((0, min(words_max, words_max_desired)))
+    df_count["mean_word"].plot.hist(bins=100)
     plt.title("Mean words per sentence per EHR")
     plt.xlabel("Mean number of words")
     plt.savefig(os.path.join(folder_to_save, "mean_words.jpg"))
@@ -80,10 +83,10 @@ def main(arg):
 
     sample_from_geom = -np.sort(-np.random.exponential(beta, len(survival_time)))
     fig, ax = plt.subplots()
-    ax.step(list(range(len(survival_time))), survival_time, label = "survival time")
-    ax.step(list(range(len(survival_time))), sample_from_geom, label = "sample from exp law - beta = {}".format(round(beta,1)))
+    ax.step(survival_time, list(range(len(survival_time))), label = "survival time")
+    ax.step(sample_from_geom, list(range(len(survival_time))), label = "sample from exp law - beta = {}".format(round(beta,1)))
     ax.set_title('Distribution survival time')
-    ax.set_ylabel('Survival time')
+    ax.set_xlabel('Survival time')
     ax.legend()
     plt.savefig(os.path.join(folder_to_save, "survival_time.jpg"))
 
@@ -92,9 +95,9 @@ def main(arg):
 
 if __name__ == "__main__" :
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data_file", type=str, default="ehr/train.csv", 
+    parser.add_argument("-d", "--data_file", type=str, default="../data/ehr/train.csv", 
         help="data file path")
-    parser.add_argument("-f", "--folder_to_save", type=str, default="data_viz", 
+    parser.add_argument("-f", "--folder_to_save", type=str, default="../data_viz", 
         help="folder to save the figures")
     parser.add_argument("-nl", "--number_of_lines", type=int, default=0, 
         help="number of lines of the csv to read, 0 for all")
