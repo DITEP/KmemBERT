@@ -67,7 +67,7 @@ def debug(df):
 
 rows = list(filter(lambda x: len(x)==9, [f_line(line) for line in open(file_path)]))
 df = pd.DataFrame(rows[1:], columns=rows[0])
-debug(df)
+print(df.shape)
 
 print("\nCounting EHR categories...\n")
 counter = df.groupby("Nature doct").count()["Noigr"]
@@ -76,16 +76,20 @@ print(counter)
 print("\nFiltering EHR...")
 # 2904066
 df = df[df["Nature doct"] == "C.R. consultation"]
+print(df.shape)
 # 1347612
-df[["Date deces", "Date cr", "Texte", "Noigr"]].replace("", np.nan, inplace=True)
+df["Texte"].replace("", np.nan, inplace=True)
+df["Date deces"].replace("", np.nan, inplace=True)
+df["Date cr"].replace("", np.nan, inplace=True)
+df["Noigr"].replace("", np.nan, inplace=True)
 df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
+print(df.shape)
 # 1347572
 df = df[df["Date cr"]<df["Date deces"]]
-debug(df)
+print(df.shape)
 
 # Shuffle
 df = df.sample(frac=1).reset_index(drop=True)
-debug(df)
 
 # Split
 noigrs = pd.unique(df["Noigr"])
