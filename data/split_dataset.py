@@ -53,7 +53,10 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 print("Reading csv...")
 def f_line(line):
     row = line.split('£')
-    row[-1] = row[-1][:-1] # get rid of \n
+    if row[-1][-1] == "\n":
+        row[-1] = row[-1][:-1] # get rid of \n
+    elif row[-1][-2:] == "\n\r":
+        row[-1] = row[-1][:-2] # get rid of \n\r
     return row 
 
 rows = list(filter(lambda x: len(x)==9, [f_line(line) for line in open(file_path)]))
