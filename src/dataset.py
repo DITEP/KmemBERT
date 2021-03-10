@@ -5,7 +5,7 @@ import json
 import os
 import sys
 
-from utils import get_label, time_survival_to_label, save_json, printc
+from utils import get_label, time_survival_to_label
 from preprocesser import EHRPreprocesser
 
 class TweetDataset(Dataset):

@@ -8,6 +8,9 @@ from tqdm import tqdm
 import spacy
 tqdm.pandas()
 
+import os,sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 from utils import get_root, printc
 
 class TextCorrector:
@@ -36,7 +39,8 @@ class TextCorrector:
 
 def get_corrector(args):
     sym_spell = SymSpell()
-    sym_spell.load_dictionary(args.dict_path, term_index=0, count_index=1)
+    dict_path = os.path.join('..', 'medical_voc', args.dict_name)
+    sym_spell.load_dictionary(dict_path, term_index=0, count_index=1)
     return lambda word: sym_spell.lookup(word, Verbosity.CLOSEST, max_edit_distance=args.distance, include_unknown=True)[0].term
 
 def main(args):
@@ -79,7 +83,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
-    parser.add_argument("-dict", "--dict_path", type=str, default="data/fr-100k.txt", 
+    parser.add_argument("-dict", "--dict_name", type=str, default="fr-100k.txt", 
         help="dict path")
     parser.add_argument("-dist", "--distance", type=int, default=2, 
         help="distance parameter")

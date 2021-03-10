@@ -6,9 +6,11 @@ import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
 import numpy as np
-from datetime import date
-import json
-from utils import save_json, get_label, get_date
+
+import os,sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from utils import save_json, get_label
 
 
 train_size = 0.7

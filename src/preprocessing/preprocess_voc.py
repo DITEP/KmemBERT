@@ -2,8 +2,11 @@ import json
 import argparse
 import os
 
+import os,sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 from utils import printc
-from correction import get_corrector
+from preprocessing.correction import get_corrector
 
 def main(args):
     path_medical_voc = os.path.join('..', 'medical_voc')
