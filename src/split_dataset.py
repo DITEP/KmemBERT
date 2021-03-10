@@ -74,7 +74,7 @@ def save_df(df, path):
     df = pd.read_csv(path)
     n = df.shape[0]
     df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
-    print(f"Removed {df.shape[0]-n} rows")
+    print(f"Removed {n-df.shape[0]} rows")
     df.to_csv(path, index=False)
 
 print("\nSaving train...")
