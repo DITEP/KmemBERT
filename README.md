@@ -21,35 +21,35 @@ python training.py
 
 ## Project structure
 
-The main files and folders are briefly described bellow. Some files that don't need to be described are not listed bellow.
+The main files and folders are briefly described below. Some files that don't need to be described are not listed below.
 
 ```
 .
-├── data                         - folder of csv data files (details bellow)
+├── data                         - folder containing the csv data files (details below)
 ├── exploration                  - folder of notebooks used for exploration
-├── medical_voc                  - folder containing medical vocabulary
+├── medical_voc                  - folder containing the medical vocabulary
 ├── results                      - folder storing results
 ├── src                          - python package
 │   ├── preprocessing            - folder containing preprocessing scripts
 │   │   ├── concatenate_files.py - concatenate GR data files
-│   │   ├── correction.py        - corrects misplellings on a dataset
+│   │   ├── correction.py        - correct mispellings on a dataset
 │   │   ├── extract_unknown_words.py  - build a medical vocabulary
-│   │   ├── preprocess_voc.py    - clean up medical vocabulary
-│   │   ├── split_dataset.py     - split a dataset intro train, test
+│   │   ├── preprocess_voc.py    - clean up the medical vocabulary
+│   │   ├── split_dataset.py     - split a dataset into train and test and apply basic preprocessing (details below)
 │   │   └── visualize_data.py    - visualize a dataset
-│   ├── config.py                - class containing config variables
+│   ├── config.py                - class containing the config variables
 │   ├── dataset.py               - PyTorch Dataset implementation
-│   ├── health_bert.py           - camembert EHR implementation
+│   ├── health_bert.py           - camembert implementation
 │   ├── hyperoptimization.py     - optuna hyperoptimization
 │   ├── training.py              - training and validation of a model
-│   ├── testing.py               - testing a model
+│   ├── testing.py               - testing of a model
 │   └── utils.py                 - utils
-└── ****.sh                      - scripts used to run a job on the cluster of centralesupelec
+└── ****.sh                      - scripts used to run a job on the cluster of CentraleSupélec
 ```
 
 ## Data
 
-The data is stored inside `./data`. A folder inside `./data` corresponds to one single dataset, and has to contain three files. For example, the `ehr` dataset bellow has the right format.
+The data are stored inside `./data`. A folder inside `./data` corresponds to one single dataset, and has to contain three files. For example, the `ehr` dataset below has the right format.
 
 ```
 .
@@ -64,7 +64,7 @@ For more details, please refer to `./data/README.md`.
 
 ## Training a model
 
-Retrain a pre-trained camembert model on a given csv dataset for a classification or regression task.
+Retrain a pre-trained camembert model on a given dataset for a classification or regression task.
 
 It creates a folder in `./results` where results are saved.
 
@@ -73,7 +73,7 @@ cd src
 python training.py <command-line-arguments>
 ```
 
-Execute `python training.py -h` to know more about all the possible command line parameters (e.g. see bellow).
+Execute `python training.py -h` to know more about all the possible command line parameters (see below).
 
 ```
   -h, --help            show this help message and exit
@@ -139,10 +139,10 @@ This is an example of a result folder saved after training.
 .
 └── training_21-01-27_16h25m41s - folder name (script name + date)
     ├── args.json               - command line arguments
-    ├── checkpoint.pth          - checkpoint (see bellow)
-    ├── loss.png                - train and test loss evolution
+    ├── checkpoint.pth          - checkpoint (see below)
+    ├── loss.png                - train and validation loss evolution
     ├── losses.json             - json of all the losses
-    └── test.json               - predictions and labels on the test dataset
+    └── test.json               - predictions and labels on the validation dataset
 ```
 
 ### Checkpoint
@@ -153,7 +153,7 @@ The checkpoints are composed of the following items.
 ```
 {
     'model': model.state_dict(),   - model state dict
-    'accuracy': test_accuracy,     - model accuracy on the test dataset
+    'accuracy': test_accuracy,     - model accuracy on the validation dataset
     'epoch': epoch,                - at which epoch it was saved
     'tokenizer': model.tokenizer   - the model tokenizer
 }
