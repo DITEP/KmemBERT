@@ -2,7 +2,7 @@ import json
 import argparse
 import os
 
-from utils import save_json, printc
+from utils import printc
 from correction import get_corrector
 
 def main(args):
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--voc_file", type=str, required=True,
         help='voc file name')
-    parser.add_argument("-dict", "--dict_path", type=str, default="../data/fr-100k.txt", 
+    parser.add_argument("-dict", "--dict_name", type=str, default="fr-100k.txt", 
         help="dict path")
     parser.add_argument("-dist", "--distance", type=int, default=2, 
         help="distance parameter")
