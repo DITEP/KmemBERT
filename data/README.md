@@ -19,7 +19,7 @@ The CSV separator has to be a comma.
 ### Columns
 
 The required columns are:
-- Data deces
+- Date deces
 - Date cr
 - Texte
 
@@ -29,7 +29,7 @@ Noigr,clef,Date deces,Date cr,Code nature,Nature doct,Sce,Contexte,Texte
 ```
 ## Config file
 
-The config file has to be named `config.json`. Do not create it manually, as it will be automatically generated the first time to launch a training.
+The config file has to be named `config.json`.
 
 This is a config file example.
 ```
