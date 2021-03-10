@@ -109,42 +109,40 @@ python training.py <command-line-arguments>
 Execute `python training.py -h` to know more about all the possible command line parameters (see below).
 
 ```
-  -h, --help            show this help message and exit
+  -h, --help            
+        show this help message and exit
   -d DATA_FOLDER, --data_folder DATA_FOLDER
-                        data folder name
+        data folder name
   -m {classif,regression,density}, --mode {classif,regression,density}
-                        name of the task
+        name of the task
   -b BATCH_SIZE, --batch_size BATCH_SIZE
-                        dataset batch size
+        dataset batch size
   -e EPOCHS, --epochs EPOCHS
-                        number of epochs
+        number of epochs
   -t TRAIN_SIZE, --train_size TRAIN_SIZE
-                        dataset train size
+        dataset train size
   -drop DROP_RATE, --drop_rate DROP_RATE
-                        dropout ratio
+        dropout ratio
   -nr NROWS, --nrows NROWS
-                        maximum number of samples for training and testing
+        maximum number of samples for training and testing
   -k PRINT_EVERY_K_BATCH, --print_every_k_batch PRINT_EVERY_K_BATCH
-                        maximum number of samples for training and testing
+        maximum number of samples for training and testing
   -f [FREEZE], --freeze [FREEZE]
-                        whether or not to freeze the Bert part
+        whether or not to freeze the Bert part
   -dt DAYS_THRESHOLD, --days_threshold DAYS_THRESHOLD
-                        days threshold to convert into classification task
+        days threshold to convert into classification task
   -lr LEARNING_RATE, --learning_rate LEARNING_RATE
-                        dataset train size
+        dataset train size
   -r_lr RATIO_LR_EMBEDDINGS, --ratio_lr_embeddings RATIO_LR_EMBEDDINGS
-                        the ratio applied to lr for embeddings layer
+        the ratio applied to lr for embeddings layer
   -wg WEIGHT_DECAY, --weight_decay WEIGHT_DECAY
-                        the weight decay for L2 regularization
+        the weight decay for L2 regularization
   -v VOC_PATH, --voc_path VOC_PATH
-                        path to the new words to be added to the vocabulary of
-                        camembert
+        path to the new words to be added to the vocabulary of camembert
   -r RESUME, --resume RESUME
-                        result folder in with the saved checkpoint will be
-                        reused
+        result folder in with the saved checkpoint will be reused
   -p PATIENCE, --patience PATIENCE
-                        Number of decreasing accuracy epochs to stop the
-                        training
+        Number of decreasing accuracy epochs to stop the training
 ```
 
 For example, the following command line gets the csv files inside `./data/ehr`, sets the dropout rate to 0.5, and uses the classification mode.
