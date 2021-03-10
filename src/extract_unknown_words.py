@@ -20,7 +20,7 @@ def main(args):
     """
     path_root = get_root()
     path_dataset = os.path.join(path_root, "data", args.data_folder, "train.csv")
-    df_chunk = pd.read_csv(path_dataset, chunksize=args.chunksize, sep='secrettoken749386453728394027', engine='python')
+    df_chunk = pd.read_csv(path_dataset, chunksize=args.chunksize)
 
     counter = Counter()
 
