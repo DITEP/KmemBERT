@@ -53,11 +53,21 @@ if os.path.isfile(train_path) or os.path.isfile(test_path):
 print("Reading csv...")
 def f_line(line):
     row = line.split('£')
-    row[-1] = row[-1][:-1] # get rid of \n
+    if row[-1][-1] == "\n":
+        row[-1] = row[-1][:-1] # get rid of \n
+    elif row[-1][-2:] == "\n\r":
+        row[-1] = row[-1][:-2] # get rid of \n\r
     return row 
+
+def debug(df):
+    print(df.where(df["Noigr"] == "200107846"))
+    print(df.shape)
+    print(df.dropna().shape)
+    print(df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"]).shape)
 
 rows = list(filter(lambda x: len(x)==9, [f_line(line) for line in open(file_path)]))
 df = pd.DataFrame(rows[1:], columns=rows[0])
+debug(df)
 
 print("\nCounting EHR categories...\n")
 counter = df.groupby("Nature doct").count()["Noigr"]
@@ -70,9 +80,11 @@ df = df[df["Nature doct"] == "C.R. consultation"]
 df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
 # 1347572
 df = df[df["Date cr"]<df["Date deces"]]
+debug(df)
 
 # Shuffle
 df = df.sample(frac=1).reset_index(drop=True)
+debug(df)
 
 # Split
 noigrs = pd.unique(df["Noigr"])
