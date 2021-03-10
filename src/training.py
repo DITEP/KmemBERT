@@ -44,6 +44,8 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
         predictions, train_labels = [], []
 
         for i, (texts, labels) in enumerate(train_loader):
+            if i*config.batch_size >= config.nrows:
+                break
             loss, outputs = model.step(texts, labels)
 
             if model.mode == 'classif':

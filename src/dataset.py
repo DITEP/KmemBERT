@@ -39,7 +39,7 @@ class EHRDataset(Dataset):
         self.config_path = os.path.join(self.path_dataset, "config.json")
         self.preprocesser = EHRPreprocesser()
 
-        self.df = pd.read_csv(self.csv_path, nrows=self.nrows)
+        self.df = pd.read_csv(self.csv_path)
 
         self.labels = np.array(list(self.df[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 
