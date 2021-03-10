@@ -3,6 +3,7 @@ import os
 import argparse
 from time import time
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix, roc_curve
 
@@ -10,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
+from utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
 from health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
@@ -70,6 +71,19 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     predictions = np.array(predictions)
     test_labels = np.array(test_labels)
 
+    errors_dict = defaultdict(list)
+
+    thresholds = [int(label_to_time_survival(0.1*quantile, config.mean_time_survival)) for quantile in range(1, 10)]
+    quantiles = np.floor(test_labels*10).astype(int)
+
+    for pred, label, quantile in zip(predictions.tolist(), test_labels.tolist(), quantiles.tolist()):
+        errors_dict[quantile].append(
+            np.abs(label_to_time_survival(pred, config.mean_time_survival)
+                   - label_to_time_survival(label, config.mean_time_survival)))
+
+    std_mae_quantile = sorted([(quantile, np.std(l), np.mean(np.abs(l))) for quantile, l in errors_dict.items()])
+
+
     bin_predictions = (predictions >= config.label_threshold).astype(int)
     bin_labels = (test_labels >= config.label_threshold).astype(int)
 
@@ -106,7 +120,9 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             'label_threshold': config.label_threshold,
             'bin_predictions': bin_predictions.tolist(),
             'bin_labels': bin_labels.tolist(),
-            'metrics': metrics})
+            'metrics': metrics,
+            'std_mae_quantile': std_mae_quantile,
+            'thresholds': thresholds})
 
     return error
 
