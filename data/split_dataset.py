@@ -84,9 +84,10 @@ df["Date cr"].replace("", np.nan, inplace=True)
 df["Noigr"].replace("", np.nan, inplace=True)
 df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
 print(df.shape)
-# 1347572
+# 1347607
 df = df[df["Date cr"]<df["Date deces"]]
 print(df.shape)
+# 1343113
 
 # Shuffle
 df = df.sample(frac=1).reset_index(drop=True)
