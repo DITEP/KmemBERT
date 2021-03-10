@@ -4,7 +4,7 @@ Transformers for time of survival estimation based on french EHRs
 
 ## Getting started
 
-Please make sure you have python >= 3.7. Every script has to be executed at the `src` folder.
+Please make sure you have python >= 3.7. **Every** script has to be executed at the `src` folder.
 
 The requirements can be installed with the following command line:
 
@@ -62,9 +62,42 @@ The data are stored inside `./data`. A folder inside `./data` corresponds to one
 
 For more details, please refer to `./data/README.md`. 
 
+## Preprocessing
+
+Many scripts are available under `./src/preprocessing` and all deals with preprocessing. The preprocessing pipeline is described bellow.
+
+1. `concatenate_files.py`
+
+Get all data files on the VM and create a concatenated csv out of it.
+
+2. `split_dataset.py`
+
+Creates a dataset folder under `./data` containing three files: `train.csv`, `test.csv`, `config.json`.
+
+The data is split according to the IGR numbers such that no IGR number of the test set is inside the train set.
+Also, some processing is done to make sure the data is clean (filtering EHR, removing NaN and empty strings, ...).
+
+3. (`visualize_data.py`)
+
+Optionnal. Data visualization can be produced after the execution of the previous scripts. 
+
+4. `extract_unknown_words.py`
+
+Extract unknwon words and their occurences among a whole dataset. Unknown = according to Camembert vocabulary.
+It creates a json under `./medical_voc`.
+
+5. `preprocess_voc.py`
+
+Modifies a medical_voc json previously created. It removes duplicates (words that exists with **and** without an `s`) and missplelled words.
+
+6. `correction.py`
+
+Corrects a dataset using sym_spell to remove the main misspellings and accents missings.
+
 ## Training a model
 
-Retrain a pre-trained camembert model on a given dataset for a classification or regression task.
+Once a clean dataset is created according to the previous section, one can train a model.
+It retrains a pre-trained camembert model on a given csv dataset for a classification, regression or density task.
 
 It creates a folder in `./results` where results are saved.
 
@@ -119,6 +152,15 @@ For example, the following command line gets the csv files inside `./data/ehr`, 
 ```bash
 python src/training.py --dataset ehr -drop 0.5 --mode classif
 ```
+
+## Testing
+
+```
+cd src
+python testing.py <command-line-arguments>
+```
+
+Execute `python testing.py -h` to know more about all the possible command line parameters.
 
 ## Fine tuning hyperparameters
 
