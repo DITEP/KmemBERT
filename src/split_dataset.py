@@ -8,8 +8,6 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from datetime import date
 import json
-import sys
-sys.path.append("../src/")
 from utils import save_json, get_label, get_date
 
 
