@@ -8,25 +8,6 @@ import sys
 from utils import get_label, time_survival_to_label
 from preprocesser import EHRPreprocesser
 
-class TweetDataset(Dataset):
-    """PyTorch Dataset class for tweets"""
-
-    def __init__(self, csv_name, config):
-        super(TweetDataset, self).__init__()
-        self.csv_name = csv_name
-        self.nrows = config.nrows
-        self.df = pd.read_csv(self.csv_name, nrows=self.nrows)
-        self.labels = list(self.df.label)
-        self.texts = list(self.df.text)
-
-        print("labels--", len(self.labels))
-        
-    def __getitem__(self, index):
-        return self.texts[index], self.labels[index]
-
-    def __len__(self):
-        return len(self.labels)
-
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""
 
