@@ -92,7 +92,7 @@ def get_label(str_date_deces, str_date_cr):
 
 def get_label_threshold(config, path_dataset):
     config_path = os.path.join(path_dataset, "config.json")
-    assert os.path.isfile(config_path), 'Config file not existing, please train a model first'
+    assert os.path.isfile(config_path), 'Config file not existing, please create it first using split_dataset.py'
     with open(config_path) as json_file:
         mean_time_survival = json.load(json_file)["mean_time_survival"]
 

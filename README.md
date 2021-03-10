@@ -4,16 +4,19 @@ Transformers for time of survival estimation based on french EHRs
 
 ## Getting started
 
-The environment can be installed using pip.
+Please make sure you have python >= 3.7. Every script has to be executed at the `src` folder.
 
-```bash
+The requirements can be installed with the following command line:
+
+```
 pip install -r requirements.txt
 ```
 
 Before to continue, please make sure the following command line is correctly running. If if runs until printing "DONE" then you can move on to the next section.
 
-```bash
-python src/training.py
+```
+cd src
+python training.py
 ```
 
 ## Project structure
@@ -24,17 +27,22 @@ The main files and folders are briefly described bellow. Some files that don't n
 .
 ├── data                         - folder of csv data files (details bellow)
 ├── exploration                  - folder of notebooks used for exploration
-├── medical_voc                  - folder containing jsons of vocabulary
+├── medical_voc                  - folder containing medical vocabulary
 ├── results                      - folder storing results
-├── sentence_piece               - training a new sentencepiece
 ├── src                          - python package
+│   ├── preprocessing            - folder containing preprocessing scripts
+│   │   ├── concatenate_files.py - concatenate GR data files
+│   │   ├── correction.py        - corrects misplellings on a dataset
+│   │   ├── extract_unknown_words.py  - build a medical vocabulary
+│   │   ├── preprocess_voc.py    - clean up medical vocabulary
+│   │   ├── split_dataset.py     - split a dataset intro train, test
+│   │   └── visualize_data.py    - visualize a dataset
 │   ├── config.py                - class containing config variables
-│   ├── correction.py            - corrects misplellings on a dataset
 │   ├── dataset.py               - PyTorch Dataset implementation
-│   ├── extract_unknown_words.py - extracts unknown words from a dataset
 │   ├── health_bert.py           - camembert EHR implementation
 │   ├── hyperoptimization.py     - optuna hyperoptimization
-│   ├── training.py              - training and testing a model
+│   ├── training.py              - training and validation of a model
+│   ├── testing.py               - testing a model
 │   └── utils.py                 - utils
 └── ****.sh                      - scripts used to run a job on the cluster of centralesupelec
 ```
@@ -60,19 +68,19 @@ Retrain a pre-trained camembert model on a given csv dataset for a classificatio
 
 It creates a folder in `./results` where results are saved.
 
-```bash
-python src/training.py <command-line-arguments>
+```
+cd src
+python training.py <command-line-arguments>
 ```
 
-Execute `python src/training.py -h` to know more about all the possible command line parameters (e.g. see bellow).
+Execute `python training.py -h` to know more about all the possible command line parameters (e.g. see bellow).
 
 ```
-optional arguments:
   -h, --help            show this help message and exit
-  -d DATASET, --data_folder DATA_FOLDER
-                        data folder name (inside /data)
-  -c [CLASSIFY], --classify [CLASSIFY]
-                        whether or not to train camembert for a classification task
+  -d DATA_FOLDER, --data_folder DATA_FOLDER
+                        data folder name
+  -m {classif,regression,density}, --mode {classif,regression,density}
+                        name of the task
   -b BATCH_SIZE, --batch_size BATCH_SIZE
                         dataset batch size
   -e EPOCHS, --epochs EPOCHS
@@ -81,12 +89,14 @@ optional arguments:
                         dataset train size
   -drop DROP_RATE, --drop_rate DROP_RATE
                         dropout ratio
-  -max MAX_SIZE, --max_size MAX_SIZE
+  -nr NROWS, --nrows NROWS
                         maximum number of samples for training and testing
   -k PRINT_EVERY_K_BATCH, --print_every_k_batch PRINT_EVERY_K_BATCH
                         maximum number of samples for training and testing
   -f [FREEZE], --freeze [FREEZE]
                         whether or not to freeze the Bert part
+  -dt DAYS_THRESHOLD, --days_threshold DAYS_THRESHOLD
+                        days threshold to convert into classification task
   -lr LEARNING_RATE, --learning_rate LEARNING_RATE
                         dataset train size
   -r_lr RATIO_LR_EMBEDDINGS, --ratio_lr_embeddings RATIO_LR_EMBEDDINGS
@@ -94,26 +104,32 @@ optional arguments:
   -wg WEIGHT_DECAY, --weight_decay WEIGHT_DECAY
                         the weight decay for L2 regularization
   -v VOC_PATH, --voc_path VOC_PATH
-                        path to the new words to be added to the vocabulary of camembert
+                        path to the new words to be added to the vocabulary of
+                        camembert
   -r RESUME, --resume RESUME
-                        result folder in with the saved checkpoint will be reused
+                        result folder in with the saved checkpoint will be
+                        reused
+  -p PATIENCE, --patience PATIENCE
+                        Number of decreasing accuracy epochs to stop the
+                        training
 ```
 
-For example, the following command line gets the csv files inside `./data/ehr`, set the dropout rate to 0.5, and use the classification mode.
+For example, the following command line gets the csv files inside `./data/ehr`, sets the dropout rate to 0.5, and uses the classification mode.
 
 ```bash
-python src/training.py --dataset ehr -drop 0.5 --classify
+python src/training.py --dataset ehr -drop 0.5 --mode classif
 ```
 
 ## Fine tuning hyperparameters
 
 Fine tuning of hyperparameters using Optuna.
 
-```bash
-python src/hyperoptimization.py <command-line-arguments>
+```
+cd src
+python hyperoptimization.py <command-line-arguments>
 ```
 
-Execute `python src/hyperoptimization.py -h` to know more about all the possible command line parameters.
+Execute `python hyperoptimization.py -h` to know more about all the possible command line parameters.
 
 ## Saved results
 
