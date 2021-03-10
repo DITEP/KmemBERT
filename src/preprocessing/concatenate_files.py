@@ -2,8 +2,8 @@ import os
 
 path_data= "/data/isilon/centraleNLP"
 file_name_concatenated = "concatenate.txt"
-seps = ["\xc2\xa3", "|", "@"]
-new_sep = "\xc2\xa3"
+seps = ["£", "|", "@"]
+new_sep = "£"
 new_line = "\n"
 
 columns = ["Noigr","clef","Date deces","Date cr","Code nature","Nature doct","Sce","Contexte","Texte"]
