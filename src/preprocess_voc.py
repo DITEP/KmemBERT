@@ -15,20 +15,24 @@ def main(args):
         voc_list = json.load(json_file)
         voc = set(x for x,_ in voc_list)
 
+    new_list = []
     for (word, occ) in voc_list:
         if word[-1] == 's' and word[:-1] in voc:
-            voc_list.remove([word, occ])
             n_duplicate += 1
-
-        elif len(word) >= args.min_token_length and corrector(word) != word:
-            voc_list.remove([word, occ])
+            continue
+        
+        corrected_word = corrector(word)
+        if len(word) >= args.min_token_length and corrected_word != word:
+            new_list.append([corrected_word, occ])
             n_misspelled += 1
+        else:
+            new_list.append([word, occ])
         
     print(f"Removed {n_duplicate}/{len(voc)} duplicates (same word with an s)")
-    print(f"Removed {n_misspelled}/{len(voc)} missplelled words")
+    print(f"Corrected {n_misspelled}/{len(voc)} missplelled words")
 
     with open(os.path.join(path_medical_voc, f"p_{args.voc_file}"), 'w') as f:
-        json.dump(voc_list, f, indent=4, ensure_ascii=False)
+        json.dump(new_list, f, indent=4, ensure_ascii=False)
     printc("Successfully preprocess and saved", "SUCCESS")
     
 
