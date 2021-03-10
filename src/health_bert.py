@@ -32,11 +32,11 @@ class HealthBERT(nn.Module):
         self.learning_rate = config.learning_rate
         self.voc_path = config.voc_path
         self.model_name = config.model_name
-        self.classify = config.classify
+        self.mode = config.mode
         self.best_error = np.inf
         self.early_stopping = 0
 
-        if self.classify:
+        if self.mode == 'classif' or self.mode == 'density':
             self.num_labels = 2
         else:
             self.num_labels = 1
@@ -82,17 +82,25 @@ class HealthBERT(nn.Module):
 
     def forward(self, *input, **kwargs):
         """Camembert forward for classification or regression"""
-        if self.classify:
+        if self.mode == 'classif':
             return self.camembert(*input, **kwargs)
-        else:
+        elif self.mode == 'regression':
             return torch.sigmoid(self.camembert(*input, **kwargs).logits)
+        else:
+            logits = self.camembert(*input, **kwargs).logits
+            mu = torch.sigmoid(logits[:,0])
+            log_var = logits[:,1]
+            return mu, log_var
 
     def get_loss(self, outputs, labels=None):
         """Returns the loss given outputs and labels"""
-        if self.classify:
+        if self.mode == 'classif':
             return outputs.loss
-        else:
+        elif self.mode == 'regression':
             return self.MSELoss(outputs.reshape(-1), labels)
+        else:
+            mu, log_var = outputs
+            return (log_var + (labels - mu)**2/torch.exp(log_var)).mean()
 
     def step(self, texts, labels):
         """
@@ -106,17 +114,17 @@ class HealthBERT(nn.Module):
         loss, camembert outputs
         """
         encoding_start_time = time()
-        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
+        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True)
         self.encoding_time += time()-encoding_start_time
 
         input_ids = encoding['input_ids'].to(self.device)
         attention_mask = encoding['attention_mask'].to(self.device)
-        if not self.classify:
+        if not self.mode == 'classif':
             labels = labels.type(torch.FloatTensor)
         labels = labels.to(self.device)
 
         compute_start_time = time()
-        outputs = self(input_ids, attention_mask=attention_mask, labels=labels)
+        outputs = self(input_ids, attention_mask=attention_mask, labels=labels if self.mode == 'classif' else None)
         self.compute_time += time()-compute_start_time
 
 
@@ -128,7 +136,7 @@ class HealthBERT(nn.Module):
             self.optimizer.step()
         
 
-        return loss, outputs.logits if self.classify else outputs
+        return loss, outputs.logits if self.mode == 'classif' else outputs
 
     def add_tokens_from_path(self, voc_path):
         """

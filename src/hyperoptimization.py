@@ -41,8 +41,8 @@ if __name__ == "__main__":
         help="data folder name")
     parser.add_argument("-n", "--n_trials", type=int, default=10, 
         help="number of trials")
-    parser.add_argument("-c", "--classify", type=bool, default=False, const=True, nargs="?",
-        help="whether or not to train camembert for a classification task")
+    parser.add_argument("-m", "--mode", type=str, default="regression", choices=['classif', 'regression', 'density'],
+        help="name of the task")
     parser.add_argument("-t", "--train_size", type=float, default=0.8, 
         help="dataset train size")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=10, 
