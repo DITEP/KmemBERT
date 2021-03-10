@@ -60,7 +60,7 @@ def f_line(line):
     return row 
 
 def debug(df):
-    print(df.where(df["Noigr"] == "200107846").dropna())
+    print(df.where(df["Texte"] == "").dropna())
     print(df.shape)
     print(df.dropna().shape)
     print(df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"]).shape)
@@ -77,6 +77,7 @@ print("\nFiltering EHR...")
 # 2904066
 df = df[df["Nature doct"] == "C.R. consultation"]
 # 1347612
+df[["Date deces", "Date cr", "Texte", "Noigr"]].replace("", np.nan, inplace=True)
 df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
 # 1347572
 df = df[df["Date cr"]<df["Date deces"]]
