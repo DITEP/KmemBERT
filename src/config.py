@@ -17,6 +17,7 @@ class Config:
     resume = None
     patience = None
     days_threshold = 90
+    max_tokens = 512
 
     def __init__(self, args):
         for attr in dir(self):
