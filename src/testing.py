@@ -27,10 +27,13 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     for _, (texts, labels) in enumerate(test_loader):
         loss, outputs = model.step(texts, labels)
         
-        if model.classify:
+        if model.mode == 'classif':
             predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
-        else:
+        elif model.mode == 'regression':
             predictions += outputs.flatten().tolist()
+        else:
+            mu, _ = outputs
+            predictions += mu.tolist()
         
         test_labels += labels.tolist()
         total_loss += loss.item()

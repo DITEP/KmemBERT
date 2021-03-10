@@ -101,10 +101,14 @@ test=df.drop(train.index)
 mean_time_survival = np.mean(list(train[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 
 def save_df(df, path):
-    # A bit crappy
-    columns = np.array(df.columns)[np.newaxis,:]
-    arr = np.concatenate((columns, df))
-    np.savetxt(path, arr, delimiter=custom_separator, fmt='%s')
+    df.to_csv(path, index=False)
+    # CRAPPY
+    # I don't know why when loading the dataset missing values appear
+    df = pd.read_csv(path)
+    print(df.shape)
+    df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
+    print(df.shape)
+    df.to_csv(path, index=False)
 
 save_df(train, train_path)
 save_df(test, test_path)

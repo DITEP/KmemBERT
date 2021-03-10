@@ -46,10 +46,13 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
         for i, (texts, labels) in enumerate(train_loader):
             loss, outputs = model.step(texts, labels)
 
-            if model.classify:
+            if model.mode == 'classif':
                 predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
-            else:
+            elif model.mode == 'regression':
                 predictions += outputs.flatten().tolist()
+            else:
+                mu, _ = outputs
+                predictions += mu.tolist()
 
             train_labels += labels.tolist()
 
@@ -114,8 +117,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
-    parser.add_argument("-c", "--classify", type=bool, default=False, const=True, nargs="?",
-        help="whether or not to train camembert for a classification task")
+    parser.add_argument("-m", "--mode", type=str, default="regression", choices=['classif', 'regression', 'density'],
+        help="name of the task")
     parser.add_argument("-b", "--batch_size", type=int, default=8, 
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
