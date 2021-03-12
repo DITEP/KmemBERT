@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
-from health_bert import HealthBERT
-from testing import test
+from .dataset import EHRDataset
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
+from .health_bert import HealthBERT
+from .testing import test
 
 def train_and_validate(train_loader, test_loader, device, config, path_result):
     """

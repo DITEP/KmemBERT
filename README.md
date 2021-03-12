@@ -4,7 +4,7 @@ Transformers for time of survival estimation based on french EHRs
 
 ## Getting started
 
-Please make sure you have python >= 3.7. **Every** script has to be executed at the `src` folder.
+Please make sure you have python >= 3.7. **Every** script has to be executed at the root of the project using the `-m` option.
 
 The requirements can be installed with the following command line:
 
@@ -15,8 +15,7 @@ pip install -r requirements.txt
 Before to continue, please make sure the following command line is correctly running. If if runs until printing "DONE" then you can move on to the next section.
 
 ```
-cd src
-python training.py
+python -m src.training
 ```
 
 ## Project structure
@@ -108,11 +107,10 @@ It retrains a pre-trained camembert model on a given csv dataset for a classific
 It creates a folder in `./results` where results are saved.
 
 ```
-cd src
-python training.py <command-line-arguments>
+python -m src.training <command-line-arguments>
 ```
 
-Execute `python training.py -h` to know more about all the possible command line parameters (see below).
+Execute `python -m src.training -h` to know more about all the possible command line parameters (see below).
 
 ```
   -h, --help            
@@ -154,28 +152,26 @@ Execute `python training.py -h` to know more about all the possible command line
 For example, the following command line gets the csv files inside `./data/ehr`, sets the dropout rate to 0.5, and uses the classification mode.
 
 ```bash
-python src/training.py --dataset ehr -drop 0.5 --mode classif
+python -m src.training --dataset ehr -drop 0.5 --mode classif
 ```
 
 ## Testing
 
 ```
-cd src
-python testing.py <command-line-arguments>
+python -m src.testing <command-line-arguments>
 ```
 
-Execute `python testing.py -h` to know more about all the possible command line parameters.
+Execute `python -m src.testing -h` to know more about all the possible command line parameters.
 
 ## Fine tuning hyperparameters
 
 Fine tuning of hyperparameters using Optuna.
 
 ```
-cd src
-python hyperoptimization.py <command-line-arguments>
+python -m src.hyperoptimization <command-line-arguments>
 ```
 
-Execute `python hyperoptimization.py -h` to know more about all the possible command line parameters.
+Execute `python -m src.hyperoptimization -h` to know more about all the possible command line parameters.
 
 ## Saved results
 

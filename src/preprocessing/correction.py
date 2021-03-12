@@ -8,10 +8,7 @@ from tqdm import tqdm
 import spacy
 tqdm.pandas()
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
-from utils import get_root, printc
+from ..utils import get_root, printc
 
 class TextCorrector:
     def __init__(self, nlp, corrector, min_token_length = 5):
@@ -39,7 +36,7 @@ class TextCorrector:
 
 def get_corrector(args):
     sym_spell = SymSpell()
-    dict_path = os.path.join('..', 'medical_voc', args.dict_name)
+    dict_path = os.path.join('medical_voc', args.dict_name)
     sym_spell.load_dictionary(dict_path, term_index=0, count_index=1)
     return lambda word: sym_spell.lookup(word, Verbosity.CLOSEST, max_edit_distance=args.distance, include_unknown=True)[0].term
 
@@ -58,9 +55,8 @@ def main(args):
 
     text_corrector = TextCorrector(nlp, corrector, min_token_length=args.min_token_length)
 
-    path_root = get_root()
-    path_dataset = os.path.join(path_root, "data", args.data_folder)
-    path_dataset_corrected = os.path.join(path_root, "data", f"{args.data_folder}_corrected_{args.distance}")
+    path_dataset = os.path.join("data", args.data_folder)
+    path_dataset_corrected = os.path.join("data", f"{args.data_folder}_corrected_{args.distance}")
 
     os.mkdir(path_dataset_corrected)
 

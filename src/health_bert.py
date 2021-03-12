@@ -12,7 +12,7 @@ import logging
 from time import time
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
-from utils import printc
+from .utils import printc
 
 def set_dropout(model, drop_rate=0.1):
     for _, child in model.named_children():

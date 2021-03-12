@@ -95,9 +95,9 @@ def main(arg):
 
 if __name__ == "__main__" :
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data_file", type=str, default="../data/ehr/train.csv", 
+    parser.add_argument("-d", "--data_file", type=str, default="data/ehr/train.csv", 
         help="data file path")
-    parser.add_argument("-f", "--folder_to_save", type=str, default="../data_viz", 
+    parser.add_argument("-f", "--folder_to_save", type=str, default="data_viz", 
         help="folder to save the figures")
     parser.add_argument("-nl", "--number_of_lines", type=int, default=0, 
         help="number of lines of the csv to read, 0 for all")

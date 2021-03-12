@@ -7,10 +7,7 @@ import re
 from tqdm import tqdm
 from transformers import CamembertTokenizer
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
-from utils import get_root
+from ..utils import get_root
 
 def in_camembert_voc(word, voc):
     return f'▁{word}' in voc
@@ -42,7 +39,7 @@ def main(args):
     counter = counter.most_common(args.n_unknown_words)
 
     json_path = f"{args.data_folder}_{args.n_unknown_words}_{args.max_chunk}.json"
-    with open(os.path.join("..", "medical_voc", json_path), 'w') as f:
+    with open(os.path.join("medical_voc", json_path), 'w') as f:
         json.dump(counter, f, indent=4, ensure_ascii=False)
 
 if __name__ == "__main__":

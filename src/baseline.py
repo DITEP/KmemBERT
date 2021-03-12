@@ -10,8 +10,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 
-from utils import get_root, get_label
-from preprocesser import EHRPreprocesser
+from .utils import get_root, get_label
+from .preprocesser import EHRPreprocesser
 
 
 def main(args):

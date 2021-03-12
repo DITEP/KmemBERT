@@ -5,8 +5,8 @@ import json
 import os
 import sys
 
-from utils import get_label, time_survival_to_label
-from preprocesser import EHRPreprocesser
+from .utils import get_label, time_survival_to_label
+from .preprocesser import EHRPreprocesser
 
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""
