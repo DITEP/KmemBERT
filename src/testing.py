@@ -103,6 +103,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         metrics['thresholds'] = thresholds.tolist()
 
         plt.plot(fpr, tpr)
+        plt.plot([0,1], [0,1], 'r--')
         plt.xlabel("False Positive rate")
         plt.ylabel("True Positive rate")
         plt.xlim(0, 1)
