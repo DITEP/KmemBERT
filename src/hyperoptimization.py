@@ -19,7 +19,7 @@ def main(args):
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     def objective(trial):
-        batch_size = 8 # trial.suggest_categorical('batch_size', [32, 64, 128])
+        config.batch_size = 8 # trial.suggest_categorical('batch_size', [32, 64, 128])
         config.learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
         config.freeze = False # trial.suggest_categorical('freeze', [False, True])
         config.weight_decay = trial.suggest_categorical('weight_decay', [0,1e-2,1e-1])
