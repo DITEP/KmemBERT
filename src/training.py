@@ -13,7 +13,7 @@ from .utils import pretty_time, printc, create_session, save_json, get_label_thr
 from .health_bert import HealthBERT
 from .testing import test
 
-def train_and_validate(train_loader, test_loader, device, config, path_result):
+def train_and_validate(train_loader, test_loader, device, config, path_result, train_only=False):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
@@ -76,6 +76,10 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
 
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
         printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+        if train_only:
+            if train_error < model.best_error:
+                model.best_error = train_error
+            continue
 
         test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
         

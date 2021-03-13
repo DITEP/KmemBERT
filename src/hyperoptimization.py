@@ -28,7 +28,7 @@ def main(args):
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-        return train_and_validate(train_loader, test_loader, device, config, path_result)
+        return train_and_validate(train_loader, test_loader, device, config, path_result, train_only=True)
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=args.n_trials)
