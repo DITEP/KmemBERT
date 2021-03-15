@@ -22,8 +22,8 @@ def main(args):
         config.batch_size = 8 # trial.suggest_categorical('batch_size', [32, 64, 128])
         config.learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
         config.freeze = False # trial.suggest_categorical('freeze', [False, True])
-        config.weight_decay = trial.suggest_categorical('weight_decay', [0,1e-2,1e-1])
-        config.drop_rate = trial.suggest_categorical('drop_rate', [0., 0.1, 0.2])
+        config.weight_decay = 0 # trial.suggest_categorical('weight_decay', [0,1e-2,1e-1])
+        config.drop_rate = 0 # trial.suggest_categorical('drop_rate', [0., 0.1, 0.2])
 
         train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
