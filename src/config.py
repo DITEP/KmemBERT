@@ -4,6 +4,8 @@
     Python Version: >= 3.7
 '''
 
+import json
+
 class Config:
     voc_path = None
     model_name = "camembert-base"
@@ -29,3 +31,6 @@ class Config:
         for attr in dir(self):
             if not attr.startswith('__') and hasattr(args, attr):
                 setattr(self, attr, getattr(args, attr))
+
+    def __repr__(self):
+        return json.dumps(vars(self), sort_keys=True, indent=4)

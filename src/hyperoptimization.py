@@ -34,6 +34,7 @@ def main(args):
         train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
 
+        print(f"\nTrial config: {config}")
         return train_and_validate(train_loader, test_loader, device, config, path_result, train_only=True)
 
     study = optuna.create_study()

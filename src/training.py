@@ -31,6 +31,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
 
     losses = defaultdict(list)
     test_losses = []
+    train_errors, test_errors = [], []
     n_samples = config.print_every_k_batch * config.batch_size
 
     for epoch in range(config.epochs):
@@ -73,13 +74,28 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
                 k_batch_start_time = time()
 
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
+        train_errors.append(train_error)
         printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         if train_only:
+            """
+            We won't evaluate the model on the validation set.
+            This is used in hyperoptimization to reduce the running time.
+            """
             if train_error < model.best_error:
                 model.best_error = train_error
             continue
 
         test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
+        test_errors.append(test_error)
+
+        plt.plot(train_errors)
+        plt.plot(test_errors)
+        plt.xlabel("Epoch")
+        plt.ylabel("MAE (days)")
+        plt.legend(["Train", "Validation"])
+        plt.title("MAE Evolution")
+        plt.savefig(os.path.join(config.path_result, "mae.png"))
+        plt.close()
         
         model.scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
