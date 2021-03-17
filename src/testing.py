@@ -68,7 +68,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         else: 
             model.early_stopping += 1
 
-    plt.scatter(predictions, test_labels, s=0.3, alpha=0.5)
+    plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
     plt.xlabel("Predictions")
     plt.ylabel("Labels")
     plt.xlim(0, 1)
