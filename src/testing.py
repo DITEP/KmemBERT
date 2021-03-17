@@ -144,12 +144,6 @@ def main(args):
     loader = DataLoader(dataset, batch_size=config.batch_size)
 
     model = HealthBERT(device, config)
-    printc(f"Resuming with model at {config.resume}", "INFO")
-    path_checkpoint = os.path.join(os.path.dirname(config.path_result), config.resume, 'checkpoint.pth')
-    assert os.path.isfile(path_checkpoint), 'Error: no checkpoint found!'
-    checkpoint = torch.load(path_checkpoint, map_location=model.device)
-    model.load_state_dict(checkpoint['model'])
-    model.tokenizer = checkpoint['tokenizer']
 
     test(model, loader, config, config.path_result)
 

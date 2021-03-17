@@ -26,14 +26,6 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
     Inputs: please refer bellow, to the argparse arguments.
     """
     model = HealthBERT(device, config)
-    if config.resume:
-        printc(f"Resuming with model at {config.resume}", "INFO")
-        path_checkpoint = os.path.join(os.path.dirname(config.path_result), config.resume, 'checkpoint.pth')
-        assert os.path.isfile(path_checkpoint), 'Error: no checkpoint found!'
-        checkpoint = torch.load(path_checkpoint, map_location=model.device)
-        model.load_state_dict(checkpoint['model'])
-        model.tokenizer = checkpoint['tokenizer']
-
 
     printc("\n----- STARTING TRAINING -----")
 
