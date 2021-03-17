@@ -8,37 +8,44 @@ import argparse
 import json
 import pandas as pd
 import os
-from pandarallel import pandarallel
 from symspellpy import SymSpell, Verbosity
 from tqdm import tqdm
-import spacy
 tqdm.pandas()
+import spacy
 
-from ..utils import get_root, printc
-
+from ..utils import printc
+from ..preprocesser import EHRPreprocesser
 class TextCorrector:
     def __init__(self, nlp, corrector, min_token_length = 5):
         self.nlp = nlp
         self.corrector = corrector
         self.min_token_length = min_token_length
+        self.preprocesser = EHRPreprocesser()
 
     def capitalize(self, tokens):
         tokens[0] = tokens[0].capitalize()
         for i in range(len(tokens)-1):
-            if tokens[i] == '.':
+            if tokens[i] and tokens[i][0] == '.':
                 tokens[i+1] = tokens[i+1].capitalize()
 
     def __call__(self, text):
-        tokens = []
-        text = text.lower()
-        for token in self.nlp(text):
-            if len(token) < self.min_token_length:
-                tokens.append(str(token))
-            else:
-                tokens.append(self.corrector(str(token)))
+        try:
+            tokens = []
+            text = self.preprocesser(text.lower()).strip()
+            text = ' '.join(text.split())
+            for token in self.nlp(text):
+                if len(token) < self.min_token_length:
+                    tokens.append(token.text_with_ws)
+                else:
+                    tokens.append(self.corrector(str(token)))
+                    tokens.append(token.whitespace_)
 
-        self.capitalize(tokens)
-        return ' '.join(tokens)
+            self.capitalize(tokens)
+            print(''.join(tokens))
+            return ''.join(tokens)
+        except:
+            print('CORRECTION FAILED')
+            return text
 
 def get_corrector(args):
     sym_spell = SymSpell()
@@ -53,6 +60,7 @@ def main(args):
     Inputs: please refer bellow, to the argparse arguments.
     """
     if args.parallel_apply:
+        from pandarallel import pandarallel
         pandarallel.initialize(progress_bar=True)
 
     nlp = spacy.load('fr')
@@ -73,7 +81,7 @@ def main(args):
 
         df = pd.read_csv(path_csv)
         if args.parallel_apply:
-            df["Texte"] = df["Texte"].parallel_apply(text_corrector)
+            df["Texte"] = df["Texte"].parallel_apply(lambda text: text_corrector(text))
         else:
             df["Texte"] = df["Texte"].progress_apply(text_corrector)
 
