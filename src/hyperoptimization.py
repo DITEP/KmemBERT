@@ -60,4 +60,6 @@ if __name__ == "__main__":
         help="maximum number of samples for training and testing")
     parser.add_argument("-e", "--epochs", type=int, default=10, 
         help="number of epochs")
+    parser.add_argument("-r", "--resume", type=str, default=None, 
+        help="result folder in with the saved checkpoint will be reused")
     main(parser.parse_args())
