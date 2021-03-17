@@ -1,3 +1,9 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import json
 import argparse
 import os

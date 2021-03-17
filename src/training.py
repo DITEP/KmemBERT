@@ -1,3 +1,9 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import numpy as np
 import os
 import argparse

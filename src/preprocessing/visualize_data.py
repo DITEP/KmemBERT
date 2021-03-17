@@ -1,3 +1,9 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import os

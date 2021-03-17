@@ -1,3 +1,9 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 class Config:
     voc_path = None
     model_name = "camembert-base"

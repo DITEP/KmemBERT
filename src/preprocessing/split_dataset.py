@@ -1,3 +1,10 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
+
 """
 RUN ONLY ONCE
 This code splits the concatenated dataset into a train and test one.

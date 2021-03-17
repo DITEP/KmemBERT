@@ -1,3 +1,9 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
