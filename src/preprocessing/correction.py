@@ -6,6 +6,7 @@
 
 import argparse
 import json
+import numpy as np
 import pandas as pd
 import os
 from symspellpy import SymSpell, Verbosity
@@ -27,6 +28,7 @@ class TextCorrector:
         self.num_tokens = 0
         self.num_corrected_tokens = 0
         self.num_long_tokens = 0
+        self.correction_failed = 0
 
     def capitalize(self, tokens):
         tokens[0] = tokens[0].capitalize()
@@ -54,6 +56,7 @@ class TextCorrector:
             return ''.join(tokens)
         except:
             print('CORRECTION FAILED')
+            self.correction_failed += 1
             return text
 
 def get_corrector(args):
@@ -98,6 +101,7 @@ def main(args):
         
         print('num_corrected_tokens:', text_corrector.num_corrected_tokens)
         print(f"{100*text_corrector.num_corrected_tokens/text_corrector.num_tokens:.2f}% of all / {100*text_corrector.num_corrected_tokens/text_corrector.num_long_tokens:.2f}% of long tokens")
+        print('correction_failed:', text_corrector.correction_failed, f"({100*text_corrector.correction_failed/len(df):.2f}%)")
 
         df.to_csv(path_corrected_csv, index=False)
         printc(f" > Corrected csv saved into {path_corrected_csv}\n", 'SUCCESS')
