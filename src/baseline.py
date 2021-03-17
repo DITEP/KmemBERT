@@ -38,6 +38,8 @@ def main(args):
     ehr_regressor.fit(X_train, y_train)
 
     predictions = ehr_regressor.predict(X_val)
+    print(len(predictions))
+    print(len(y_val))
     rmse = mean_squared_error(y_val, predictions)
 
     print("RMSE validation set : {}".format(round(rmse,1)))
