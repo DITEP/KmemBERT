@@ -21,6 +21,12 @@ class TextCorrector:
         self.corrector = corrector
         self.min_token_length = min_token_length
         self.preprocesser = EHRPreprocesser()
+        self.reset()
+
+    def reset(self):
+        self.num_tokens = 0
+        self.num_corrected_tokens = 0
+        self.num_long_tokens = 0
 
     def capitalize(self, tokens):
         tokens[0] = tokens[0].capitalize()
@@ -34,14 +40,17 @@ class TextCorrector:
             text = self.preprocesser(text.lower()).strip()
             text = ' '.join(text.split())
             for token in self.nlp(text):
+                self.num_tokens += 1
                 if len(token) < self.min_token_length:
                     tokens.append(token.text_with_ws)
                 else:
+                    self.num_long_tokens += 1
                     tokens.append(self.corrector(str(token)))
+                    if tokens[-1] != str(token):
+                        self.num_corrected_tokens += 1
                     tokens.append(token.whitespace_)
 
             self.capitalize(tokens)
-            print(''.join(tokens))
             return ''.join(tokens)
         except:
             print('CORRECTION FAILED')
@@ -80,10 +89,15 @@ def main(args):
         print(f"Correcting {path_csv}...")
 
         df = pd.read_csv(path_csv)
+        text_corrector.reset()
+
         if args.parallel_apply:
             df["Texte"] = df["Texte"].parallel_apply(lambda text: text_corrector(text))
         else:
             df["Texte"] = df["Texte"].progress_apply(text_corrector)
+        
+        print('num_corrected_tokens:', text_corrector.num_corrected_tokens)
+        print(f"{100*text_corrector.num_corrected_tokens/text_corrector.num_tokens:.2f}% of all / {100*text_corrector.num_corrected_tokens/text_corrector.num_long_tokens:.2f}% of long tokens")
 
         df.to_csv(path_corrected_csv, index=False)
         printc(f" > Corrected csv saved into {path_corrected_csv}\n", 'SUCCESS')
