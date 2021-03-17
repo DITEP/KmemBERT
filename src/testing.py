@@ -125,13 +125,13 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
 
     save_json(path_result, 'results', 
         {'mean_error': error,
-            'predictions': predictions.tolist(),
-            'test_labels': test_labels.tolist(),
-            'label_threshold': config.label_threshold,
-            'bin_predictions': bin_predictions.tolist(),
-            'bin_labels': bin_labels.tolist(),
-            'metrics': metrics,
-            'std_mae_quantile': std_mae_quantile})
+        'metrics': metrics,
+        'predictions': predictions.tolist(),
+        'test_labels': test_labels.tolist(),
+        'label_threshold': config.label_threshold,
+        'bin_predictions': bin_predictions.tolist(),
+        'bin_labels': bin_labels.tolist(),
+        'std_mae_quantile': std_mae_quantile})
 
     return error
 
