@@ -41,7 +41,6 @@ class TextCorrector:
                     tokens.append(token.whitespace_)
 
             self.capitalize(tokens)
-            print(''.join(tokens))
             return ''.join(tokens)
         except:
             print('CORRECTION FAILED')
