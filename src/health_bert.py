@@ -84,6 +84,7 @@ class HealthBERT(nn.Module):
         assert os.path.isfile(path_checkpoint), 'Error: no checkpoint found!'
         checkpoint = torch.load(path_checkpoint, map_location=self.device)
         self.tokenizer = checkpoint['tokenizer']
+        self.camembert.resize_token_embeddings(len(self.tokenizer))
 
         try:
             self.load_state_dict(checkpoint['model'])
