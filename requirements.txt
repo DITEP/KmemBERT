@@ -21,7 +21,7 @@ colorlog==4.6.2
 cycler==0.10.0
 cymem==2.0.5
 databricks-cli==0.14.1
-dataclasses==0.8
+dataclasses==0.6
 decorator==4.2.1
 dill==0.3.3
 docker==4.4.1
