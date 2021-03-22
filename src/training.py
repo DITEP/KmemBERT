@@ -164,7 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
     parser.add_argument("-r", "--resume", type=str, default=None, 
-        help="result folder in with the saved checkpoint will be reused")
+        help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="Number of decreasing accuracy epochs to stop the training")
     parser.add_argument("-mt", "--max_tokens", type=int, default=512, 

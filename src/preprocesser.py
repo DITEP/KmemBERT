@@ -9,7 +9,4 @@ class EHRPreprocesser():
         pass
 
     def __call__(self, text):
-        if text:
-            return text.replace("#$", "")
-        else:
-            return ""
+        return text.replace("#$", "")
