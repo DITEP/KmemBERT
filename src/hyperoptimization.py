@@ -26,7 +26,7 @@ def main(args):
 
     def objective(trial):
         config.batch_size = 8 # trial.suggest_categorical('batch_size', [32, 64, 128])
-        config.learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-4)
+        config.learning_rate = trial.suggest_loguniform('learning_rate', 5e-7, 1e-4)
         config.freeze = False # trial.suggest_categorical('freeze', [False, True])
         config.weight_decay = 0 # trial.suggest_categorical('weight_decay', [0,1e-2,1e-1])
         config.drop_rate = 0 # trial.suggest_categorical('drop_rate', [0., 0.1, 0.2])
