@@ -7,7 +7,7 @@
 import json
 import numpy as np
 import os
-from transformers import CamembertForSequenceClassification, CamembertTokenizerFast
+from transformers import CamembertForSequenceClassification, CamembertTokenizerFast, get_linear_schedule_with_warmup
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -97,6 +97,12 @@ class HealthBERT(nn.Module):
     def start_epoch_timers(self):
         self.encoding_time = 0
         self.compute_time = 0
+    
+    def initialize_scheduler(self, epochs, train_loader):
+        total_steps = len(train_loader) * epochs
+        self.scheduler = get_linear_schedule_with_warmup(self.optimizer,
+                                                        num_warmup_steps=2, # Default value
+                                                        num_training_steps=total_steps)
 
     def freeze(self):
         """Freezes the encoder layer. Only the classification head on top will learn"""
