@@ -40,7 +40,7 @@ class EHRDataset(Dataset):
         config.mean_time_survival = self.mean_time_survival
 
         self.labels = time_survival_to_label(self.labels, self.mean_time_survival)
-        self.texts = list(self.df["Texte"].apply(self.preprocesser))
+        self.texts = list(self.df["Texte"].astype(str).apply(self.preprocesser))
         
     def __getitem__(self, index):
         return self.texts[index], self.labels[index]

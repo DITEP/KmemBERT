@@ -37,7 +37,6 @@ class HealthBERT(nn.Module):
         self.voc_path = config.voc_path
         self.model_name = config.model_name
         self.mode = config.mode
-        self.max_tokens = config.max_tokens
         self.best_error = np.inf
         self.early_stopping = 0
 
@@ -139,7 +138,7 @@ class HealthBERT(nn.Module):
         loss, camembert outputs
         """
         encoding_start_time = time()
-        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True, max_length=self.max_tokens)
+        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
         self.encoding_time += time()-encoding_start_time
 
         input_ids = encoding['input_ids'].to(self.device)
