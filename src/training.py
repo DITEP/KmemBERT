@@ -31,8 +31,9 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
 
     losses = defaultdict(list)
     test_losses = []
+    train_errors, test_errors = [], []
     n_samples = config.print_every_k_batch * config.batch_size
-
+    model.initialize_scheduler(config.epochs, train_loader)
     for epoch in range(config.epochs):
         print("> EPOCH", epoch)
         model.train()
@@ -73,15 +74,30 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
                 k_batch_start_time = time()
 
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
+        train_errors.append(train_error)
         printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         if train_only:
+            """
+            We won't evaluate the model on the validation set.
+            This is used in hyperoptimization to reduce the running time.
+            """
             if train_error < model.best_error:
                 model.best_error = train_error
             continue
 
         test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
+        test_errors.append(test_error)
+
+        plt.plot(train_errors)
+        plt.plot(test_errors)
+        plt.xlabel("Epoch")
+        plt.ylabel("MAE (days)")
+        plt.legend(["Train", "Validation"])
+        plt.title("MAE Evolution")
+        plt.savefig(os.path.join(config.path_result, "mae.png"))
+        plt.close()
         
-        model.scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
+        model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             break
     
@@ -148,10 +164,8 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
     parser.add_argument("-r", "--resume", type=str, default=None, 
-        help="result folder in with the saved checkpoint will be reused")
+        help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="Number of decreasing accuracy epochs to stop the training")
-    parser.add_argument("-mt", "--max_tokens", type=int, default=512, 
-        help="Maximum number of tokens before truncating sentences")
 
     main(parser.parse_args())

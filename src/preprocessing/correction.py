@@ -6,39 +6,60 @@
 
 import argparse
 import json
+import numpy as np
 import pandas as pd
 import os
-from pandarallel import pandarallel
 from symspellpy import SymSpell, Verbosity
 from tqdm import tqdm
-import spacy
 tqdm.pandas()
+import spacy
+import shutil
 
-from ..utils import get_root, printc
+from ..utils import printc
+from ..preprocesser import EHRPreprocesser
 
 class TextCorrector:
     def __init__(self, nlp, corrector, min_token_length = 5):
         self.nlp = nlp
         self.corrector = corrector
         self.min_token_length = min_token_length
+        self.preprocesser = EHRPreprocesser()
+        self.reset()
+
+    def reset(self):
+        self.num_tokens = 0
+        self.num_corrected_tokens = 0
+        self.num_long_tokens = 0
+        self.correction_failed = 0
 
     def capitalize(self, tokens):
         tokens[0] = tokens[0].capitalize()
         for i in range(len(tokens)-1):
-            if tokens[i] == '.':
+            if tokens[i] and tokens[i][0] == '.':
                 tokens[i+1] = tokens[i+1].capitalize()
 
     def __call__(self, text):
-        tokens = []
-        text = text.lower()
-        for token in self.nlp(text):
-            if len(token) < self.min_token_length:
-                tokens.append(str(token))
-            else:
-                tokens.append(self.corrector(str(token)))
+        try:
+            tokens = []
+            text = self.preprocesser(text.lower()).strip()
+            text = ' '.join(text.split())
+            for token in self.nlp(text):
+                self.num_tokens += 1
+                if len(token) < self.min_token_length:
+                    tokens.append(token.text_with_ws)
+                else:
+                    self.num_long_tokens += 1
+                    tokens.append(self.corrector(str(token)))
+                    if tokens[-1] != str(token):
+                        self.num_corrected_tokens += 1
+                    tokens.append(token.whitespace_)
 
-        self.capitalize(tokens)
-        return ' '.join(tokens)
+            self.capitalize(tokens)
+            return ''.join(tokens)
+        except:
+            print('CORRECTION FAILED')
+            self.correction_failed += 1
+            return text
 
 def get_corrector(args):
     sym_spell = SymSpell()
@@ -53,6 +74,7 @@ def main(args):
     Inputs: please refer bellow, to the argparse arguments.
     """
     if args.parallel_apply:
+        from pandarallel import pandarallel
         pandarallel.initialize(progress_bar=True)
 
     nlp = spacy.load('fr')
@@ -65,6 +87,8 @@ def main(args):
     path_dataset_corrected = os.path.join("data", f"{args.data_folder}_corrected_{args.distance}")
 
     os.mkdir(path_dataset_corrected)
+    shutil.copyfile(os.path.join(path_dataset, 'config.json'), 
+                    os.path.join(path_dataset_corrected, 'config.json'))
 
     for csv_name in ['train.csv', 'test.csv']:
         path_csv = os.path.join(path_dataset, csv_name)
@@ -72,10 +96,16 @@ def main(args):
         print(f"Correcting {path_csv}...")
 
         df = pd.read_csv(path_csv)
+        text_corrector.reset()
+
         if args.parallel_apply:
-            df["Texte"] = df["Texte"].parallel_apply(text_corrector)
+            df["Texte"] = df["Texte"].parallel_apply(lambda text: text_corrector(text))
         else:
             df["Texte"] = df["Texte"].progress_apply(text_corrector)
+        
+        print('num_corrected_tokens:', text_corrector.num_corrected_tokens)
+        print(f"{100*text_corrector.num_corrected_tokens/text_corrector.num_tokens:.2f}% of all / {100*text_corrector.num_corrected_tokens/text_corrector.num_long_tokens:.2f}% of long tokens")
+        print('correction_failed:', text_corrector.correction_failed, f"({100*text_corrector.correction_failed/len(df):.2f}%)")
 
         df.to_csv(path_corrected_csv, index=False)
         printc(f" > Corrected csv saved into {path_corrected_csv}\n", 'SUCCESS')

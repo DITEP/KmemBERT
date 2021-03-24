@@ -7,7 +7,7 @@
 import json
 import numpy as np
 import os
-from transformers import CamembertForSequenceClassification, CamembertTokenizerFast
+from transformers import CamembertForSequenceClassification, CamembertTokenizerFast, get_linear_schedule_with_warmup
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -37,7 +37,6 @@ class HealthBERT(nn.Module):
         self.voc_path = config.voc_path
         self.model_name = config.model_name
         self.mode = config.mode
-        self.max_tokens = config.max_tokens
         self.best_error = np.inf
         self.early_stopping = 0
 
@@ -84,6 +83,7 @@ class HealthBERT(nn.Module):
         assert os.path.isfile(path_checkpoint), 'Error: no checkpoint found!'
         checkpoint = torch.load(path_checkpoint, map_location=self.device)
         self.tokenizer = checkpoint['tokenizer']
+        self.camembert.resize_token_embeddings(len(self.tokenizer))
 
         try:
             self.load_state_dict(checkpoint['model'])
@@ -97,6 +97,12 @@ class HealthBERT(nn.Module):
     def start_epoch_timers(self):
         self.encoding_time = 0
         self.compute_time = 0
+    
+    def initialize_scheduler(self, epochs, train_loader):
+        total_steps = len(train_loader) * epochs
+        self.scheduler = get_linear_schedule_with_warmup(self.optimizer,
+                                                        num_warmup_steps=2, # Default value
+                                                        num_training_steps=total_steps)
 
     def freeze(self):
         """Freezes the encoder layer. Only the classification head on top will learn"""
@@ -138,7 +144,7 @@ class HealthBERT(nn.Module):
         loss, camembert outputs
         """
         encoding_start_time = time()
-        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True, max_length=self.max_tokens)
+        encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
         self.encoding_time += time()-encoding_start_time
 
         input_ids = encoding['input_ids'].to(self.device)

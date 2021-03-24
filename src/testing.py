@@ -10,7 +10,6 @@ import argparse
 from time import time
 import matplotlib.pyplot as plt
 from collections import defaultdict
-
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix, roc_curve
 
 import torch
@@ -68,7 +67,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         else: 
             model.early_stopping += 1
 
-    plt.scatter(predictions, test_labels, s=0.3, alpha=0.5)
+    plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
     plt.xlabel("Predictions")
     plt.ylabel("Labels")
     plt.xlim(0, 1)
@@ -101,6 +100,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
     metrics['f1_score'] = f1_score(bin_labels, bin_predictions)
     metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
+    metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
 
     try:
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
@@ -125,13 +125,13 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
 
     save_json(path_result, 'results', 
         {'mean_error': error,
-            'predictions': predictions.tolist(),
-            'test_labels': test_labels.tolist(),
-            'label_threshold': config.label_threshold,
-            'bin_predictions': bin_predictions.tolist(),
-            'bin_labels': bin_labels.tolist(),
-            'metrics': metrics,
-            'std_mae_quantile': std_mae_quantile})
+        'metrics': metrics,
+        'predictions': predictions.tolist(),
+        'test_labels': test_labels.tolist(),
+        'label_threshold': config.label_threshold,
+        'bin_predictions': bin_predictions.tolist(),
+        'bin_labels': bin_labels.tolist(),
+        'std_mae_quantile': std_mae_quantile})
 
     return error
 
