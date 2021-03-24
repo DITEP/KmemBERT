@@ -19,7 +19,7 @@ from ..preprocesser import EHRPreprocesser
 def count_sentence(x, tokenizer, preprocesser):
     count_token = 0
     x["Texte"] = preprocesser(x["Texte"])
-    nb_tokens = len(tokenizer(x["Texte"])["input_ids"])
+    nb_tokens = len(tokenizer(x["Texte"], max_length =2000)["input_ids"])
     splitted_by_sentence = re.split(r'[.!?]+', str(x["Texte"]))
     total_sentence = len(splitted_by_sentence) - 1
     for s in splitted_by_sentence :
