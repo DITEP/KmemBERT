@@ -14,19 +14,34 @@ import sys
 from .utils import get_label, time_survival_to_label
 from .preprocesser import EHRPreprocesser
 
+def get_train_validation(path_dataset, config):
+    """
+    Returns train and validation set based on a predefined split
+    """
+    df = pd.read_csv(os.path.join(path_dataset, "train.csv"))
+    validation_split = pd.read_csv(os.path.join(path_dataset, "validation_split.csv"), dtype=bool)
+    
+    validation = df[validation_split["validation"]]
+    train = df.drop(validation.index)
+
+    return EHRDataset(path_dataset, config, df=train), EHRDataset(path_dataset, config, df=validation)
+
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""
 
-    def __init__(self, path_dataset, config, train=True):
+    def __init__(self, path_dataset, config, train=True, df=None):
         super(EHRDataset, self).__init__()
         self.path_dataset = path_dataset
         self.nrows = config.nrows
         self.train = train
-        self.csv_path = os.path.join(self.path_dataset, "train.csv" if train else "test.csv")
         self.config_path = os.path.join(self.path_dataset, "config.json")
         self.preprocesser = EHRPreprocesser()
 
-        self.df = pd.read_csv(self.csv_path)
+        if df is not None:
+            self.df = df
+        else:
+            self.csv_path = os.path.join(self.path_dataset, "train.csv" if train else "test.csv")
+            self.df = pd.read_csv(self.csv_path)
 
         self.labels = np.array(list(self.df[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 

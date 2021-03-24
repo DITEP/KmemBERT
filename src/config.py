@@ -20,7 +20,7 @@ class Config:
     weight_decay = 0
     ratio_lr_embeddings = None
     drop_rate = None
-    train_size = 0.8
+    train_size = None
     path_result = None
     resume = None
     patience = None

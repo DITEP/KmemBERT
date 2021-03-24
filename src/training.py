@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from .dataset import EHRDataset
+from .dataset import EHRDataset, get_train_validation
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
 from .health_bert import HealthBERT
 from .testing import test
@@ -123,10 +123,15 @@ def main(args):
 
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    dataset = EHRDataset(path_dataset, config)
-    train_size = int(config.train_size * len(dataset))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    if config.train_size is None:
+        # Then we use a predifined validation split
+        train_dataset, test_dataset = get_train_validation(path_dataset, config)
+    else:
+        # Then we use a random validation split
+        dataset = EHRDataset(path_dataset, config)
+        train_size = int(config.train_size * len(dataset))
+        test_size = len(dataset) - train_size
+        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
@@ -143,7 +148,7 @@ if __name__ == "__main__":
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
-    parser.add_argument("-t", "--train_size", type=float, default=0.8, 
+    parser.add_argument("-t", "--train_size", type=float, default=None, 
         help="dataset train size")
     parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
         help="dropout ratio")
