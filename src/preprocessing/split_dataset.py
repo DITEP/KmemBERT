@@ -51,7 +51,7 @@ print("\nFiltering EHR...")
 df = df[df["Nature doct"] == "C.R. consultation"]
 print(f"{df.shape[0]} rows left")
 # 1347612
-df["Texte"].replace("", np.nan, inplace=True)
+df["Texte"].replace("^(\s*(#\$)*)*$", np.nan, regex=True, inplace=True)
 df["Date deces"].replace("", np.nan, inplace=True)
 df["Date cr"].replace("", np.nan, inplace=True)
 df["Noigr"].replace("", np.nan, inplace=True)
