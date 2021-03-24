@@ -16,16 +16,11 @@ from torch.utils.data import DataLoader
 
 from .dataset import EHRHistoryDataset
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
-from .health_bert import HealthBERT
+from .model_multiehr import MultiEHRModel
 from .testing import test
 
-def train_and_validate(train_loader, test_loader, device, config, path_result, train_only=False):
-    """
-    Creates a camembert model and retrain it, with eventually a larger vocabulary.
-
-    Inputs: please refer bellow, to the argparse arguments.
-    """
-    model = HealthBERT(device, config)
+def train_and_validate(train_loader, test_loader, device, config, path_result):
+    model = MultiEHRModel(device, config)
 
     printc("\n----- STARTING TRAINING -----")
 
@@ -36,6 +31,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
     for epoch in range(config.epochs):
         print("> EPOCH", epoch)
         model.train()
+        k_batch_start_time = time()
         epoch_loss, k_batch_loss = 0, 0
         predictions, train_labels = [], []
 
@@ -44,6 +40,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
                 break
             loss, output = model.step(texts, dt, label)
 
+            train_labels.append(label.item())
             predictions.append(output.item())
 
             epoch_loss += loss.item()
@@ -51,12 +48,10 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
 
             if (i+1) % config.print_every_k_batch == 0:
                 average_loss = k_batch_loss / n_samples
-                print('    [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {} - Time encoding: {} - Time forward: {}'.format(
+                print('    [{}-{}]  -  Average loss: {:.4f}  -  Time elapsed: {}'.format(
                     i+1-config.print_every_k_batch, i+1, 
                     average_loss, 
-                    pretty_time(time()-k_batch_start_time), 
-                    pretty_time(model.encoding_time), 
-                    pretty_time(model.compute_time)
+                    pretty_time(time()-k_batch_start_time)
                 ))
                 losses[epoch].append(average_loss)
                 k_batch_loss = 0
@@ -65,20 +60,8 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
         train_errors.append(train_error)
         printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}\n', 'RESULTS')
-        if train_only:
-            """
-            We won't evaluate the model on the validation set.
-            This is used in hyperoptimization to reduce the running time.
-            """
-            if train_error < model.best_error:
-                model.best_error = train_error
-            continue
-
-        test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
-        test_errors.append(test_error)
 
         plt.plot(train_errors)
-        plt.plot(test_errors)
         plt.xlabel("Epoch")
         plt.ylabel("MAE (days)")
         plt.legend(["Train", "Validation"])
@@ -103,7 +86,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
 
 def collate_fn(batch):
     sequences, times, labels = zip(*batch)
-    return sequences, torch.tensor(times), torch.tensor(labels)
+    return sequences, torch.tensor(times).type(torch.float32), torch.tensor(labels).type(torch.float32)
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
