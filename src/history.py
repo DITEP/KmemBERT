@@ -33,29 +33,18 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
     test_losses = []
     train_errors, test_errors = [], []
     n_samples = config.print_every_k_batch * config.batch_size
-    model.initialize_scheduler(config.epochs, train_loader)
     for epoch in range(config.epochs):
         print("> EPOCH", epoch)
         model.train()
         epoch_loss, k_batch_loss = 0, 0
-        epoch_start_time, k_batch_start_time = time(), time()
-        model.start_epoch_timers()
         predictions, train_labels = [], []
 
-        for i, (texts, labels) in enumerate(train_loader):
+        for i, (texts, dt, label) in enumerate(train_loader):
             if config.nrows and i*config.batch_size >= config.nrows:
                 break
-            loss, outputs = model.step(texts, labels)
+            loss, output = model.step(texts, dt, label)
 
-            if model.mode == 'classif':
-                predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
-            elif model.mode == 'regression':
-                predictions += outputs.flatten().tolist()
-            else:
-                mu, _ = outputs
-                predictions += mu.tolist()
-
-            train_labels += labels.tolist()
+            predictions.append(output.item())
 
             epoch_loss += loss.item()
             k_batch_loss += loss.item()
@@ -75,7 +64,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
 
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
         train_errors.append(train_error)
-        printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+        printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}\n', 'RESULTS')
         if train_only:
             """
             We won't evaluate the model on the validation set.
@@ -96,10 +85,6 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
         plt.title("MAE Evolution")
         plt.savefig(os.path.join(config.path_result, "mae.png"))
         plt.close()
-        
-        model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
-        if (config.patience is not None) and (model.early_stopping >= config.patience):
-            break
     
     printc("-----  Ended Training  -----\n")
 
@@ -116,7 +101,9 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
     plt.close()
     print("[DONE]")
 
-    return model.best_error
+def collate_fn(batch):
+    sequences, times, labels = zip(*batch)
+    return sequences, torch.tensor(times), torch.tensor(labels)
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
@@ -128,26 +115,19 @@ def main(args):
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
 
-    print(next(iter(train_loader)))
-    #train_and_validate(train_loader, test_loader, device, config, config.path_result)
+    train_and_validate(train_loader, test_loader, device, config, config.path_result)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
-    parser.add_argument("-m", "--mode", type=str, default="regression", choices=['classif', 'regression', 'density'],
-        help="name of the task")
-    parser.add_argument("-b", "--batch_size", type=int, default=8, 
-        help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
     parser.add_argument("-t", "--train_size", type=float, default=0.8, 
         help="dataset train size")
-    parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
-        help="dropout ratio")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
@@ -158,13 +138,9 @@ if __name__ == "__main__":
         help="days threshold to convert into classification task")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
         help="dataset train size")
-    parser.add_argument("-r_lr", "--ratio_lr_embeddings", type=float, default=1, 
-        help="the ratio applied to lr for embeddings layer")
     parser.add_argument("-wg", "--weight_decay", type=float, default=0, 
         help="the weight decay for L2 regularization")
-    parser.add_argument("-v", "--voc_path", type=str, default=None, 
-        help="path to the new words to be added to the vocabulary of camembert")
-    parser.add_argument("-r", "--resume", type=str, default=None, 
+    parser.add_argument("-r", "--resume", type=str, required=True, 
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="Number of decreasing accuracy epochs to stop the training")

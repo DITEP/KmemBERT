@@ -76,6 +76,7 @@ class HealthBERT(nn.Module):
             self.add_tokens_from_path(self.voc_path)
 
         self.start_epoch_timers()
+        self.eval()
 
     def resume(self, config):
         printc(f"Resuming with model at {config.resume}...", "INFO")
@@ -132,7 +133,7 @@ class HealthBERT(nn.Module):
             mu, log_var = outputs
             return (log_var + (labels - mu)**2/torch.exp(log_var)).mean()
 
-    def step(self, texts, labels):
+    def step(self, texts, labels=None):
         """
         Encode and forward the given texts. Compute the loss, and its backward.
 
@@ -149,14 +150,16 @@ class HealthBERT(nn.Module):
 
         input_ids = encoding['input_ids'].to(self.device)
         attention_mask = encoding['attention_mask'].to(self.device)
-        if not self.mode == 'classif':
-            labels = labels.type(torch.FloatTensor)
-        labels = labels.to(self.device)
+        if not labels is None:
+            if not self.mode == 'classif':
+                labels = labels.type(torch.FloatTensor)
+            labels = labels.to(self.device)
 
         compute_start_time = time()
         outputs = self(input_ids, attention_mask=attention_mask, labels=labels if self.mode == 'classif' else None)
         self.compute_time += time()-compute_start_time
 
+        if labels is None: return outputs.logits if self.mode == 'classif' else outputs
 
         loss = self.get_loss(outputs, labels=labels)
 
