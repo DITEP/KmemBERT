@@ -77,7 +77,7 @@ def main(args):
         from pandarallel import pandarallel
         pandarallel.initialize(progress_bar=True)
 
-    nlp = spacy.load('fr')
+    nlp = spacy.load('fr_core_news_sm')
 
     corrector = get_corrector(args)
 
