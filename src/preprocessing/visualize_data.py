@@ -12,18 +12,22 @@ import re
 import datetime
 import numpy as np
 from numpy.core.numeric import NaN
+from transformers import CamembertTokenizerFast
 
-def count_sentence(x):
-    total_sentence = 0
-    count_word = 0
+from ..preprocesser import EHRPreprocesser
+
+def count_sentence(x, tokenizer, preprocesser):
+    count_token = 0
+    x["Texte"] = preprocesser(x["Texte"])
+    nb_tokens = len(tokenizer(x["Texte"], max_length =2000)["input_ids"])
     splitted_by_sentence = re.split(r'[.!?]+', str(x["Texte"]))
-    total_sentence += len(splitted_by_sentence) - 1
+    total_sentence = len(splitted_by_sentence) - 1
     for s in splitted_by_sentence :
         if len(s) == 0 :
             continue 
-        count_word += len(s.split())
-    mean_word = count_word / max(1, total_sentence)
-    return pd.Series([total_sentence, mean_word], index = ["total_sentence", "mean_word"])
+        count_token += (len(tokenizer(s)["input_ids"]) - 1)
+    mean_tokens = count_token / max(1, total_sentence)
+    return pd.Series([total_sentence, mean_tokens, nb_tokens], index = ["total_sentence", "mean_tokens", "nb_tokens"])
 
 def compute_survival_time(x):
     count_dates_inversed = 0
@@ -60,7 +64,9 @@ def main(arg):
     plt.savefig(os.path.join(folder_to_save, "ehr_by_id.jpg"))
 
     # Words by sentence / sentence by cr
-    df_count = df.apply(count_sentence, axis=1)
+    tokenizer = CamembertTokenizerFast.from_pretrained("camembert-base")
+    preprocessor = EHRPreprocesser()
+    df_count = df.apply(lambda x : count_sentence(x, tokenizer, preprocessor), axis=1)
 
     total_sentence_max = df_count["total_sentence"].max()
     max_value_desired = 150
@@ -72,13 +78,22 @@ def main(arg):
     plt.savefig(os.path.join(folder_to_save, "sentences_by_ehr.jpg"))
 
     plt.figure(3)
-    words_max = df_count["mean_word"].max()
-    words_max_desired = 200 
-    plt.xlim((0, min(words_max, words_max_desired)))
-    df_count["mean_word"].plot.hist(bins=100)
-    plt.title("Mean words per sentence per EHR")
-    plt.xlabel("Mean number of words")
-    plt.savefig(os.path.join(folder_to_save, "mean_words.jpg"))
+    max_mean_tokens = df_count["mean_tokens"].max()
+    max_mean_tokens_desired = 200 
+    plt.xlim((0, min(max_mean_tokens, max_mean_tokens_desired)))
+    df_count["mean_tokens"].plot.hist(bins=100)
+    plt.title("Mean tokens per sentence per EHR")
+    plt.xlabel("Mean number of tokens")
+    plt.savefig(os.path.join(folder_to_save, "mean_tokens.jpg"))
+
+    plt.figure(4)
+    max_tokens = df_count["nb_tokens"].max()
+    nb_tokens_desired = 1500 
+    plt.xlim((0, min(max_tokens, nb_tokens_desired)))
+    df_count["nb_tokens"].plot.hist(bins=100)
+    plt.title("Number of tokens per EHR")
+    plt.xlabel("Total number of tokens")
+    plt.savefig(os.path.join(folder_to_save, "nb_tokens.jpg"))
 
     # Distribution of survival time
     df["survival_time"] = df.apply(compute_survival_time, axis=1)
@@ -103,7 +118,7 @@ if __name__ == "__main__" :
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_file", type=str, default="data/ehr/train.csv", 
         help="data file path")
-    parser.add_argument("-f", "--folder_to_save", type=str, default="data_viz", 
+    parser.add_argument("-f", "--folder_to_save", type=str, default="data/data_viz", 
         help="folder to save the figures")
     parser.add_argument("-nl", "--number_of_lines", type=int, default=0, 
         help="number of lines of the csv to read, 0 for all")
