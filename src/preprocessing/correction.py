@@ -13,9 +13,11 @@ from symspellpy import SymSpell, Verbosity
 from tqdm import tqdm
 tqdm.pandas()
 import spacy
+import shutil
 
 from ..utils import printc
 from ..preprocesser import EHRPreprocesser
+
 class TextCorrector:
     def __init__(self, nlp, corrector, min_token_length = 5):
         self.nlp = nlp
@@ -85,6 +87,8 @@ def main(args):
     path_dataset_corrected = os.path.join("data", f"{args.data_folder}_corrected_{args.distance}")
 
     os.mkdir(path_dataset_corrected)
+    shutil.copyfile(os.path.join(path_dataset, 'config.json'), 
+                    os.path.join(path_dataset_corrected, 'config.json'))
 
     for csv_name in ['train.csv', 'test.csv']:
         path_csv = os.path.join(path_dataset, csv_name)

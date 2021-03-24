@@ -10,7 +10,6 @@ import argparse
 from time import time
 import matplotlib.pyplot as plt
 from collections import defaultdict
-
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix, roc_curve
 
 import torch
@@ -101,6 +100,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
     metrics['f1_score'] = f1_score(bin_labels, bin_predictions)
     metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
+    metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
 
     try:
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
