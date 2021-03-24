@@ -13,6 +13,9 @@ import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
 import numpy as np
+from tqdm import tqdm
+tqdm.pandas()
+import re
 
 from ..utils import save_json, get_label
 
@@ -53,7 +56,9 @@ print("\nFiltering EHR...")
 df = df[df["Nature doct"] == "C.R. consultation"]
 print(f"{df.shape[0]} rows left")
 # 1347612
-df["Texte"].replace("^(\s*(#\$)*)*$", np.nan, regex=True, inplace=True)
+df["Texte"] = df["Texte"].progress_apply(lambda x: re.sub("^(\s*(#\$)*)*$", "", x))
+df["Texte deces"].replace("", np.nan, inplace=True)
+#df["Texte"].replace("^(\s*(#\$)*)*$", np.nan, regex=True, inplace=True)
 df["Date deces"].replace("", np.nan, inplace=True)
 df["Date cr"].replace("", np.nan, inplace=True)
 df["Noigr"].replace("", np.nan, inplace=True)
