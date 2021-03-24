@@ -33,7 +33,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
     test_losses = []
     train_errors, test_errors = [], []
     n_samples = config.print_every_k_batch * config.batch_size
-
+    model.initialize_scheduler(config.epochs, train_loader)
     for epoch in range(config.epochs):
         print("> EPOCH", epoch)
         model.train()
@@ -97,7 +97,7 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
         plt.savefig(os.path.join(config.path_result, "mae.png"))
         plt.close()
         
-        model.scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
+        model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             break
     
