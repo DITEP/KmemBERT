@@ -102,5 +102,4 @@ print("\nCreating a validation split...")
 _, validation_noigrs = train_test_split(train_noigrs, test_size=validation_size, random_state=seed)
 df = pd.read_csv(train_path)
 validation_split = df["Noigr"].isin(validation_noigrs)
-validation_split.columns = ["validation"]
-validation_split.to_csv(validation_split_path, index=False)
+validation_split.rename("validation").to_csv(validation_split_path, index=False)
