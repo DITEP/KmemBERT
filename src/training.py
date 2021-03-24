@@ -167,7 +167,5 @@ if __name__ == "__main__":
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="Number of decreasing accuracy epochs to stop the training")
-    parser.add_argument("-mt", "--max_tokens", type=int, default=512, 
-        help="Maximum number of tokens before truncating sentences")
 
     main(parser.parse_args())
