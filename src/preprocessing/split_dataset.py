@@ -98,7 +98,7 @@ save_json(data_path, "config", {"mean_time_survival": mean_time_survival})
 n_train, n_test = len(train), len(test)
 print("\nTrain samples: {}\nTest samples: {}\nTrain ratio: {}".format(n_train, n_test, n_train/(n_train + n_test)))
 
-print("\Creating a validation split...")
+print("\nCreating a validation split...")
 _, validation_noigrs = train_test_split(train_noigrs, test_size=validation_size, random_state=seed)
 df = pd.read_csv(train_path)
 validation_split = df["Noigr"].isin(validation_noigrs)
