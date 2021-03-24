@@ -74,10 +74,17 @@ class EHRHistoryDataset(EHRDataset):
         self.patient_to_indices = defaultdict(list)
         for i, noigr in enumerate(self.df.Noigr.values):
             self.patient_to_indices[noigr].append(i)
+
+        for noigr, indices in self.patient_to_indices.items():
+            self.patient_to_indices[noigr] = sorted(indices, key=lambda i: -self.survival_times[i])
         
     def __getitem__(self, index):
-        indices = sorted(self.patient_to_indices[self.patients[index]], key=lambda i: -self.survival_times[i])
+        indices = self.patient_to_indices[self.patients[index]]
+        n_ehr = np.random.randint(1, len(indices)) if len(indices) > 1 else 1
+
+        indices = indices[:n_ehr]
         last_survival_time = min(self.survival_times[indices])
+
         return ([self.texts[text_index] for text_index in indices], 
                 self.survival_times[indices] - last_survival_time, 
                 min(self.labels[indices]))

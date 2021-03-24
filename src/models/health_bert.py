@@ -7,7 +7,7 @@
 import json
 import numpy as np
 import os
-from transformers import CamembertForSequenceClassification, CamembertTokenizerFast, get_linear_schedule_with_warmup
+from transformers import CamembertForSequenceClassification, CamembertTokenizerFast
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -16,7 +16,8 @@ import logging
 from time import time
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
-from .utils import printc
+from ..utils import printc
+from .interface import ModelInterface
 
 def set_dropout(model, drop_rate=0.1):
     for _, child in model.named_children():
@@ -24,21 +25,18 @@ def set_dropout(model, drop_rate=0.1):
             child.p = drop_rate
         set_dropout(child, drop_rate=drop_rate)
 
-class HealthBERT(nn.Module):
+class HealthBERT(ModelInterface):
     """
     Model that instanciates a camembert model, a tokenizer and an optimizer.
     It supports methods to train it.
     """
     def __init__(self, device, config):
-        super(HealthBERT, self).__init__()
-        
-        self.device = device
+        super(HealthBERT, self).__init__(device, config)
+
         self.learning_rate = config.learning_rate
         self.voc_path = config.voc_path
         self.model_name = config.model_name
         self.mode = config.mode
-        self.best_error = np.inf
-        self.early_stopping = 0
 
         if self.mode == 'classif' or self.mode == 'density':
             self.num_labels = 2
@@ -75,7 +73,6 @@ class HealthBERT(nn.Module):
         if self.voc_path:
             self.add_tokens_from_path(self.voc_path)
 
-        self.start_epoch_timers()
         self.eval()
 
     def resume(self, config):
@@ -94,16 +91,6 @@ class HealthBERT(nn.Module):
                 if parameter.split('.')[2] == 'out_proj':
                     checkpoint['model'][parameter] = self.state_dict()[parameter]
             self.load_state_dict(checkpoint['model'])
-
-    def start_epoch_timers(self):
-        self.encoding_time = 0
-        self.compute_time = 0
-    
-    def initialize_scheduler(self, epochs, train_loader):
-        total_steps = len(train_loader) * epochs
-        self.scheduler = get_linear_schedule_with_warmup(self.optimizer,
-                                                        num_warmup_steps=2, # Default value
-                                                        num_training_steps=total_steps)
 
     def freeze(self):
         """Freezes the encoder layer. Only the classification head on top will learn"""

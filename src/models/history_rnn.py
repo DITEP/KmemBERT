@@ -2,13 +2,15 @@ import torch.nn as nn
 import torch
 from torch.optim import Adam
 
+from .interface import ModelInterface
 from .health_bert import HealthBERT
 
-class MultiEHRModel(nn.Module):
-    def __init__(self, device, config, hidden_size_gru=20):
-        super(MultiEHRModel, self).__init__()
+class MultiEHRModel(ModelInterface):
+    mode = 'multi'
 
-        self.device = device
+    def __init__(self, device, config, hidden_size_gru=20):
+        super(MultiEHRModel, self).__init__(device, config)
+
         self.health_bert = HealthBERT(device, config)
         for param in self.health_bert.parameters():
             param.requires_grad = False
@@ -25,6 +27,11 @@ class MultiEHRModel(nn.Module):
 
         self.optimizer = Adam(self.GRU.parameters(), lr = config.learning_rate, weight_decay=config.weight_decay)
         self.MSELoss = nn.MSELoss()
+
+        if config.resume:
+            self.resume(config)
+        
+        self.eval()
 
     def init_hidden(self):
         hidden = torch.empty(1, self.nb_gru_layers, self.hidden_size_gru)

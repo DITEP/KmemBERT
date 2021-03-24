@@ -16,17 +16,15 @@ from torch.utils.data import DataLoader
 
 from .dataset import EHRDataset, get_train_validation
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
-from .health_bert import HealthBERT
+from .models.health_bert import HealthBERT
 from .testing import test
 
-def train_and_validate(train_loader, test_loader, device, config, path_result, train_only=False):
+def train_and_validate(model, train_loader, test_loader, device, config, path_result, train_only=False):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
     Inputs: please refer bellow, to the argparse arguments.
     """
-    model = HealthBERT(device, config)
-
     printc("\n----- STARTING TRAINING -----")
 
     losses = defaultdict(list)
@@ -42,18 +40,22 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
         model.start_epoch_timers()
         predictions, train_labels = [], []
 
-        for i, (texts, labels) in enumerate(train_loader):
+        for i, (*data, labels) in enumerate(train_loader):
             if config.nrows and i*config.batch_size >= config.nrows:
                 break
-            loss, outputs = model.step(texts, labels)
+            loss, outputs = model.step(*data, labels)
 
             if model.mode == 'classif':
                 predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
             elif model.mode == 'regression':
                 predictions += outputs.flatten().tolist()
-            else:
+            elif model.mode == 'density':
                 mu, _ = outputs
                 predictions += mu.tolist()
+            elif model.mode == 'multi':
+                predictions.append(outputs.item())
+            else:
+                raise ValueError(f'Mode {model.mode} unknown')
 
             train_labels += labels.tolist()
 
@@ -136,7 +138,8 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
-    train_and_validate(train_loader, test_loader, device, config, config.path_result)
+    model = HealthBERT(device, config)
+    train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
