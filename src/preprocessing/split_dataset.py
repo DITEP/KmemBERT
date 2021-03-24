@@ -18,12 +18,14 @@ from ..utils import save_json, get_label
 
 
 train_size = 0.7
+validation_size = 0.02
 seed = 0
 
 data_path = "/data/isilon/centraleNLP"
 file_path = os.path.join(data_path, "concatenate.txt")
 train_path = os.path.join(data_path, "train.csv")
 test_path = os.path.join(data_path, "test.csv")
+validation_split_path = os.path.join(data_path, "validation_split.csv")
 
 if os.path.isfile(train_path) or os.path.isfile(test_path):
     raise BaseException("File exists: can't overwrite existing train and test datasets.")
@@ -69,7 +71,7 @@ df = df.sample(frac=1).reset_index(drop=True)
 noigrs = pd.unique(df["Noigr"])
 train_noigrs, test_noigrs = train_test_split(noigrs, train_size=train_size, random_state=seed)
 
-train=df[df["Noigr"].isin(train_noigrs)]
+train = df[df["Noigr"].isin(train_noigrs)]
 test=df.drop(train.index)
 mean_time_survival = np.mean(list(train[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 
@@ -90,3 +92,9 @@ save_df(test, test_path)
 save_json(data_path, "config", {"mean_time_survival": mean_time_survival})
 n_train, n_test = len(train), len(test)
 print("\nTrain samples: {}\nTest samples: {}\nTrain ratio: {}".format(n_train, n_test, n_train/(n_train + n_test)))
+
+print("\Creating a validation split...")
+_, validation_noigrs = train_test_split(train_noigrs, test_size=validation_size, random_state=seed)
+df = pd.read_csv(train_path)
+validation_split = df["Noigr"].isin(validation_noigrs)
+validation_split.to_csv(validation_split_path, index=False)
