@@ -89,6 +89,8 @@ def main(args):
     os.mkdir(path_dataset_corrected)
     shutil.copyfile(os.path.join(path_dataset, 'config.json'), 
                     os.path.join(path_dataset_corrected, 'config.json'))
+    shutil.copyfile(os.path.join(path_dataset, 'validation_split.csv'), 
+                    os.path.join(path_dataset_corrected, 'validation_split.csv'))
 
     for csv_name in ['train.csv', 'test.csv']:
         path_csv = os.path.join(path_dataset, csv_name)
