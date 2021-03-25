@@ -7,35 +7,48 @@
 import torch.nn as nn
 import torch
 from torch.optim import Adam
+import json
+import os
 
 from .interface import ModelInterface
 from .health_bert import HealthBERT
+from ..utils import printc
 
-class MultiEHRModel(ModelInterface):
+class MultiEHR(ModelInterface):
     mode = 'multi'
 
-    def __init__(self, device, config, hidden_size_gru=20):
-        super(MultiEHRModel, self).__init__(device, config)
+    def __init__(self, device, config, hidden_size_gru=16, nb_gru_layers=1):
+        super(MultiEHR, self).__init__(device, config)
+
+        with open(os.path.join('results', config.resume, 'args.json')) as json_file:
+            self.health_bert_mode = json.load(json_file)["mode"]
+            assert self.health_bert_mode != "classify", "Health Bert mode classify not supported for RNNs"
+            printc(f"\nUsing Health BERT checkpoint {config.resume} using mode {self.health_bert_mode}", "INFO")
+            config.mode = self.health_bert_mode
 
         self.health_bert = HealthBERT(device, config)
         for param in self.health_bert.parameters():
             param.requires_grad = False
 
-        self.nb_gru_layers = 1
-
+        self.nb_gru_layers = nb_gru_layers
         self.hidden_size_gru = hidden_size_gru
-        self.GRU = nn.GRU(input_size=2, num_layers=self.nb_gru_layers, hidden_size=hidden_size_gru, batch_first=True)
+
+        if self.health_bert.mode == 'regression':
+            self.input_size = 2
+        elif self.health_bert.mode == 'density':
+            self.input_size = 3
+        else:
+            raise ValueError(f"Invalid health bert mode. Needed 'regression' or 'density', found {self.health_bert.mode}")
+
+        self.GRU = nn.GRU(input_size=self.input_size, num_layers=self.nb_gru_layers, hidden_size=hidden_size_gru, batch_first=True)
 
         self.out_proj = nn.Sequential(
-            nn.Linear(hidden_size_gru,1),
+            nn.Linear(hidden_size_gru, 1),
             nn.Sigmoid()
         )
 
         self.optimizer = Adam(self.GRU.parameters(), lr = config.learning_rate, weight_decay=config.weight_decay)
         self.MSELoss = nn.MSELoss()
-
-        if config.resume:
-            self.resume(config)
         
         self.eval()
 
@@ -62,10 +75,14 @@ class MultiEHRModel(ModelInterface):
     def forward(self, texts, dt):
         hidden = self.init_hidden()
 
-        seq = self.health_bert.step(texts).view(-1)
-        seq = torch.stack((seq, dt), dim=1)[None,:]
-        out = self.GRU(seq, hidden)
-        out = out[1]
+        seq = self.health_bert.step(texts)
+        if self.health_bert_mode == 'density':
+            seq = torch.stack((*seq, dt)).T
+        else:
+            seq = seq.view(-1)
+            seq = torch.stack((seq, dt), dim=1)
+
+        out = self.GRU(seq[None,:], hidden)[1]
         out = self.out_proj(out).view(-1)
         return out
 

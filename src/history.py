@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from .dataset import EHRHistoryDataset
 from .utils import create_session, get_label_threshold
-from .models.history_rnn import MultiEHRModel
+from .models.multi_ehr import MultiEHR
 from .training import train_and_validate
 
 def collate_fn(batch):
@@ -30,7 +30,7 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
 
-    model = MultiEHRModel(device, config)
+    model = MultiEHR(device, config)
     train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
 
 if __name__ == "__main__":
