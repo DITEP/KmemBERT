@@ -61,12 +61,12 @@ class MultiEHR(ModelInterface):
         return nn.init.xavier_uniform_(hidden, gain=nn.init.calculate_gain('relu')).to(self.device)
 
     def step(self, texts, dt, label):
-        dt = dt.to(self.device)
+        dt = dt[0].to(self.device)
         label = label.to(self.device)
         if self.training:
             self.optimizer.zero_grad()
 
-        output = self(texts[0], dt[0])
+        output = self(texts[0], dt)
         loss = self.MSELoss(output, label)
 
         if self.training:
@@ -98,19 +98,26 @@ class MultiEHR(ModelInterface):
     
 
 class Conflation(ModelInterface):
+    mode = 'multi'
+
     def __init__(self, device, config):
         super(Conflation, self).__init__(device, config)
         self.health_bert = MultiEHR.load_health_bert(device, config)
 
     def step(self, texts, dt, _):
         dt = dt.to(self.device)
-        mus, stds = self.health_bert.step(texts)
-        print(mus, stds)
+        mus, log_vars = self.health_bert.step(texts[0])
 
-        return None, self(mus, stds)
+        return torch.zeros(1), self(mus, log_vars)
 
-    def forward(self, mus, stds):
-        var = stds**2
-        var_product = var.prod()
-        products = var_product*torch.ones(len(var)) / var
-        return torch.dot(mus, products) / products.sum(), torch.sqrt(var_product / products.sum())
+    def forward(self, mus, log_vars):
+        vars = torch.exp(log_vars)
+        vars_product = vars.prod()
+        products = vars_product*torch.ones(len(vars)) / vars
+        return torch.dot(mus, products) / products.sum() #, torch.log(vars_product / products.sum())
+
+    def train(self, *args):
+        pass
+
+    def eval(self, *args):
+        pass
