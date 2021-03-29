@@ -20,15 +20,7 @@ class MultiEHR(ModelInterface):
     def __init__(self, device, config, hidden_size_gru=16, nb_gru_layers=1):
         super(MultiEHR, self).__init__(device, config)
 
-        with open(os.path.join('results', config.resume, 'args.json')) as json_file:
-            self.health_bert_mode = json.load(json_file)["mode"]
-            assert self.health_bert_mode != "classify", "Health Bert mode classify not supported for RNNs"
-            printc(f"\nUsing Health BERT checkpoint {config.resume} using mode {self.health_bert_mode}", "INFO")
-            config.mode = self.health_bert_mode
-
-        self.health_bert = HealthBERT(device, config)
-        for param in self.health_bert.parameters():
-            param.requires_grad = False
+        self.health_bert = MultiEHR.load_health_bert(device, config)
 
         self.nb_gru_layers = nb_gru_layers
         self.hidden_size_gru = hidden_size_gru
@@ -51,6 +43,18 @@ class MultiEHR(ModelInterface):
         self.MSELoss = nn.MSELoss()
         
         self.eval()
+
+    def load_health_bert(device, config):
+        with open(os.path.join('results', config.resume, 'args.json')) as json_file:
+            config.mode = json.load(json_file)["mode"]
+            assert config.mode != "classify", "Health Bert mode classify not supported for RNNs"
+            printc(f"\nUsing Health BERT checkpoint {config.resume} using mode {config.mode}", "INFO")
+
+        health_bert =  HealthBERT(device, config)
+        for param in health_bert.parameters():
+            param.requires_grad = False
+
+        return health_bert
 
     def init_hidden(self):
         hidden = torch.empty(1, self.nb_gru_layers, self.hidden_size_gru)
@@ -76,7 +80,7 @@ class MultiEHR(ModelInterface):
         hidden = self.init_hidden()
 
         seq = self.health_bert.step(texts)
-        if self.health_bert_mode == 'density':
+        if self.config.mode == 'density':
             seq = torch.stack((*seq, dt)).T
         else:
             seq = seq.view(-1)
@@ -92,4 +96,21 @@ class MultiEHR(ModelInterface):
     def eval(self):
         self.GRU.eval()
     
-        
+
+class Conflation(ModelInterface):
+    def __init__(self, device, config):
+        super(Conflation, self).__init__(device, config)
+        self.health_bert = MultiEHR.load_health_bert(device, config)
+
+    def step(self, texts, dt, _):
+        dt = dt.to(self.device)
+        mus, stds = self.health_bert.step(texts)
+        print(mus, stds)
+
+        return None, self(mus, stds)
+
+    def forward(self, mus, stds):
+        var = stds**2
+        var_product = var.prod()
+        products = var_product*torch.ones(len(var)) / var
+        return torch.dot(mus, products) / products.sum(), torch.sqrt(var_product / products.sum())

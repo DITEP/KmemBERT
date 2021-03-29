@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from .dataset import EHRHistoryDataset
 from .utils import create_session, get_label_threshold
-from .models.multi_ehr import MultiEHR
+from .models.multi_ehr import MultiEHR, Conflation
 from .training import train_and_validate
 
 def collate_fn(batch):
@@ -30,13 +30,24 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
 
-    model = MultiEHR(device, config)
+    if args.aggregator == 'gru':
+        model = MultiEHR(device, config)
+    elif args.aggregator == 'conflation':
+        model = Conflation(device, config)
+
+        assert args.epochs == 0, "Can't make conflation learns. Please choose 0 epochs"
+        #test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
+    else:
+        raise ValueError(f"Invalid aggregator name. Found {args.aggregator}")
+
     train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
+    parser.add_argument("-a", "--aggregator", type=str, default="gru", 
+        help="aggregator name")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
     parser.add_argument("-t", "--train_size", type=float, default=0.8, 
