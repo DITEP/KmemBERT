@@ -6,6 +6,9 @@ results/*
 !results/.gitkeep
 !results/README.md
 
+# exploration
+exploration/*
+
 # python
 __pycache__
 .ipynb_checkpoints
