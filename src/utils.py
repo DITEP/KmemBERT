@@ -54,10 +54,13 @@ def save_json(path_result, name, x):
     with open(os.path.join(path_result, f'{name}.json'), 'w') as f:
         json.dump(x, f, indent=4)
 
+def print_args(args):
+    print(f"> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
+
 def create_session(args):
     torch.manual_seed(0)
     
-    print(f"> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
+    print_args(args)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     printc(f"> DEVICE:  {device}", "INFO")
