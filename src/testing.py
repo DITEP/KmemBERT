@@ -48,7 +48,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         total_loss += loss.item()
 
     if test_losses is not None:
-        test_losses.append(total_loss/len(test_loader))
+        test_losses.append(total_loss/(config.batch_size*len(test_loader)))
 
     error = mean_error(test_labels, predictions, config.mean_time_survival)
     printc(f"    {'Validation' if validation else 'Test'} mean error: {error:.2f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')

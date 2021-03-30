@@ -101,15 +101,17 @@ def train_and_validate(model, train_loader, test_loader, device, config, path_re
         
         model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
+            printc(f'Breaking training after patience {config.patience} reached', 'INFO')
             break
     
     printc("-----  Ended Training  -----\n")
 
     print("Saving losses...")
     save_json(path_result, "losses", { "train": losses, "validation": test_losses })
-    plt.plot(np.linspace(0, config.epochs-1, sum([len(l) for l in losses.values()])),
+    epochs_realized = len(losses)
+    plt.plot(np.linspace(1, epochs_realized, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
-    plt.plot(test_losses)
+    plt.plot(range(1, epochs_realized+1), test_losses)
     plt.legend(["Train loss", "Validation loss"])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
