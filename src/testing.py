@@ -57,7 +57,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         if error < model.best_error:
             model.best_error = error
             printc('    Best accuracy so far', 'SUCCESS')
-            print('    Saving model state...\n')
+            print('    Saving model state...')
             state = {
                 'model': model.state_dict(),
                 'optimizer': model.optimizer.state_dict(),
@@ -72,7 +72,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             model.early_stopping += 1
             return error
 
-    print('    Saving predictions...')
+    print('    Saving predictions...\n')
     save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
 
     plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
@@ -106,7 +106,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics = {}
     metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
     metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
-    metrics['f1_score'] = f1_score(bin_labels, bin_predictions,average=None)
+    metrics['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
     metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
     metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
 
