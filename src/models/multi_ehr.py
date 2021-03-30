@@ -129,3 +129,26 @@ class Conflation(ModelInterface):
 
     def eval(self, *args):
         pass
+
+class HealthCheck(ModelInterface):
+    mode = 'multi'
+
+    def __init__(self, device, config):
+        super(HealthCheck, self).__init__(device, config)
+        self.health_bert = MultiEHR.load_health_bert(device, config)
+
+    def step(self, texts, dt, _):
+        dt = dt.to(self.device)[0]
+
+        if self.config.mode == 'density':
+            mus, _ = self.health_bert.step(texts[0])
+        else:
+            mus = self.health_bert.step(texts[0]).view(-1)
+
+        return torch.zeros(1), mus[-1]
+
+    def train(self, *args):
+        pass
+
+    def eval(self, *args):
+        pass

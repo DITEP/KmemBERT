@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from .dataset import EHRHistoryDataset
 from .utils import create_session, get_label_threshold
-from .models.multi_ehr import MultiEHR, Conflation
+from .models.multi_ehr import MultiEHR, Conflation, HealthCheck
 from .training import train_and_validate
 from .testing import test
 
@@ -40,8 +40,12 @@ def main(args):
         model = MultiEHR(device, config)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
 
-    elif args.aggregator == 'conflation':
+    elif args.aggregator in 'conflation':
         model = Conflation(device, config)
+        test(model, test_loader, config, config.path_result)
+
+    elif args.aggregator in 'health_check':
+        model = HealthCheck(device, config)
         test(model, test_loader, config, config.path_result)
         
     else:
