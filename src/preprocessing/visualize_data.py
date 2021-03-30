@@ -75,6 +75,7 @@ def main(args):
     voc = set(tokenizer.get_vocab().keys())
 
     df_count = df.apply(lambda x : count_sentence(x, tokenizer, preprocessor, voc), axis=1)
+    df_count.to_csv(os.path.join(folder_to_save, "df_count.csv"))
 
     total_sentence_max = df_count["total_sentence"].max()
     max_value_desired = 150
