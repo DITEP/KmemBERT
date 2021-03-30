@@ -46,23 +46,26 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         
         test_labels += labels.tolist()
         total_loss += loss.item()
+    
+    mean_loss = total_loss/(config.batch_size*len(test_loader))
+    print(f"    {'Validation' if validation else 'Test'} loss: {mean_loss:.2f}")
 
     if test_losses is not None:
-        test_losses.append(total_loss/(config.batch_size*len(test_loader)))
+        test_losses.append(mean_loss)
 
     error = mean_error(test_labels, predictions, config.mean_time_survival)
-    printc(f"    {'Validation' if validation else 'Test'} mean error: {error:.2f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
+    printc(f"    {'Validation' if validation else 'Test'} | mean error: {error:.2f} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if validation:
-        if error < model.best_error:
-            model.best_error = error
-            printc('    Best accuracy so far', 'SUCCESS')
+        if mean_loss < model.best_loss:
+            model.best_loss = mean_loss
+            printc('    Best loss so far', 'SUCCESS')
             print('    Saving model state...')
             state = {
                 'model': model.state_dict(),
                 'optimizer': model.optimizer.state_dict(),
                 'scheduler': model.scheduler.state_dict(),
-                'mean_error': error,
+                'best_loss': model.best_loss,
                 'epoch': epoch,
                 'tokenizer': model.tokenizer if hasattr(model, 'tokenizer') else None
             }
@@ -70,7 +73,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             model.early_stopping = 0
         else: 
             model.early_stopping += 1
-            return error
+            return mean_loss
 
     print('    Saving predictions...\n')
     save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
@@ -134,6 +137,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     save_json(path_result, 'results', 
         {'mean_error': error,
         'metrics': metrics,
+        'mean_loss': mean_loss,
         'predictions': predictions.tolist(),
         'test_labels': test_labels.tolist(),
         'label_threshold': config.label_threshold,
@@ -141,7 +145,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         'bin_labels': bin_labels.tolist(),
         'std_mae_quantile': std_mae_quantile})
 
-    return error
+    return mean_loss
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
