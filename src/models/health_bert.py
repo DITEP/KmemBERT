@@ -92,6 +92,9 @@ class HealthBERT(ModelInterface):
                     checkpoint['model'][parameter] = self.state_dict()[parameter]
             self.load_state_dict(checkpoint['model'])
 
+        self.optimizer.load_state_dict(checkpoint['optimizer'])
+        self.scheduler.load_state_dict(checkpoint['scheduler'])
+
     def freeze(self):
         """Freezes the encoder layer. Only the classification head on top will learn"""
         self.frozen = True

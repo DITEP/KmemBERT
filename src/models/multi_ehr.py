@@ -12,7 +12,7 @@ import os
 
 from .interface import ModelInterface
 from .health_bert import HealthBERT
-from ..utils import printc
+from ..utils import printc, shift_predictions
 
 class MultiEHR(ModelInterface):
     mode = 'multi'
@@ -48,7 +48,7 @@ class MultiEHR(ModelInterface):
         with open(os.path.join('results', config.resume, 'args.json')) as json_file:
             config.mode = json.load(json_file)["mode"]
             assert config.mode != "classify", "Health Bert mode classify not supported for RNNs"
-            printc(f"\nUsing Health BERT checkpoint {config.resume} using mode {config.mode}", "INFO")
+            printc(f"\nUsing mode {config.mode} (Health BERT checkpoint {config.resume})", "INFO")
 
         health_bert =  HealthBERT(device, config)
         for param in health_bert.parameters():
@@ -61,7 +61,7 @@ class MultiEHR(ModelInterface):
         return nn.init.xavier_uniform_(hidden, gain=nn.init.calculate_gain('relu')).to(self.device)
 
     def step(self, texts, dt, label):
-        dt = dt[0].to(self.device)
+        dt = dt.to(self.device)[0]
         label = label.to(self.device)
         if self.training:
             self.optimizer.zero_grad()
@@ -105,10 +105,18 @@ class Conflation(ModelInterface):
         self.health_bert = MultiEHR.load_health_bert(device, config)
 
     def step(self, texts, dt, _):
-        dt = dt.to(self.device)
-        mus, log_vars = self.health_bert.step(texts[0])
+        dt = dt.to(self.device)[0]
 
+        if self.config.mode == 'density':
+            mus, log_vars = self.health_bert.step(texts[0])
+        
+        else:
+            mus = self.health_bert.step(texts[0]).view(-1)
+            log_vars = dt / self.config.mean_time_survival
+
+        mus = shift_predictions(mus, self.config.mean_time_survival, dt)
         return torch.zeros(1), self(mus, log_vars)
+
 
     def forward(self, mus, log_vars):
         vars = torch.exp(log_vars)

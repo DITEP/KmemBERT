@@ -23,10 +23,15 @@ def main(args):
 
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    dataset = EHRHistoryDataset(path_dataset, config)
-    train_size = int(config.train_size * len(dataset))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    if config.train_size is None:
+        # Then we use a predifined validation split
+        train_dataset, test_dataset = EHRHistoryDataset.get_train_validation(path_dataset, config)
+    else:
+        # Then we use a random validation split
+        dataset = EHRHistoryDataset(path_dataset, config)
+        train_size = int(config.train_size * len(dataset))
+        test_size = len(dataset) - train_size
+        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
@@ -50,7 +55,7 @@ if __name__ == "__main__":
         help="aggregator name")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
-    parser.add_argument("-t", "--train_size", type=float, default=0.8, 
+    parser.add_argument("-t", "--train_size", type=float, default=None, 
         help="dataset train size")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and testing")

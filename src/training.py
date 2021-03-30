@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from .dataset import EHRDataset, get_train_validation
+from .dataset import EHRDataset
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
 from .models.health_bert import HealthBERT
 from .testing import test
@@ -127,7 +127,7 @@ def main(args):
 
     if config.train_size is None:
         # Then we use a predifined validation split
-        train_dataset, test_dataset = get_train_validation(path_dataset, config)
+        train_dataset, test_dataset = EHRDataset.get_train_validation(path_dataset, config)
     else:
         # Then we use a random validation split
         dataset = EHRDataset(path_dataset, config)
