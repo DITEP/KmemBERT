@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from .utils import create_session, get_label_threshold
 from .training import train_and_validate
 from .dataset import EHRDataset, get_train_validation
-
+from .models.health_bert import HealthBERT
 
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
@@ -38,7 +38,8 @@ def main(args):
         test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
 
         print(f"\nTrial config: {config}")
-        return train_and_validate(train_loader, test_loader, device, config, path_result, train_only=True)
+        model = HealthBERT(device, config)
+        return train_and_validate(model, train_loader, test_loader, device, config, path_result, train_only=True)
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=args.n_trials)

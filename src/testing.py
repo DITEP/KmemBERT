@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 
 from .dataset import EHRDataset
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
-from .health_bert import HealthBERT
+from .models.health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
     """
@@ -29,16 +29,20 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     test_start_time = time()
 
     total_loss = 0
-    for _, (texts, labels) in enumerate(test_loader):
-        loss, outputs = model.step(texts, labels)
+    for _, (*data, labels) in enumerate(test_loader):
+        loss, outputs = model.step(*data, labels)
         
         if model.mode == 'classif':
             predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
         elif model.mode == 'regression':
             predictions += outputs.flatten().tolist()
-        else:
+        elif model.mode == 'density':
             mu, _ = outputs
             predictions += mu.tolist()
+        elif model.mode == 'multi':
+            predictions.append(outputs.item())
+        else:
+            raise ValueError(f'Mode {model.mode} unknown')
         
         test_labels += labels.tolist()
         total_loss += loss.item()
@@ -56,9 +60,11 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             print('    Saving model state...\n')
             state = {
                 'model': model.state_dict(),
+                'optimizer': model.optimizer.state_dict(),
+                'scheduler': model.scheduler.state_dict(),
                 'mean_error': error,
                 'epoch': epoch,
-                'tokenizer': model.tokenizer
+                'tokenizer': model.tokenizer if hasattr(model, 'tokenizer') else None
             }
             torch.save(state, os.path.join(path_result, './checkpoint.pth'))
             model.early_stopping = 0
