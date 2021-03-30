@@ -21,7 +21,7 @@ class EHRDataset(Dataset):
     def __init__(self, path_dataset, config, train=True, df=None):
         super(EHRDataset, self).__init__()
         self.path_dataset = path_dataset
-        self.nrows = config.nrows
+        self.config = config
         self.train = train
         self.config_path = os.path.join(self.path_dataset, "config.json")
         self.preprocesser = EHRPreprocesser()
@@ -41,7 +41,6 @@ class EHRDataset(Dataset):
             pass
         else:
             sys.exit("config.json is needed for testing. Exiting..")
-        config.mean_time_survival = self.mean_time_survival
 
         self.labels = time_survival_to_label(self.survival_times, self.mean_time_survival)
         self.texts = list(self.df["Texte"].astype(str).apply(self.preprocesser))
@@ -85,7 +84,7 @@ class EHRHistoryDataset(EHRDataset):
     def __getitem__(self, index):
         noigr, k = self.index_to_ehrs[index]
 
-        indices = self.patient_to_indices[noigr][:k]
+        indices = self.patient_to_indices[noigr][:k][-self.config.max_ehrs:]
         last_survival_time = min(self.survival_times[indices])
 
         return ([self.texts[text_index] for text_index in indices], 

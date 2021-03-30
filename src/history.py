@@ -77,5 +77,7 @@ if __name__ == "__main__":
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="Number of decreasing accuracy epochs to stop the training")
+    parser.add_argument("-me", "--max_ehrs", type=int, default=64, 
+        help="maximum number of ehrs to be used for multi ehrs prediction")
 
     main(parser.parse_args())
