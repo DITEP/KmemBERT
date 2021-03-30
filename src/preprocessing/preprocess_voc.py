@@ -1,20 +1,22 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import json
 import argparse
 import os
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
-from utils import printc
-from preprocessing.correction import get_corrector
+from ..utils import printc
+from .correction import get_corrector
 
 def main(args):
-    path_medical_voc = os.path.join('..', 'medical_voc')
     n_duplicate, n_misspelled = 0, 0
 
     corrector = get_corrector(args)
 
-    with open(os.path.join(path_medical_voc, args.voc_file)) as json_file:
+    with open(os.path.join('medical_voc', args.voc_file)) as json_file:
         voc_list = json.load(json_file)
         voc = set(x for x,_ in voc_list)
 
@@ -34,7 +36,7 @@ def main(args):
     print(f"Removed {n_duplicate}/{len(voc)} duplicates (same word with an s)")
     print(f"Corrected {n_misspelled}/{len(voc)} missplelled words")
 
-    with open(os.path.join(path_medical_voc, f"p_{args.voc_file}"), 'w') as f:
+    with open(os.path.join('medical_voc', f"p_{args.voc_file}"), 'w') as f:
         json.dump(new_list, f, indent=4, ensure_ascii=False)
     printc("Successfully preprocess and saved", "SUCCESS")
     

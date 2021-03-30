@@ -1,3 +1,9 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import os
 import torch
 from datetime import datetime, date
@@ -5,7 +11,7 @@ import sys
 import json
 import numpy as np
 
-from config import Config
+from .config import Config
 
 def get_root():
     return os.sep.join(os.getcwd().split(os.sep)[0 : os.getcwd().split(os.sep).index("EHR_Transformers") + 1])

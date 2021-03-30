@@ -1,18 +1,23 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import numpy as np
 import os
 import argparse
 from time import time
 import matplotlib.pyplot as plt
 from collections import defaultdict
-
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix, roc_curve
 
 import torch
 from torch.utils.data import DataLoader
 
-from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
-from health_bert import HealthBERT
+from .dataset import EHRDataset
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
+from .health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
     """
@@ -39,7 +44,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         total_loss += loss.item()
 
     if test_losses is not None:
-        test_losses.append(total_loss/len(test_loader))
+        test_losses.append(total_loss/(config.batch_size*len(test_loader)))
 
     error = mean_error(test_labels, predictions, config.mean_time_survival)
     printc(f"    {'Validation' if validation else 'Test'} mean error: {error:.2f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
@@ -48,8 +53,6 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         if error < model.best_error:
             model.best_error = error
             printc('    Best accuracy so far', 'SUCCESS')
-            print('    Saving predictions...')
-            save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
             print('    Saving model state...\n')
             state = {
                 'model': model.state_dict(),
@@ -61,8 +64,12 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             model.early_stopping = 0
         else: 
             model.early_stopping += 1
+            return error
 
-    plt.scatter(predictions, test_labels)
+    print('    Saving predictions...')
+    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
+
+    plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
     plt.xlabel("Predictions")
     plt.ylabel("Labels")
     plt.xlim(0, 1)
@@ -93,8 +100,9 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics = {}
     metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
     metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
-    metrics['f1_score'] = f1_score(bin_labels, bin_predictions)
+    metrics['f1_score'] = f1_score(bin_labels, bin_predictions,average=None)
     metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
+    metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
 
     try:
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
@@ -103,6 +111,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         metrics['thresholds'] = thresholds.tolist()
 
         plt.plot(fpr, tpr)
+        plt.plot([0,1], [0,1], 'r--')
         plt.xlabel("False Positive rate")
         plt.ylabel("True Positive rate")
         plt.xlim(0, 1)
@@ -111,20 +120,20 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         plt.savefig(os.path.join(path_result, "roc_curve.png"))
         plt.close()
     except:
-        pass
+        print("Error while computing ROC curve...")
 
     if not validation:
         print("Classification metrics:\n", metrics)
 
     save_json(path_result, 'results', 
         {'mean_error': error,
-            'predictions': predictions.tolist(),
-            'test_labels': test_labels.tolist(),
-            'label_threshold': config.label_threshold,
-            'bin_predictions': bin_predictions.tolist(),
-            'bin_labels': bin_labels.tolist(),
-            'metrics': metrics,
-            'std_mae_quantile': std_mae_quantile})
+        'metrics': metrics,
+        'predictions': predictions.tolist(),
+        'test_labels': test_labels.tolist(),
+        'label_threshold': config.label_threshold,
+        'bin_predictions': bin_predictions.tolist(),
+        'bin_labels': bin_labels.tolist(),
+        'std_mae_quantile': std_mae_quantile})
 
     return error
 
@@ -137,12 +146,6 @@ def main(args):
     loader = DataLoader(dataset, batch_size=config.batch_size)
 
     model = HealthBERT(device, config)
-    printc(f"Resuming with model at {config.resume}", "INFO")
-    path_checkpoint = os.path.join(os.path.dirname(config.path_result), config.resume, 'checkpoint.pth')
-    assert os.path.isfile(path_checkpoint), 'Error: no checkpoint found!'
-    checkpoint = torch.load(path_checkpoint, map_location=model.device)
-    model.load_state_dict(checkpoint['model'])
-    model.tokenizer = checkpoint['tokenizer']
 
     test(model, loader, config, config.path_result)
 

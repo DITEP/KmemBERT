@@ -1,3 +1,11 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
+import json
+
 class Config:
     voc_path = None
     model_name = "camembert-base"
@@ -12,7 +20,7 @@ class Config:
     weight_decay = 0
     ratio_lr_embeddings = None
     drop_rate = None
-    train_size = 0.8
+    train_size = None
     path_result = None
     resume = None
     patience = None
@@ -22,3 +30,6 @@ class Config:
         for attr in dir(self):
             if not attr.startswith('__') and hasattr(args, attr):
                 setattr(self, attr, getattr(args, attr))
+
+    def __repr__(self):
+        return json.dumps(vars(self), sort_keys=True, indent=4)

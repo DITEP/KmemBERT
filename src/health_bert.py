@@ -1,9 +1,13 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import json
-
 import numpy as np
-
-from transformers import CamembertForSequenceClassification, CamembertTokenizerFast
-
+import os
+from transformers import CamembertForSequenceClassification, CamembertTokenizerFast, get_linear_schedule_with_warmup
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -12,7 +16,7 @@ import logging
 from time import time
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
-from utils import printc
+from .utils import printc
 
 def set_dropout(model, drop_rate=0.1):
     for _, child in model.named_children():
@@ -58,6 +62,9 @@ class HealthBERT(nn.Module):
             self.freeze()
 
         self.tokenizer = CamembertTokenizerFast.from_pretrained(self.model_name)
+
+        if config.resume:
+            self.resume(config)
         printc("Successfully loaded\n", "SUCCESS")
 
         self.drop_rate = config.drop_rate
@@ -69,10 +76,34 @@ class HealthBERT(nn.Module):
             self.add_tokens_from_path(self.voc_path)
 
         self.start_epoch_timers()
+        self.eval()
+
+    def resume(self, config):
+        printc(f"Resuming with model at {config.resume}...", "INFO")
+        path_checkpoint = os.path.join(os.path.dirname(config.path_result), config.resume, 'checkpoint.pth')
+        assert os.path.isfile(path_checkpoint), 'Error: no checkpoint found!'
+        checkpoint = torch.load(path_checkpoint, map_location=self.device)
+        self.tokenizer = checkpoint['tokenizer']
+        self.camembert.resize_token_embeddings(len(self.tokenizer))
+
+        try:
+            self.load_state_dict(checkpoint['model'])
+        except:
+            printc('Resuming from a model trained on a different mode. The last classification layer has to be trained again.', 'WARNING')
+            for parameter in checkpoint['model'].keys():
+                if parameter.split('.')[2] == 'out_proj':
+                    checkpoint['model'][parameter] = self.state_dict()[parameter]
+            self.load_state_dict(checkpoint['model'])
 
     def start_epoch_timers(self):
         self.encoding_time = 0
         self.compute_time = 0
+    
+    def initialize_scheduler(self, epochs, train_loader):
+        total_steps = len(train_loader) * epochs
+        self.scheduler = get_linear_schedule_with_warmup(self.optimizer,
+                                                        num_warmup_steps=2, # Default value
+                                                        num_training_steps=total_steps)
 
     def freeze(self):
         """Freezes the encoder layer. Only the classification head on top will learn"""
@@ -102,7 +133,7 @@ class HealthBERT(nn.Module):
             mu, log_var = outputs
             return (log_var + (labels - mu)**2/torch.exp(log_var)).mean()
 
-    def step(self, texts, labels):
+    def step(self, texts, labels=None):
         """
         Encode and forward the given texts. Compute the loss, and its backward.
 
@@ -119,14 +150,16 @@ class HealthBERT(nn.Module):
 
         input_ids = encoding['input_ids'].to(self.device)
         attention_mask = encoding['attention_mask'].to(self.device)
-        if not self.mode == 'classif':
-            labels = labels.type(torch.FloatTensor)
-        labels = labels.to(self.device)
+        if not labels is None:
+            if not self.mode == 'classif':
+                labels = labels.type(torch.FloatTensor)
+            labels = labels.to(self.device)
 
         compute_start_time = time()
         outputs = self(input_ids, attention_mask=attention_mask, labels=labels if self.mode == 'classif' else None)
         self.compute_time += time()-compute_start_time
 
+        if labels is None: return outputs.logits if self.mode == 'classif' else outputs
 
         loss = self.get_loss(outputs, labels=labels)
 

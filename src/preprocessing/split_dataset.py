@@ -1,3 +1,10 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
+
 """
 RUN ONLY ONCE
 This code splits the concatenated dataset into a train and test one.
@@ -6,20 +13,22 @@ import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
 import numpy as np
+from tqdm import tqdm
+tqdm.pandas()
+from src.preprocesser import EHRPreprocesser
 
-import os,sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
-from utils import save_json, get_label
+from ..utils import save_json, get_label
 
 
 train_size = 0.7
+validation_size = 0.02
 seed = 0
 
 data_path = "/data/isilon/centraleNLP"
 file_path = os.path.join(data_path, "concatenate.txt")
 train_path = os.path.join(data_path, "train.csv")
 test_path = os.path.join(data_path, "test.csv")
+validation_split_path = os.path.join(data_path, "validation_split.csv")
 
 if os.path.isfile(train_path) or os.path.isfile(test_path):
     raise BaseException("File exists: can't overwrite existing train and test datasets.")
@@ -47,16 +56,19 @@ print("\nFiltering EHR...")
 df = df[df["Nature doct"] == "C.R. consultation"]
 print(f"{df.shape[0]} rows left")
 # 1347612
+preprocesser = EHRPreprocesser()
+df["Texte"] = df["Texte"].progress_apply(lambda text: preprocesser(text.lower()).strip())
 df["Texte"].replace("", np.nan, inplace=True)
+#df["Texte"].replace("^(\s*(#\$)*)*$", np.nan, regex=True, inplace=True)
 df["Date deces"].replace("", np.nan, inplace=True)
 df["Date cr"].replace("", np.nan, inplace=True)
 df["Noigr"].replace("", np.nan, inplace=True)
 df.dropna(subset=["Date deces", "Date cr", "Texte", "Noigr"], inplace=True)
 print(f"{df.shape[0]} rows left")
-# 1347607
+# 1347347
 df = df[df["Date cr"]<df["Date deces"]]
 print(f"{df.shape[0]} rows left")
-# 1343113
+# 1342860
 
 # Shuffle
 df = df.sample(frac=1).reset_index(drop=True)
@@ -65,7 +77,7 @@ df = df.sample(frac=1).reset_index(drop=True)
 noigrs = pd.unique(df["Noigr"])
 train_noigrs, test_noigrs = train_test_split(noigrs, train_size=train_size, random_state=seed)
 
-train=df[df["Noigr"].isin(train_noigrs)]
+train = df[df["Noigr"].isin(train_noigrs)]
 test=df.drop(train.index)
 mean_time_survival = np.mean(list(train[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
 
@@ -86,3 +98,9 @@ save_df(test, test_path)
 save_json(data_path, "config", {"mean_time_survival": mean_time_survival})
 n_train, n_test = len(train), len(test)
 print("\nTrain samples: {}\nTest samples: {}\nTrain ratio: {}".format(n_train, n_test, n_train/(n_train + n_test)))
+
+print("\nCreating a validation split...")
+_, validation_noigrs = train_test_split(train_noigrs, test_size=validation_size, random_state=seed)
+df = pd.read_csv(train_path)
+validation_split = df["Noigr"].isin(validation_noigrs)
+validation_split.rename("validation").to_csv(validation_split_path, index=False)

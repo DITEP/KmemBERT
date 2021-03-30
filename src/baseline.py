@@ -1,3 +1,9 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import argparse
 import os
 import pandas as pd 
@@ -8,10 +14,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
-from utils import get_root, get_label
-from preprocesser import EHRPreprocesser
+from .utils import get_root, get_label
+from .preprocesser import EHRPreprocesser
 
 
 def main(args):
@@ -32,9 +38,10 @@ def main(args):
     ehr_regressor.fit(X_train, y_train)
 
     predictions = ehr_regressor.predict(X_val)
-    rmse = mean_squared_error(y_val, predictions)
+    rmse = mean_squared_error(y_val, predictions)**0.5
+    mae = mean_absolute_error(y_val, predictions)
 
-    print("RMSE validation set : {}".format(round(rmse,1)))
+    print("RMSE validation set : {}    MAE : {}".format(round(rmse,1), round(mae,1)))
 
     # Save the model
     path_to_save = os.path.join(path_root, args.folder_to_save)

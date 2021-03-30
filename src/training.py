@@ -1,3 +1,9 @@
+'''
+    Author: CentraleSupelec
+    Year: 2021
+    Python Version: >= 3.7
+'''
+
 import numpy as np
 import os
 import argparse
@@ -8,33 +14,26 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from dataset import EHRDataset
-from utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
-from health_bert import HealthBERT
-from testing import test
+from .dataset import EHRDataset, get_train_validation
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
+from .health_bert import HealthBERT
+from .testing import test
 
-def train_and_validate(train_loader, test_loader, device, config, path_result):
+def train_and_validate(train_loader, test_loader, device, config, path_result, train_only=False):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
     Inputs: please refer bellow, to the argparse arguments.
     """
     model = HealthBERT(device, config)
-    if config.resume:
-        printc(f"Resuming with model at {config.resume}", "INFO")
-        path_checkpoint = os.path.join(os.path.dirname(config.path_result), config.resume, 'checkpoint.pth')
-        assert os.path.isfile(path_checkpoint), 'Error: no checkpoint found!'
-        checkpoint = torch.load(path_checkpoint, map_location=model.device)
-        model.load_state_dict(checkpoint['model'])
-        model.tokenizer = checkpoint['tokenizer']
-
 
     printc("\n----- STARTING TRAINING -----")
 
     losses = defaultdict(list)
     test_losses = []
+    train_errors, test_errors = [], []
     n_samples = config.print_every_k_batch * config.batch_size
-
+    model.initialize_scheduler(config.epochs, train_loader)
     for epoch in range(config.epochs):
         print("> EPOCH", epoch)
         model.train()
@@ -75,21 +74,42 @@ def train_and_validate(train_loader, test_loader, device, config, path_result):
                 k_batch_start_time = time()
 
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
+        train_errors.append(train_error)
         printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+        if train_only:
+            """
+            We won't evaluate the model on the validation set.
+            This is used in hyperoptimization to reduce the running time.
+            """
+            if train_error < model.best_error:
+                model.best_error = train_error
+            continue
 
         test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
+        test_errors.append(test_error)
+
+        plt.plot(train_errors)
+        plt.plot(test_errors)
+        plt.xlabel("Epoch")
+        plt.ylabel("MAE (days)")
+        plt.legend(["Train", "Validation"])
+        plt.title("MAE Evolution")
+        plt.savefig(os.path.join(config.path_result, "mae.png"))
+        plt.close()
         
-        model.scheduler.step(test_error) #Scheduler that reduces lr if test error stops decreasing
+        model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
+            printc(f'Breaking training after patience {config.patience} reached', 'INFO')
             break
     
     printc("-----  Ended Training  -----\n")
 
     print("Saving losses...")
     save_json(path_result, "losses", { "train": losses, "validation": test_losses })
-    plt.plot(np.linspace(0, config.epochs-1, sum([len(l) for l in losses.values()])),
+    epochs_realized = len(losses)
+    plt.plot(np.linspace(1, epochs_realized, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
-    plt.plot(test_losses)
+    plt.plot(range(1, epochs_realized+1), test_losses)
     plt.legend(["Train loss", "Validation loss"])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
@@ -105,10 +125,15 @@ def main(args):
 
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    dataset = EHRDataset(path_dataset, config)
-    train_size = int(config.train_size * len(dataset))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    if config.train_size is None:
+        # Then we use a predifined validation split
+        train_dataset, test_dataset = get_train_validation(path_dataset, config)
+    else:
+        # Then we use a random validation split
+        dataset = EHRDataset(path_dataset, config)
+        train_size = int(config.train_size * len(dataset))
+        test_size = len(dataset) - train_size
+        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
@@ -125,7 +150,7 @@ if __name__ == "__main__":
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
-    parser.add_argument("-t", "--train_size", type=float, default=0.8, 
+    parser.add_argument("-t", "--train_size", type=float, default=None, 
         help="dataset train size")
     parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
         help="dropout ratio")
@@ -146,7 +171,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--voc_path", type=str, default=None, 
         help="path to the new words to be added to the vocabulary of camembert")
     parser.add_argument("-r", "--resume", type=str, default=None, 
-        help="result folder in with the saved checkpoint will be reused")
+        help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="Number of decreasing accuracy epochs to stop the training")
 
