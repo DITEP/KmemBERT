@@ -77,14 +77,16 @@ def train_and_validate(model, train_loader, test_loader, device, config, path_re
 
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
         train_errors.append(train_error)
-        printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+
+        mean_loss = epoch_loss/len(train_loader.dataset)
+        printc(f'    Training   | mean error: {train_error:.2f} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         if train_only:
             """
             We won't evaluate the model on the validation set.
             This is used in hyperoptimization to reduce the running time.
             """
-            if train_error < model.best_error:
-                model.best_error = train_error
+            if mean_loss < model.best_loss:
+                model.best_loss = mean_loss
             continue
 
         test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
@@ -120,7 +122,7 @@ def train_and_validate(model, train_loader, test_loader, device, config, path_re
     plt.close()
     print("[DONE]")
 
-    return model.best_error
+    return model.best_loss
 
 def main(args):
     path_dataset, _, device, config = create_session(args)

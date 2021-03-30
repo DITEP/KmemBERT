@@ -41,6 +41,7 @@ class EHRDataset(Dataset):
             pass
         else:
             sys.exit("config.json is needed for testing. Exiting..")
+        config.mean_time_survival = self.mean_time_survival
 
         self.labels = time_survival_to_label(self.survival_times, self.mean_time_survival)
         self.texts = list(self.df["Texte"].astype(str).apply(self.preprocesser))

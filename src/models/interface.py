@@ -19,7 +19,7 @@ class ModelInterface(nn.Module):
         super(ModelInterface, self).__init__()
         self.device = device
         self.config = config
-        self.best_error = np.inf
+        self.best_loss = np.inf
         self.early_stopping = 0
         self.start_epoch_timers()
 
