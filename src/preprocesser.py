@@ -13,7 +13,7 @@ class EHRPreprocesser():
         text = text.replace("#$", "")
         if self.max_words:
             words = text.split()
-            if len(words)>max_words:
+            if len(words)>self.max_words:
                 return " ".join(words[:self.max_words//2]+["..."]+words[-self.max_words//2:])
 
         return text
