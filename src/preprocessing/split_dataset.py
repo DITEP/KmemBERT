@@ -53,12 +53,12 @@ print(counter)
 
 print("\nFiltering EHR...")
 # 2904066
-df = df[df["Nature doct"].isin([
-    "C.R. consultation",
-    "C.R. Hospitalisation",
-    "C.R. Radio"
-])]
-print(f"{df.shape[0]} rows left")
+# df = df[df["Nature doct"].isin([
+#     "C.R. consultation",
+#     "C.R. Hospitalisation",
+#     "C.R. Radio"
+# ])]
+# print(f"{df.shape[0]} rows left")
 # 1347612
 preprocesser = EHRPreprocesser()
 def filter_text(text, min_characters=250):
