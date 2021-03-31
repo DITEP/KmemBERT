@@ -20,17 +20,15 @@ class MultiEHR(ModelInterface):
     def __init__(self, device, config, hidden_size_gru=16, nb_gru_layers=1):
         super(MultiEHR, self).__init__(device, config)
 
-        self.health_bert = MultiEHR.load_health_bert(device, config)
-
         self.nb_gru_layers = nb_gru_layers
         self.hidden_size_gru = hidden_size_gru
 
-        if self.health_bert.mode == 'regression':
+        if self.config.mode == 'regression':
             self.input_size = 2
-        elif self.health_bert.mode == 'density':
+        elif self.config.mode == 'density':
             self.input_size = 3
         else:
-            raise ValueError(f"Invalid health bert mode. Needed 'regression' or 'density', found {self.health_bert.mode}")
+            raise ValueError(f"Invalid health bert mode. Needed 'regression' or 'density', found {self.config.mode}")
 
         self.GRU = nn.GRU(input_size=self.input_size, num_layers=self.nb_gru_layers, hidden_size=hidden_size_gru, batch_first=True)
 
@@ -39,34 +37,23 @@ class MultiEHR(ModelInterface):
             nn.Sigmoid()
         )
 
-        self.optimizer = Adam(self.GRU.parameters(), lr = config.learning_rate, weight_decay=config.weight_decay)
+        self.optimizer = Adam(self.GRU.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
         self.MSELoss = nn.MSELoss()
         
         self.eval()
-
-    def load_health_bert(device, config):
-        with open(os.path.join('results', config.resume, 'args.json')) as json_file:
-            config.mode = json.load(json_file)["mode"]
-            assert config.mode != "classify", "Health Bert mode classify not supported for RNNs"
-            printc(f"\nUsing mode {config.mode} (Health BERT checkpoint {config.resume})", "INFO")
-
-        health_bert =  HealthBERT(device, config)
-        for param in health_bert.parameters():
-            param.requires_grad = False
-
-        return health_bert
 
     def init_hidden(self):
         hidden = torch.empty(1, self.nb_gru_layers, self.hidden_size_gru)
         return nn.init.xavier_uniform_(hidden, gain=nn.init.calculate_gain('relu')).to(self.device)
 
-    def step(self, texts, dt, label):
-        dt = dt.to(self.device)[0]
+    def step(self, *inputs):
+        *outputs, dt, label = inputs
+        dt = dt.to(self.device)
         label = label.to(self.device)
         if self.training:
             self.optimizer.zero_grad()
 
-        output = self(texts[0], dt)
+        output = self(outputs, dt)
         loss = self.MSELoss(output, label)
 
         if self.training:
@@ -76,15 +63,14 @@ class MultiEHR(ModelInterface):
         return loss, output
 
    
-    def forward(self, texts, dt):
+    def forward(self, outputs, dt):
         hidden = self.init_hidden()
 
-        seq = self.health_bert.step(texts)
         if self.config.mode == 'density':
-            seq = torch.stack((*seq, dt)).T
+            seq = torch.cat((*outputs, dt)).T
         else:
-            seq = seq.view(-1)
-            seq = torch.stack((seq, dt), dim=1)
+            seq = outputs[0].view(-1)
+            seq = torch.stack((seq, dt[0]), dim=1)
 
         out = self.GRU(seq[None,:], hidden)[1]
         out = self.out_proj(out).view(-1)
@@ -102,16 +88,18 @@ class Conflation(ModelInterface):
 
     def __init__(self, device, config):
         super(Conflation, self).__init__(device, config)
-        self.health_bert = MultiEHR.load_health_bert(device, config)
 
-    def step(self, texts, dt, _):
+    def step(self, *inputs):
+        *outputs, dt, _ = inputs
         dt = dt.to(self.device)[0]
 
         if self.config.mode == 'density':
-            mus, log_vars = self.health_bert.step(texts[0])
+            mus, log_vars = outputs
+            mus, log_vars = mus[0], log_vars[0]
         
         else:
-            mus = self.health_bert.step(texts[0]).view(-1)
+            mus, *_ = outputs
+            mus = mus.view(-1)
             log_vars = dt / self.config.mean_time_survival
 
         mus = shift_predictions(mus, self.config.mean_time_survival, dt)
@@ -135,15 +123,12 @@ class HealthCheck(ModelInterface):
 
     def __init__(self, device, config):
         super(HealthCheck, self).__init__(device, config)
-        self.health_bert = MultiEHR.load_health_bert(device, config)
 
-    def step(self, texts, dt, _):
-        dt = dt.to(self.device)[0]
+    def step(self, *inputs):
+        *outputs, dt, _ = inputs
 
-        if self.config.mode == 'density':
-            mus, _ = self.health_bert.step(texts[0])
-        else:
-            mus = self.health_bert.step(texts[0]).view(-1)
+        mus, *_ = outputs
+        mus = mus.view(-1)
 
         return torch.zeros(1), mus[-1]
 

@@ -8,15 +8,11 @@ import argparse
 import torch
 from torch.utils.data import DataLoader
 
-from .dataset import EHRHistoryDataset
+from .dataset import EHRHistoryDataset, PredictionsDataset
 from .utils import create_session, get_label_threshold
 from .models.multi_ehr import MultiEHR, Conflation, HealthCheck
 from .training import train_and_validate
 from .testing import test
-
-def collate_fn(batch):
-    sequences, times, labels = zip(*batch)
-    return sequences, torch.tensor(times).type(torch.float32), torch.tensor(labels).type(torch.float32)
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
@@ -33,10 +29,13 @@ def main(args):
         test_size = len(dataset) - train_size
         train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
+    test_dataset = PredictionsDataset(device, config, test_dataset)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
     if args.aggregator == 'gru':
+        train_dataset = PredictionsDataset(device, config, train_dataset)
+        train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+
         model = MultiEHR(device, config)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
 
@@ -77,7 +76,7 @@ if __name__ == "__main__":
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="Number of decreasing accuracy epochs to stop the training")
-    parser.add_argument("-me", "--max_ehrs", type=int, default=64, 
+    parser.add_argument("-me", "--max_ehrs", type=int, default=4, 
         help="maximum number of ehrs to be used for multi ehrs prediction")
 
     main(parser.parse_args())

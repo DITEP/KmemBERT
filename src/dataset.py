@@ -4,7 +4,8 @@
     Python Version: >= 3.7
 '''
 
-from torch.utils.data import Dataset
+import torch
+from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
 import json
@@ -12,8 +13,9 @@ import os
 import sys
 from collections import defaultdict
 
-from .utils import get_label, time_survival_to_label
+from .utils import get_label, time_survival_to_label, printc
 from .preprocesser import EHRPreprocesser
+from .models.health_bert import HealthBERT
 
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""
@@ -80,8 +82,7 @@ class EHRHistoryDataset(EHRDataset):
             self.patient_to_indices[noigr] = sorted(indices, key=lambda i: -self.survival_times[i])
 
         self.index_to_ehrs = [(noigr, k) for noigr, indices in self.patient_to_indices.items() for k in range(1, len(indices)+1)]
-
-        
+    
     def __getitem__(self, index):
         noigr, k = self.index_to_ehrs[index]
 
@@ -94,3 +95,50 @@ class EHRHistoryDataset(EHRDataset):
 
     def __len__(self):
         return len(self.index_to_ehrs)
+
+def collate_fn(batch):
+    sequences, times, labels = zip(*batch)
+    return sequences, torch.tensor(times).type(torch.float32), torch.tensor(labels).type(torch.float32)
+
+class PredictionsDataset(Dataset):
+    health_bert = None
+
+    def __init__(self, device, config, history_dataset):
+        self.device = device
+        self.config = config
+        self.history_dataset = history_dataset
+        self.loader = DataLoader(self.history_dataset, batch_size=1, collate_fn=collate_fn)
+
+        self.load_health_bert()
+        self.compute_prediction()
+
+    def load_health_bert(self):
+        if PredictionsDataset.health_bert is None:
+            with open(os.path.join('results', self.config.resume, 'args.json')) as json_file:
+                self.config.mode = json.load(json_file)["mode"]
+                assert self.config.mode != "classify", "Health Bert mode classify not supported for RNNs"
+                printc(f"\nUsing mode {self.config.mode} (Health BERT checkpoint {self.config.resume})", "INFO")
+
+            PredictionsDataset.health_bert = HealthBERT(self.device, self.config)
+            for param in self.health_bert.parameters():
+                param.requires_grad = False
+
+    def compute_prediction(self):
+        printc('\nComputing Health Bert predictions...', 'INFO')
+        self.predictions = []
+        for (texts, dt, label) in self.loader:
+            dt = dt.to(self.device)[0]
+
+            if self.config.mode == 'density':
+                mus, log_vars = self.health_bert.step(texts[0])
+                self.predictions.append((mus, log_vars, dt, label[0]))
+            else:
+                mus = self.health_bert.step(texts[0])
+                self.predictions.append((mus, dt, label[0]))
+        printc(f'Successfully computed {len(self.predictions)}/{len(self.history_dataset)} predictions\n', 'SUCCESS')
+
+    def __getitem__(self, index):
+        return self.predictions[index]
+        
+    def __len__(self):
+        return len(self.predictions)
