@@ -11,7 +11,7 @@ from time import time
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix, roc_curve
-
+import seaborn as sns
 import torch
 from torch.utils.data import DataLoader
 
@@ -25,7 +25,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     """
     
     model.eval()
-    predictions, test_labels = [], []
+    predictions, test_labels, stds = [], [], []
     test_start_time = time()
 
     total_loss = 0
@@ -37,8 +37,9 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         elif model.mode == 'regression':
             predictions += outputs.flatten().tolist()
         elif model.mode == 'density':
-            mu, _ = outputs
+            mu, log_vars = outputs
             predictions += mu.tolist()
+            stds += torch.exp(log_vars/2).tolist()
         elif model.mode == 'multi':
             predictions.append(outputs.item())
         else:
@@ -77,6 +78,20 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
 
     print('    Saving predictions...\n')
     save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
+
+    if len(stds) > 0:
+        n_points = 20
+        resize_factor = 20
+        gaussian_predictions = np.random.normal(predictions, np.array(stds)/resize_factor, size=(n_points, len(predictions))).flatten().clip(0, 1)
+        associated_labels = np.tile(predictions, n_points)
+        sns.kdeplot(
+            data={'Predictions': gaussian_predictions, 'Labels': associated_labels}, 
+            x='Predictions', y='Labels', clip=((0, 1), (0, 1)),
+            fill=True, thresh=0, levels=100, cmap="mako",
+        )
+        plt.title('Prediction distributions over labels')
+        plt.savefig(os.path.join(path_result, "correlations_distributions.png"))
+        plt.close()
 
     plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
     plt.xlabel("Predictions")
