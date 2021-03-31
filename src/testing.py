@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 
 from .dataset import EHRDataset
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
-from .health_bert import HealthBERT
+from .models.health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
     """
@@ -29,43 +29,54 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     test_start_time = time()
 
     total_loss = 0
-    for _, (texts, labels) in enumerate(test_loader):
-        loss, outputs = model.step(texts, labels)
+    for _, (*data, labels) in enumerate(test_loader):
+        loss, outputs = model.step(*data, labels)
         
         if model.mode == 'classif':
             predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
         elif model.mode == 'regression':
             predictions += outputs.flatten().tolist()
-        else:
+        elif model.mode == 'density':
             mu, _ = outputs
             predictions += mu.tolist()
+        elif model.mode == 'multi':
+            predictions.append(outputs.item())
+        else:
+            raise ValueError(f'Mode {model.mode} unknown')
         
         test_labels += labels.tolist()
         total_loss += loss.item()
+    
+    mean_loss = total_loss/(config.batch_size*len(test_loader))
+    print(f"    {'Validation' if validation else 'Test'} loss: {mean_loss:.2f}")
 
     if test_losses is not None:
-        test_losses.append(total_loss/len(test_loader))
+        test_losses.append(mean_loss)
 
     error = mean_error(test_labels, predictions, config.mean_time_survival)
-    printc(f"    {'Validation' if validation else 'Test'} mean error: {error:.2f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
+    printc(f"    {'Validation' if validation else 'Test'} | mean error: {error:.2f} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if validation:
-        if error < model.best_error:
-            model.best_error = error
-            printc('    Best accuracy so far', 'SUCCESS')
-            print('    Saving predictions...')
-            save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
-            print('    Saving model state...\n')
+        if mean_loss < model.best_loss:
+            model.best_loss = mean_loss
+            printc('    Best loss so far', 'SUCCESS')
+            print('    Saving model state...')
             state = {
                 'model': model.state_dict(),
-                'mean_error': error,
+                'optimizer': model.optimizer.state_dict(),
+                'scheduler': model.scheduler.state_dict(),
+                'best_loss': model.best_loss,
                 'epoch': epoch,
-                'tokenizer': model.tokenizer
+                'tokenizer': model.tokenizer if hasattr(model, 'tokenizer') else None
             }
             torch.save(state, os.path.join(path_result, './checkpoint.pth'))
             model.early_stopping = 0
         else: 
             model.early_stopping += 1
+            return mean_loss
+
+    print('    Saving predictions...\n')
+    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
 
     plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
     plt.xlabel("Predictions")
@@ -98,7 +109,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics = {}
     metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
     metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
-    metrics['f1_score'] = f1_score(bin_labels, bin_predictions)
+    metrics['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
     metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
     metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
 
@@ -106,7 +117,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
 
         fpr, tpr, thresholds = roc_curve(bin_labels, predictions)
-        metrics['thresholds'] = thresholds.tolist()
+        # metrics['thresholds'] = thresholds.tolist()
 
         plt.plot(fpr, tpr)
         plt.plot([0,1], [0,1], 'r--')
@@ -118,7 +129,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         plt.savefig(os.path.join(path_result, "roc_curve.png"))
         plt.close()
     except:
-        pass
+        print("Error while computing ROC curve...")
 
     if not validation:
         print("Classification metrics:\n", metrics)
@@ -126,6 +137,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     save_json(path_result, 'results', 
         {'mean_error': error,
         'metrics': metrics,
+        'mean_loss': mean_loss,
         'predictions': predictions.tolist(),
         'test_labels': test_labels.tolist(),
         'label_threshold': config.label_threshold,
@@ -133,7 +145,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         'bin_labels': bin_labels.tolist(),
         'std_mae_quantile': std_mae_quantile})
 
-    return error
+    return mean_loss
 
 def main(args):
     path_dataset, _, device, config = create_session(args)

@@ -15,25 +15,13 @@ from collections import defaultdict
 from .utils import get_label, time_survival_to_label
 from .preprocesser import EHRPreprocesser
 
-def get_train_validation(path_dataset, config):
-    """
-    Returns train and validation set based on a predefined split
-    """
-    df = pd.read_csv(os.path.join(path_dataset, "train.csv"))
-    validation_split = pd.read_csv(os.path.join(path_dataset, "validation_split.csv"), dtype=bool)
-    
-    validation = df[validation_split["validation"]]
-    train = df.drop(validation.index)
-
-    return EHRDataset(path_dataset, config, df=train), EHRDataset(path_dataset, config, df=validation)
-
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""
 
     def __init__(self, path_dataset, config, train=True, df=None):
         super(EHRDataset, self).__init__()
         self.path_dataset = path_dataset
-        self.nrows = config.nrows
+        self.config = config
         self.train = train
         self.config_path = os.path.join(self.path_dataset, "config.json")
         self.preprocesser = EHRPreprocesser()
@@ -64,6 +52,19 @@ class EHRDataset(Dataset):
     def __len__(self):
         return len(self.labels)
 
+    @classmethod
+    def get_train_validation(cls, path_dataset, config):
+        """
+        Returns train and validation set based on a predefined split
+        """
+        df = pd.read_csv(os.path.join(path_dataset, "train.csv"))
+        validation_split = pd.read_csv(os.path.join(path_dataset, "validation_split.csv"), dtype=bool)
+        
+        validation = df[validation_split["validation"]]
+        train = df.drop(validation.index)
+
+        return cls(path_dataset, config, df=train), cls(path_dataset, config, df=validation)
+
 class EHRHistoryDataset(EHRDataset):
     """PyTorch Dataset class for a full history of EHRs"""
 
@@ -74,13 +75,22 @@ class EHRHistoryDataset(EHRDataset):
         self.patient_to_indices = defaultdict(list)
         for i, noigr in enumerate(self.df.Noigr.values):
             self.patient_to_indices[noigr].append(i)
+
+        for noigr, indices in self.patient_to_indices.items():
+            self.patient_to_indices[noigr] = sorted(indices, key=lambda i: -self.survival_times[i])
+
+        self.index_to_ehrs = [(noigr, k) for noigr, indices in self.patient_to_indices.items() for k in range(1, len(indices)+1)]
+
         
     def __getitem__(self, index):
-        indices = sorted(self.patient_to_indices[self.patients[index]], key=lambda i: -self.survival_times[i])
+        noigr, k = self.index_to_ehrs[index]
+
+        indices = self.patient_to_indices[noigr][:k][-self.config.max_ehrs:]
         last_survival_time = min(self.survival_times[indices])
+
         return ([self.texts[text_index] for text_index in indices], 
                 self.survival_times[indices] - last_survival_time, 
                 min(self.labels[indices]))
 
     def __len__(self):
-        return len(self.patients)
+        return len(self.index_to_ehrs)

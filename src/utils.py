@@ -20,13 +20,18 @@ def pretty_time(t):
     """Tranforms time t in seconds into a pretty string"""
     return f"{int(t//60)}m{int(t%60)}s"
 
-def time_survival_to_label(ts, mean_time_survival):
+def time_survival_to_label(time_survival, mean_time_survival):
     """Transforms times of survival into uniform labels in ]0,1["""
-    return 1 - np.exp(-ts/mean_time_survival)
+    return 1 - np.exp(-time_survival/mean_time_survival)
 
 def label_to_time_survival(label, mean_time_survival):
     """Transforms labels in ]0,1[ into times of survival"""
     return - mean_time_survival*np.log(1-label)
+
+def shift_predictions(mus, mean_time_survival, shift):
+    time_survival = - mean_time_survival*torch.log(1-mus)
+    time_survival -= shift
+    return (1 - torch.exp(-time_survival/mean_time_survival)).clip(0, 1)
 
 bcolors = {
     'RESULTS': '\033[95m',
@@ -49,10 +54,13 @@ def save_json(path_result, name, x):
     with open(os.path.join(path_result, f'{name}.json'), 'w') as f:
         json.dump(x, f, indent=4)
 
+def print_args(args):
+    print(f"> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
+
 def create_session(args):
     torch.manual_seed(0)
     
-    print(f"> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
+    print_args(args)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     printc(f"> DEVICE:  {device}", "INFO")

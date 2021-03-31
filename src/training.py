@@ -14,19 +14,17 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from .dataset import EHRDataset, get_train_validation
+from .dataset import EHRDataset
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
-from .health_bert import HealthBERT
+from .models.health_bert import HealthBERT
 from .testing import test
 
-def train_and_validate(train_loader, validation_loader, device, config, path_result, train_only=False):
+def train_and_validate(model, train_loader, validation_loader, device, config, path_result, train_only=False):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
     Inputs: please refer bellow, to the argparse arguments.
     """
-    model = HealthBERT(device, config)
-
     printc("\n----- STARTING TRAINING -----")
 
     losses = defaultdict(list)
@@ -42,18 +40,22 @@ def train_and_validate(train_loader, validation_loader, device, config, path_res
         model.start_epoch_timers()
         predictions, train_labels = [], []
 
-        for i, (texts, labels) in enumerate(train_loader):
+        for i, (*data, labels) in enumerate(train_loader):
             if config.nrows and i*config.batch_size >= config.nrows:
                 break
-            loss, outputs = model.step(texts, labels)
+            loss, outputs = model.step(*data, labels)
 
             if model.mode == 'classif':
                 predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
             elif model.mode == 'regression':
                 predictions += outputs.flatten().tolist()
-            else:
+            elif model.mode == 'density':
                 mu, _ = outputs
                 predictions += mu.tolist()
+            elif model.mode == 'multi':
+                predictions.append(outputs.item())
+            else:
+                raise ValueError(f'Mode {model.mode} unknown')
 
             train_labels += labels.tolist()
 
@@ -75,19 +77,22 @@ def train_and_validate(train_loader, validation_loader, device, config, path_res
 
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
         train_errors.append(train_error)
-        printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+
+        mean_loss = epoch_loss/len(train_loader.dataset)
+        printc(f'    Training   | mean error: {train_error:.2f} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         if train_only:
             """
             We won't evaluate the model on the validation set.
             This is used in hyperoptimization to reduce the running time.
             """
-            if train_error < model.best_error:
-                model.best_error = train_error
+            if mean_loss < model.best_loss:
+                model.best_loss = mean_loss
             continue
 
         validation_error = test(model, validation_loader, config, config.path_result, epoch=epoch, test_losses=validation_losses, validation=True)
         validation_errors.append(validation_error)
 
+        save_json(path_result, "mae", { "train": train_errors, "validation": validation_errors })
         plt.plot(train_errors)
         plt.plot(validation_errors)
         plt.xlabel("Epoch")
@@ -99,15 +104,18 @@ def train_and_validate(train_loader, validation_loader, device, config, path_res
         
         model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
+            printc(f'Breaking training after patience {config.patience} reached', 'INFO')
             break
     
     printc("-----  Ended Training  -----\n")
 
     print("Saving losses...")
     save_json(path_result, "losses", { "train": losses, "validation": validation_losses })
-    plt.plot(np.linspace(0, config.epochs-1, sum([len(l) for l in losses.values()])),
+    epochs_realized = len(losses)
+    plt.plot(np.linspace(1, epochs_realized, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
-    plt.plot(validation_losses)
+    plt.plot(range(1, epochs_realized+1), validation_losses)
+
     plt.legend(["Train loss", "Validation loss"])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
@@ -116,7 +124,7 @@ def train_and_validate(train_loader, validation_loader, device, config, path_res
     plt.close()
     print("[DONE]")
 
-    return model.best_error
+    return model.best_loss
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
@@ -136,7 +144,9 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     validation_loader = DataLoader(validation_dataset, batch_size=1, shuffle=True)
 
-    train_and_validate(train_loader, validation_loader, device, config, config.path_result)
+    model = HealthBERT(device, config)
+    train_and_validate(model, train_loader, validation_loader, device, config, config.path_result)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
