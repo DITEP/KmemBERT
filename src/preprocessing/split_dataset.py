@@ -53,12 +53,21 @@ print(counter)
 
 print("\nFiltering EHR...")
 # 2904066
-df = df[df["Nature doct"] == "C.R. consultation"]
+df = df[df["Nature doct"].isin([
+    "C.R. consultation",
+    "C.R. Hospitalisation",
+    "C.R. Radio"
+])]
 print(f"{df.shape[0]} rows left")
 # 1347612
 preprocesser = EHRPreprocesser()
-df["Texte"] = df["Texte"].progress_apply(lambda text: preprocesser(text.lower()).strip())
-df["Texte"].replace("", np.nan, inplace=True)
+def filter_text(text, min_characters=250):
+    text = preprocesser(text.lower()).strip()
+    if len(text)<min_characters:
+        return np.nan
+    return text
+
+df["Texte"] = df["Texte"].progress_apply(filter_text)
 #df["Texte"].replace("^(\s*(#\$)*)*$", np.nan, regex=True, inplace=True)
 df["Date deces"].replace("", np.nan, inplace=True)
 df["Date cr"].replace("", np.nan, inplace=True)
