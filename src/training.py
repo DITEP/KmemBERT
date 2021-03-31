@@ -92,6 +92,7 @@ def train_and_validate(model, train_loader, test_loader, device, config, path_re
         test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
         test_errors.append(test_error)
 
+        save_json(path_result, "mae", { "train": train_errors, "validation": test_errors })
         plt.plot(train_errors)
         plt.plot(test_errors)
         plt.xlabel("Epoch")
