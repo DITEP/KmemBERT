@@ -109,9 +109,9 @@ class HealthBERT(ModelInterface):
             return torch.sigmoid(self.camembert(*input, **kwargs).logits)
         else:
             logits = self.camembert(*input, **kwargs).logits
-            mu = torch.sigmoid(logits[:,0])
-            log_var = logits[:,1]
-            return mu, log_var
+            mus = torch.sigmoid(logits[:,0])
+            log_vars = logits[:,1]
+            return mus, log_vars
 
     def get_loss(self, outputs, labels=None):
         """Returns the loss given outputs and labels"""

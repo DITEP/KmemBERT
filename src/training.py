@@ -53,7 +53,11 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
                 mu, _ = outputs
                 predictions += mu.tolist()
             elif model.mode == 'multi':
-                predictions.append(outputs.item())
+                if model.config.mode == 'density':
+                    mu, _ = outputs
+                    predictions.append(mu.item())
+                else:
+                    predictions.append(outputs.item())
             else:
                 raise ValueError(f'Mode {model.mode} unknown')
 

@@ -55,7 +55,7 @@ class EHRDataset(Dataset):
         return len(self.labels)
 
     @classmethod
-    def get_train_validation(cls, path_dataset, config):
+    def get_train_validation(cls, path_dataset, config, **kwargs):
         """
         Returns train and validation set based on a predefined split
         """
@@ -65,51 +65,26 @@ class EHRDataset(Dataset):
         validation = df[validation_split["validation"]]
         train = df.drop(validation.index)
 
-        return cls(path_dataset, config, df=train), cls(path_dataset, config, df=validation)
+        return cls(path_dataset, config, df=train, **kwargs), cls(path_dataset, config, df=validation, **kwargs)
 
-class EHRHistoryDataset(EHRDataset):
-    """PyTorch Dataset class for a full history of EHRs"""
-
-    def __init__(self, *args, **kwargs):
-        super(EHRHistoryDataset, self).__init__(*args, **kwargs)
-
-        self.patients = list(set(self.df.Noigr.values))
-        self.patient_to_indices = defaultdict(list)
-        for i, noigr in enumerate(self.df.Noigr.values):
-            self.patient_to_indices[noigr].append(i)
-
-        for noigr, indices in self.patient_to_indices.items():
-            self.patient_to_indices[noigr] = sorted(indices, key=lambda i: -self.survival_times[i])
-
-        self.index_to_ehrs = [(noigr, k) for noigr, indices in self.patient_to_indices.items() for k in range(1, len(indices)+1)]
-    
-    def __getitem__(self, index):
-        noigr, k = self.index_to_ehrs[index]
-
-        indices = self.patient_to_indices[noigr][:k][-self.config.max_ehrs:]
-        last_survival_time = min(self.survival_times[indices])
-
-        return ([self.texts[text_index] for text_index in indices], 
-                self.survival_times[indices] - last_survival_time, 
-                min(self.labels[indices]))
-
-    def __len__(self):
-        return len(self.index_to_ehrs)
-
-def collate_fn(batch):
-    sequences, times, labels = zip(*batch)
-    return sequences, torch.tensor(times).type(torch.float32), torch.tensor(labels).type(torch.float32)
-
-class PredictionsDataset(Dataset):
+class PredictionsDataset(EHRDataset):
     health_bert = None
 
-    def __init__(self, device, config, history_dataset):
+    def __init__(self, *args, device=None, **kwargs):
+        super(PredictionsDataset, self).__init__(*args, **kwargs)
         self.device = device
-        self.config = config
-        self.history_dataset = history_dataset
-        self.loader = DataLoader(self.history_dataset, batch_size=1, collate_fn=collate_fn)
-
         self.load_health_bert()
+
+        self.patients = list(set(self.df.Noigr.values))
+        self.noigr_to_indices = defaultdict(list)
+        for i, noigr in enumerate(self.df.Noigr.values):
+            self.noigr_to_indices[noigr].append(i)
+
+        for noigr, indices in self.noigr_to_indices.items():
+            self.noigr_to_indices[noigr] = sorted(indices, key=lambda i: -self.survival_times[i])
+
+        self.index_to_ehrs = [(noigr, k) for noigr, indices in self.noigr_to_indices.items() for k in range(1, len(indices)+1)]
+
         self.compute_prediction()
 
     def load_health_bert(self):
@@ -125,20 +100,29 @@ class PredictionsDataset(Dataset):
 
     def compute_prediction(self):
         printc('\nComputing Health Bert predictions...', 'INFO')
-        self.predictions = []
-        for (texts, dt, label) in self.loader:
-            dt = dt.to(self.device)[0]
-
-            if self.config.mode == 'density':
-                mus, log_vars = self.health_bert.step(texts[0])
-                self.predictions.append((mus, log_vars, dt, label[0]))
-            else:
-                mus = self.health_bert.step(texts[0])
-                self.predictions.append((mus, dt, label[0]))
-        printc(f'Successfully computed {len(self.predictions)}/{len(self.history_dataset)} predictions\n', 'SUCCESS')
+        self.noigr_to_outputs = defaultdict(list)
+        for noigr, indices in self.noigr_to_indices.items():
+            for index in indices:
+                output = self.health_bert.step([self.texts[index]])
+                self.noigr_to_outputs[noigr].append(output)
+        printc(f'Successfully computed Health Bert outputs\n', 'SUCCESS')
 
     def __getitem__(self, index):
-        return self.predictions[index]
+        noigr, k = self.index_to_ehrs[index]
+
+        indices = self.noigr_to_indices[noigr][:k][-self.config.max_ehrs:]
+        dt = self.survival_times[indices] - min(self.survival_times[indices])
+        label = min(self.labels[indices])
+
+        outputs = self.noigr_to_outputs[noigr][:k][-self.config.max_ehrs:]
+
+        if self.config.mode == 'density':
+            mus = torch.cat([output[0] for output in outputs]).view(-1)
+            log_vars = torch.cat([output[0] for output in outputs]).view(-1)
+            return (mus, log_vars, dt, label)
+        else:
+            mus = torch.cat(outputs).view(-1)
+            return (mus, dt, label)
         
     def __len__(self):
-        return len(self.predictions)
+        return len(self.index_to_ehrs)

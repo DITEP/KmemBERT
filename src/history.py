@@ -8,11 +8,15 @@ import argparse
 import torch
 from torch.utils.data import DataLoader
 
-from .dataset import EHRHistoryDataset, PredictionsDataset
+from .dataset import PredictionsDataset
 from .utils import create_session, get_label_threshold
 from .models.multi_ehr import MultiEHR, Conflation, HealthCheck
 from .training import train_and_validate
 from .testing import test
+
+def collate_fn(batch):
+    *outputs, dt, label = batch[0]
+    return (outputs, torch.tensor(dt).type(torch.float32), torch.tensor([label]).type(torch.float32))
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
@@ -21,21 +25,17 @@ def main(args):
 
     if config.train_size is None:
         # Then we use a predifined validation split
-        train_dataset, test_dataset = EHRHistoryDataset.get_train_validation(path_dataset, config)
+        train_dataset, test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, device=device)
     else:
         # Then we use a random validation split
-        dataset = EHRHistoryDataset(path_dataset, config)
+        dataset = PredictionsDataset(path_dataset, config, device=device)
         train_size = int(config.train_size * len(dataset))
         test_size = len(dataset) - train_size
         train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
-    test_dataset = PredictionsDataset(device, config, test_dataset)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+    train_loader, test_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn), DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
 
     if args.aggregator == 'gru':
-        train_dataset = PredictionsDataset(device, config, train_dataset)
-        train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-
         model = MultiEHR(device, config)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
 

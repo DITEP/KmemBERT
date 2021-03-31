@@ -32,10 +32,7 @@ class MultiEHR(ModelInterface):
 
         self.GRU = nn.GRU(input_size=self.input_size, num_layers=self.nb_gru_layers, hidden_size=hidden_size_gru, batch_first=True)
 
-        self.out_proj = nn.Sequential(
-            nn.Linear(hidden_size_gru, 1),
-            nn.Sigmoid()
-        )
+        self.out_proj = nn.Linear(hidden_size_gru, self.input_size-1)
 
         self.optimizer = Adam(self.GRU.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
         self.MSELoss = nn.MSELoss()
@@ -47,14 +44,24 @@ class MultiEHR(ModelInterface):
         return nn.init.xavier_uniform_(hidden, gain=nn.init.calculate_gain('relu')).to(self.device)
 
     def step(self, *inputs):
-        *outputs, dt, label = inputs
+        outputs, dt, label = inputs
         dt = dt.to(self.device)
         label = label.to(self.device)
+
         if self.training:
             self.optimizer.zero_grad()
 
         output = self(outputs, dt)
-        loss = self.MSELoss(output, label)
+        if self.config.mode == 'density':
+            output = torch.split(output, 1)
+            mu, log_var = output
+            mu = torch.sigmoid(mu)
+            loss = log_var + (label - mu)**2/torch.exp(log_var)
+            output = (mu, log_var)
+        else:
+            mu = torch.sigmoid(output)
+            loss = self.MSELoss(mu, label)
+            output = mu
 
         if self.training:
             loss.backward()
@@ -66,11 +73,7 @@ class MultiEHR(ModelInterface):
     def forward(self, outputs, dt):
         hidden = self.init_hidden()
 
-        if self.config.mode == 'density':
-            seq = torch.cat((*outputs, dt)).T
-        else:
-            seq = outputs[0].view(-1)
-            seq = torch.stack((seq, dt[0]), dim=1)
+        seq = torch.stack((*outputs, dt)).T
 
         out = self.GRU(seq[None,:], hidden)[1]
         out = self.out_proj(out).view(-1)
@@ -90,16 +93,13 @@ class Conflation(ModelInterface):
         super(Conflation, self).__init__(device, config)
 
     def step(self, *inputs):
-        *outputs, dt, _ = inputs
-        dt = dt.to(self.device)[0]
+        outputs, dt, _ = inputs
+        dt = dt.to(self.device)
 
         if self.config.mode == 'density':
             mus, log_vars = outputs
-            mus, log_vars = mus[0], log_vars[0]
-        
         else:
             mus, *_ = outputs
-            mus = mus.view(-1)
             log_vars = dt / self.config.mean_time_survival
 
         mus = shift_predictions(mus, self.config.mean_time_survival, dt)
@@ -111,7 +111,13 @@ class Conflation(ModelInterface):
         vars_product = vars.prod()
         ones = torch.ones(len(vars)).to(self.device)
         products = vars_product*ones / vars
-        return torch.dot(mus, products) / products.sum() #, torch.log(vars_product / products.sum())
+
+        mu = torch.dot(mus, products) / products.sum()
+        if self.config.mode == 'density':
+            return (mu, torch.log(vars_product / products.sum()))
+        else:
+            return mu
+
 
     def train(self, *args):
         pass
@@ -126,12 +132,14 @@ class HealthCheck(ModelInterface):
         super(HealthCheck, self).__init__(device, config)
 
     def step(self, *inputs):
-        *outputs, dt, _ = inputs
+        outputs, dt, _ = inputs
 
-        mus, *_ = outputs
-        mus = mus.view(-1)
-
-        return torch.zeros(1), mus[-1]
+        if self.config.mode == 'density':
+            mus, log_vars = outputs
+            return torch.zeros(1), (mus[-1], log_vars[-1])
+        else:
+            mus, *_ = outputs
+            return torch.zeros(1), mus[-1]
 
     def train(self, *args):
         pass

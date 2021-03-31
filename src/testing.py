@@ -37,11 +37,16 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         elif model.mode == 'regression':
             predictions += outputs.flatten().tolist()
         elif model.mode == 'density':
-            mu, log_vars = outputs
-            predictions += mu.tolist()
+            mus, log_vars = outputs
+            predictions += mus.tolist()
             stds += torch.exp(log_vars/2).tolist()
         elif model.mode == 'multi':
-            predictions.append(outputs.item())
+            if model.config.mode == 'density':
+                mu, log_var = outputs
+                predictions.append(mu.item())
+                stds.append(torch.exp(log_var/2).item())
+            else:
+                predictions.append(outputs.item())
         else:
             raise ValueError(f'Mode {model.mode} unknown')
         
