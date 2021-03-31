@@ -19,7 +19,7 @@ from .utils import pretty_time, printc, create_session, save_json, get_label_thr
 from .models.health_bert import HealthBERT
 from .testing import test
 
-def train_and_validate(model, train_loader, test_loader, device, config, path_result, train_only=False):
+def train_and_validate(model, train_loader, validation_loader, device, config, path_result, train_only=False):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
@@ -28,8 +28,8 @@ def train_and_validate(model, train_loader, test_loader, device, config, path_re
     printc("\n----- STARTING TRAINING -----")
 
     losses = defaultdict(list)
-    test_losses = []
-    train_errors, test_errors = [], []
+    validation_losses = []
+    train_errors, validation_errors = [], []
     n_samples = config.print_every_k_batch * config.batch_size
     model.initialize_scheduler(config.epochs, train_loader)
     for epoch in range(config.epochs):
@@ -89,11 +89,12 @@ def train_and_validate(model, train_loader, test_loader, device, config, path_re
                 model.best_loss = mean_loss
             continue
 
-        test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
-        test_errors.append(test_error)
+        validation_error = test(model, validation_loader, config, config.path_result, epoch=epoch, test_losses=validation_losses, validation=True)
+        validation_errors.append(validation_error)
 
+        save_json(path_result, "mae", { "train": train_errors, "validation": validation_errors })
         plt.plot(train_errors)
-        plt.plot(test_errors)
+        plt.plot(validation_errors)
         plt.xlabel("Epoch")
         plt.ylabel("MAE (days)")
         plt.legend(["Train", "Validation"])
@@ -109,11 +110,12 @@ def train_and_validate(model, train_loader, test_loader, device, config, path_re
     printc("-----  Ended Training  -----\n")
 
     print("Saving losses...")
-    save_json(path_result, "losses", { "train": losses, "validation": test_losses })
+    save_json(path_result, "losses", { "train": losses, "validation": validation_losses })
     epochs_realized = len(losses)
     plt.plot(np.linspace(1, epochs_realized, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
-    plt.plot(range(1, epochs_realized+1), test_losses)
+    plt.plot(range(1, epochs_realized+1), validation_losses)
+
     plt.legend(["Train loss", "Validation loss"])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
@@ -131,19 +133,20 @@ def main(args):
 
     if config.train_size is None:
         # Then we use a predifined validation split
-        train_dataset, test_dataset = EHRDataset.get_train_validation(path_dataset, config)
+        train_dataset, validation_dataset = EHRDataset.get_train_validation(path_dataset, config)
     else:
         # Then we use a random validation split
         dataset = EHRDataset(path_dataset, config)
         train_size = int(config.train_size * len(dataset))
-        test_size = len(dataset) - train_size
-        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+        validation_size = len(dataset) - train_size
+        train_dataset, validation_dataset = torch.utils.data.random_split(dataset, [train_size, validation_size])
 
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+    validation_loader = DataLoader(validation_dataset, batch_size=1, shuffle=True)
 
     model = HealthBERT(device, config)
-    train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
+    train_and_validate(model, train_loader, validation_loader, device, config, config.path_result)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -160,9 +163,9 @@ if __name__ == "__main__":
     parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
         help="dropout ratio")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
-        help="maximum number of samples for training and testing")
+        help="maximum number of samples for training and validation")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
-        help="maximum number of samples for training and testing")
+        help="maximum number of samples for training and validation")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
         help="whether or not to freeze the Bert part")
     parser.add_argument("-dt", "--days_threshold", type=int, default=90, 

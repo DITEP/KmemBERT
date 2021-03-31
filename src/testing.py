@@ -117,7 +117,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
 
         fpr, tpr, thresholds = roc_curve(bin_labels, predictions)
-        metrics['thresholds'] = thresholds.tolist()
+        # metrics['thresholds'] = thresholds.tolist()
 
         plt.plot(fpr, tpr)
         plt.plot([0,1], [0,1], 'r--')

@@ -109,7 +109,8 @@ class Conflation(ModelInterface):
     def forward(self, mus, log_vars):
         vars = torch.exp(log_vars)
         vars_product = vars.prod()
-        products = vars_product*torch.ones(len(vars)) / vars
+        ones = torch.ones(len(vars)).to(self.device)
+        products = vars_product*ones / vars
         return torch.dot(mus, products) / products.sum() #, torch.log(vars_product / products.sum())
 
     def train(self, *args):
