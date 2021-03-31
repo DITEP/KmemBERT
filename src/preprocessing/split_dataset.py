@@ -23,6 +23,8 @@ from ..utils import save_json, get_label
 train_size = 0.7
 validation_size = 0.02
 seed = 0
+max_words = 256
+min_characters = 250
 
 data_path = "/data/isilon/centraleNLP"
 file_path = os.path.join(data_path, "concatenate.txt")
@@ -60,8 +62,8 @@ print("\nFiltering EHR...")
 # ])]
 # print(f"{df.shape[0]} rows left")
 # 1347612
-preprocesser = EHRPreprocesser()
-def filter_text(text, min_characters=250):
+preprocesser = EHRPreprocesser(max_words=max_words)
+def filter_text(text, min_characters=min_characters):
     text = preprocesser(text.lower()).strip()
     if len(text)<min_characters:
         return np.nan
