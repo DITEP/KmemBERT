@@ -110,7 +110,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
     metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
     metrics['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
-    # metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
+    metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
     metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
 
     try:
