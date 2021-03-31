@@ -118,7 +118,7 @@ class PredictionsDataset(EHRDataset):
 
         if self.config.mode == 'density':
             mus = torch.cat([output[0] for output in outputs]).view(-1)
-            log_vars = torch.cat([output[0] for output in outputs]).view(-1)
+            log_vars = torch.cat([output[1] for output in outputs]).view(-1)
             return (mus, log_vars, dt, label)
         else:
             mus = torch.cat(outputs).view(-1)
