@@ -15,6 +15,10 @@ from .health_bert import HealthBERT
 from ..utils import printc, shift_predictions
 
 class MultiEHR(ModelInterface):
+    """
+    Runs a GRU on Health Bert predictions on multiple EHRs
+    """
+
     mode = 'multi'
 
     def __init__(self, device, config, hidden_size_gru=16, nb_gru_layers=1):
@@ -44,6 +48,22 @@ class MultiEHR(ModelInterface):
         return nn.init.xavier_uniform_(hidden, gain=nn.init.calculate_gain('relu')).to(self.device)
 
     def step(self, *inputs):
+        """
+        Args:
+            outputs (tuple of tensors): health bert predictions - either (mus,) or (mus, log_vars)
+            dt (1D tensor): list of timestamps between the creation of EHRs and the last EHR of the sequence
+            label (one element tensor): label for the given list of EHRs
+
+        Outputs:
+            loss
+            output: mu on regression mode or (mu, log_var) on density mode
+
+        Examples::
+            >>> outputs = [torch.tensor([0.7, 0.2, 0.3]), torch.tensor([-2.7, 0.8, -11])]
+            >>> dt = torch.tensor([230, 150, 0]) # Number of days
+            >>> label = torch.tensor(0.27)
+            >>> model.step(outputs, dt, label)
+        """
         outputs, dt, label = inputs
 
         outputs = [output.to(self.device) for output in outputs]
@@ -89,6 +109,10 @@ class MultiEHR(ModelInterface):
     
 
 class Conflation(ModelInterface):
+    """
+    Predicts survival times based on a conflation method to aggregate multiple predictions
+    """
+
     mode = 'multi'
 
     def __init__(self, device, config):
@@ -111,6 +135,16 @@ class Conflation(ModelInterface):
 
 
     def forward(self, mus, log_vars):
+        """
+        Conflation of gaussian densities
+
+        Args:
+            mus (tensor): tensor of means
+            log_vars (tensor): tensor of logs of variances
+
+        Outputs:
+            mu or (mu, log_var)
+        """
         vars = torch.exp(log_vars)
         vars_product = vars.prod()
         ones = torch.ones(len(vars)).to(self.device)
@@ -130,6 +164,10 @@ class Conflation(ModelInterface):
         pass
 
 class HealthCheck(ModelInterface):
+    """
+    Does nothing except returning Health Bert predictions 
+    It should have the same score than the loaded checkpoint
+    """
     mode = 'multi'
 
     def __init__(self, device, config):

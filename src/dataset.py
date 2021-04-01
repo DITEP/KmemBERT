@@ -68,6 +68,10 @@ class EHRDataset(Dataset):
         return cls(path_dataset, config, df=train, **kwargs), cls(path_dataset, config, df=validation, **kwargs)
 
 class PredictionsDataset(EHRDataset):
+    """
+    Dataset dealing with multiple EHRs instead of only one.
+    The models defined inside models.multi_ehr needs this dataset.
+    """
     health_bert = None
 
     def __init__(self, *args, device=None, **kwargs):
