@@ -12,6 +12,7 @@ import json
 import os
 import sys
 from collections import defaultdict
+from tqdm import tqdm
 
 from .utils import get_label, time_survival_to_label, printc
 from .preprocesser import EHRPreprocesser
@@ -81,8 +82,12 @@ class PredictionsDataset(EHRDataset):
 
         self.patients = list(set(self.df.Noigr.values))
         self.noigr_to_indices = defaultdict(list)
+        self.length = 0
         for i, noigr in enumerate(self.df.Noigr.values):
             self.noigr_to_indices[noigr].append(i)
+            self.length += 1
+            if self.config.nrows and self.length == self.config.nrows:
+                break
 
         for noigr, indices in self.noigr_to_indices.items():
             self.noigr_to_indices[noigr] = sorted(indices, key=lambda i: -self.survival_times[i])
@@ -105,11 +110,11 @@ class PredictionsDataset(EHRDataset):
     def compute_prediction(self):
         printc('\nComputing Health Bert predictions...', 'INFO')
         self.noigr_to_outputs = defaultdict(list)
-        for noigr, indices in self.noigr_to_indices.items():
+        for noigr, indices in tqdm(self.noigr_to_indices.items()):
             for index in indices:
                 output = self.health_bert.step([self.texts[index]])
                 self.noigr_to_outputs[noigr].append(output)
-        printc(f'Successfully computed Health Bert outputs\n', 'SUCCESS')
+        printc(f'Successfully computed {self.length} Health Bert outputs\n', 'SUCCESS')
 
     def __getitem__(self, index):
         noigr, k = self.index_to_ehrs[index]
@@ -129,4 +134,4 @@ class PredictionsDataset(EHRDataset):
             return (mus, dt, label)
         
     def __len__(self):
-        return len(self.index_to_ehrs)
+        return self.length

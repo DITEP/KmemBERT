@@ -70,9 +70,6 @@ class MultiEHR(ModelInterface):
         dt = dt.to(self.device)
         label = label.to(self.device)
 
-        if self.training:
-            self.optimizer.zero_grad()
-
         output = self(outputs, dt)
         if self.config.mode == 'density':
             output = torch.split(output, 1)
@@ -86,6 +83,7 @@ class MultiEHR(ModelInterface):
             output = mu
 
         if self.training:
+            self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 

@@ -56,12 +56,14 @@ if __name__ == "__main__":
         help="data folder name")
     parser.add_argument("-a", "--aggregator", type=str, default="gru", 
         help="aggregator name")
+    parser.add_argument("-r", "--resume", type=str, required=True, 
+        help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
+    parser.add_argument("-nr", "--nrows", type=int, default=None, 
+        help="maximum number of samples for training and validation")
     parser.add_argument("-t", "--train_size", type=float, default=None, 
         help="dataset train size")
-    parser.add_argument("-nr", "--nrows", type=int, default=None, 
-        help="maximum number of samples for training and testing")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
@@ -72,8 +74,6 @@ if __name__ == "__main__":
         help="dataset train size")
     parser.add_argument("-wg", "--weight_decay", type=float, default=0, 
         help="the weight decay for L2 regularization")
-    parser.add_argument("-r", "--resume", type=str, required=True, 
-        help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="Number of decreasing accuracy epochs to stop the training")
     parser.add_argument("-me", "--max_ehrs", type=int, default=4, 
