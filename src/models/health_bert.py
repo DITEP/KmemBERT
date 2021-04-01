@@ -106,7 +106,7 @@ class HealthBERT(ModelInterface):
         if self.mode == 'classif':
             return self.camembert(*input, **kwargs)
         elif self.mode == 'regression':
-            return torch.sigmoid(2*self.camembert(*input, **kwargs).logits)
+            return torch.sigmoid(self.camembert(*input, **kwargs).logits)
         else:
             logits = self.camembert(*input, **kwargs).logits
             mu = torch.sigmoid(logits[:,0])
