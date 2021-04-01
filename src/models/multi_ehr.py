@@ -45,6 +45,8 @@ class MultiEHR(ModelInterface):
 
     def step(self, *inputs):
         outputs, dt, label = inputs
+
+        outputs = [output.to(self.device) for output in outputs]
         dt = dt.to(self.device)
         label = label.to(self.device)
 
@@ -94,6 +96,8 @@ class Conflation(ModelInterface):
 
     def step(self, *inputs):
         outputs, dt, _ = inputs
+
+        outputs = [output.to(self.device) for output in outputs]
         dt = dt.to(self.device)
 
         if self.config.mode == 'density':
