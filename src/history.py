@@ -25,7 +25,10 @@ def main(args):
 
     if config.train_size is None:
         # Then we use a predifined validation split
-        train_dataset, test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, device=device)
+        if args.aggregator in ['conflation', 'health_check']:
+            test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, device=device, get_only_val=True)
+        else:
+            train_dataset, test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, device=device)
     else:
         # Then we use a random validation split
         dataset = PredictionsDataset(path_dataset, config, device=device)
@@ -33,7 +36,9 @@ def main(args):
         test_size = len(dataset) - train_size
         train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
-    train_loader, test_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn), DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
+    if not args.aggregator in ['conflation', 'health_check']:
+        train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
 
     if args.aggregator == 'gru':
         model = MultiEHR(device, config)

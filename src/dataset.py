@@ -5,7 +5,7 @@
 '''
 
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 import json
@@ -56,7 +56,7 @@ class EHRDataset(Dataset):
         return len(self.labels)
 
     @classmethod
-    def get_train_validation(cls, path_dataset, config, **kwargs):
+    def get_train_validation(cls, path_dataset, config, get_only_val=False, **kwargs):
         """
         Returns train and validation set based on a predefined split
         """
@@ -66,6 +66,8 @@ class EHRDataset(Dataset):
         validation = df[validation_split["validation"]]
         train = df.drop(validation.index)
 
+        if get_only_val:
+            return cls(path_dataset, config, df=validation, **kwargs)
         return cls(path_dataset, config, df=train, **kwargs), cls(path_dataset, config, df=validation, **kwargs)
 
 class PredictionsDataset(EHRDataset):
