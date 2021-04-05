@@ -44,11 +44,11 @@ def main(args):
         model = MultiEHR(device, config)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
 
-    elif args.aggregator in 'conflation':
+    elif args.aggregator == 'conflation':
         model = Conflation(device, config)
         test(model, test_loader, config, config.path_result)
 
-    elif args.aggregator in 'health_check':
+    elif args.aggregator == 'health_check':
         model = HealthCheck(device, config)
         test(model, test_loader, config, config.path_result)
         
