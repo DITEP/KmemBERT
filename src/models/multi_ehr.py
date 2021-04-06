@@ -34,9 +34,9 @@ class MultiEHR(ModelInterface):
         else:
             raise ValueError(f"Invalid health bert mode. Needed 'regression' or 'density', found {self.config.mode}")
 
-        self.GRU = nn.GRU(input_size=self.input_size, num_layers=self.nb_gru_layers, hidden_size=hidden_size_gru, batch_first=True)
+        self.GRU = nn.GRU(input_size=self.input_size, num_layers=self.nb_gru_layers, hidden_size=hidden_size_gru, batch_first=True).to(self.device)
 
-        self.out_proj = nn.Linear(hidden_size_gru, self.input_size-1)
+        self.out_proj = nn.Linear(hidden_size_gru, self.input_size-1).to(self.device)
 
         self.optimizer = Adam(self.GRU.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
         self.MSELoss = nn.MSELoss()
@@ -82,7 +82,7 @@ class MultiEHR(ModelInterface):
             loss = self.MSELoss(mu, label)
             output = mu
 
-        if self.training:
+        if self.GRU.training:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
