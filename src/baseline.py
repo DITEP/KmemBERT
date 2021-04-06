@@ -23,23 +23,38 @@ from .preprocesser import EHRPreprocesser
 def main(args):
     # Load data and split it
     path_root = get_root()
-    path_dataset = os.path.join(path_root, "data", args.data_folder, "train.csv")
-    df = pd.read_csv(path_dataset, nrows=args.nrows)
-    labels = np.array(list(df[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
+
+    path_data = os.path.join(path_root, "data", args.data_folder)
+    df = pd.read_csv(os.path.join(path_data, "train.csv"), nrows=args.nrows)
+
     preprocesser = EHRPreprocesser()
-    texts = list(df["Texte"].apply(preprocesser))
-    X_train, X_val, y_train, y_val = train_test_split(texts, labels, train_size=args.train_size, random_state=0)
+
+    if os.path.isfile(os.path.join(path_data, "validation_split.csv")):
+        validation_split = pd.read_csv(os.path.join(path_data, "validation_split.csv"), dtype=bool)
+    
+        validation = df[validation_split["validation"]]
+        train = df.drop(validation.index)
+        data = {"val": validation, "train":train}
+
+        labels = {key : np.array(list(d[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1))) for key, d in data.items()}
+        texts = {key : list(d["Texte"].apply(preprocesser)) for key, d in data.items()}
+    else :
+        labels = np.array(list(df[["Date deces", "Date cr"]].apply(lambda x: get_label(*x), axis=1)))
+        texts = list(df["Texte"].apply(preprocesser))
+        X_train, X_val, y_train, y_val = train_test_split(texts, labels, train_size=args.train_size, random_state=0)
+        labels = {"val" : y_val, "train" : y_train}
+        texts = {"val" : X_val, "train" : X_train}
 
     # Build model, train and evaluate
     ehr_regressor = Pipeline([('tfidf', TfidfVectorizer()),
                       ('rf', RandomForestRegressor()),
                     ], verbose=args.verbose)
 
-    ehr_regressor.fit(X_train, y_train)
+    ehr_regressor.fit(texts["train"], labels["train"])
 
-    predictions = ehr_regressor.predict(X_val)
-    rmse = mean_squared_error(y_val, predictions)**0.5
-    mae = mean_absolute_error(y_val, predictions)
+    predictions = ehr_regressor.predict(texts["val"])
+    rmse = mean_squared_error(labels["val"], predictions)**0.5
+    mae = mean_absolute_error(labels["val"], predictions)
 
     print("RMSE validation set : {}    MAE : {}".format(round(rmse,1), round(mae,1)))
 
