@@ -33,7 +33,7 @@ def main(args):
     # Build model, train and evaluate
     ehr_regressor = Pipeline([('tfidf', TfidfVectorizer()),
                       ('rf', RandomForestRegressor()),
-                    ])
+                    ], verbose=True)
 
     ehr_regressor.fit(X_train, y_train)
 
@@ -60,6 +60,8 @@ if __name__ == "__main__":
         help="maximum number of samples for training and testing")
     parser.add_argument("-fs", "--folder_to_save", type=str, default="baseline",
     help = "folder to save the model")
+    parser.add_argument("-v", "--verbose", type=bool, default=True,
+    help = "verbose arg of the pipeline")
 
 
     main(parser.parse_args())
