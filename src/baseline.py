@@ -30,7 +30,7 @@ def main(args):
     preprocesser = EHRPreprocesser()
 
     if os.path.isfile(os.path.join(path_data, "validation_split.csv")):
-        validation_split = pd.read_csv(os.path.join(path_data, "validation_split.csv"), dtype=bool)
+        validation_split = pd.read_csv(os.path.join(path_data, "validation_split.csv"), dtype=bool, nrows=args.nrows)
     
         validation = df[validation_split["validation"]]
         train = df.drop(validation.index)
@@ -44,6 +44,8 @@ def main(args):
         X_train, X_val, y_train, y_val = train_test_split(texts, labels, train_size=args.train_size, random_state=0)
         labels = {"val" : y_val, "train" : y_train}
         texts = {"val" : X_val, "train" : X_train}
+
+    print("Data loaded on {} lines".format(args.nrows))
 
     # Build model, train and evaluate
     ehr_regressor = Pipeline([('tfidf', TfidfVectorizer()),
@@ -76,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument("-fs", "--folder_to_save", type=str, default="baseline",
     help = "folder to save the model")
     parser.add_argument("-v", "--verbose", type=bool, default=True,
-    help = "verbose arg of the pipeline")
+        help = "verbose arg of the pipeline")
 
 
     main(parser.parse_args())
