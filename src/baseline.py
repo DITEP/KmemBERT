@@ -33,7 +33,7 @@ def main(args):
     # Build model, train and evaluate
     ehr_regressor = Pipeline([('tfidf', TfidfVectorizer()),
                       ('rf', RandomForestRegressor()),
-                    ], verbose=True)
+                    ], verbose=args.verbose)
 
     ehr_regressor.fit(X_train, y_train)
 
