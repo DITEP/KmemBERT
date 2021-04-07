@@ -125,15 +125,7 @@ def main(args):
 
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    if config.train_size is None:
-        # Then we use a predifined validation split
-        train_dataset, validation_dataset = EHRDataset.get_train_validation(path_dataset, config)
-    else:
-        # Then we use a random validation split
-        dataset = EHRDataset(path_dataset, config)
-        train_size = int(config.train_size * len(dataset))
-        validation_size = len(dataset) - train_size
-        train_dataset, validation_dataset = torch.utils.data.random_split(dataset, [train_size, validation_size])
+    train_dataset, validation_dataset = EHRDataset.get_train_validation(path_dataset, config)
 
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
     validation_loader = DataLoader(validation_dataset, batch_size=1, shuffle=True)
@@ -152,8 +144,6 @@ if __name__ == "__main__":
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
-    parser.add_argument("-t", "--train_size", type=float, default=None, 
-        help="dataset train size")
     parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
         help="dropout ratio")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
