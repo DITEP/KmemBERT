@@ -41,7 +41,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             predictions += mus.tolist()
             stds += torch.exp(log_vars/2).tolist()
         elif model.mode == 'multi':
-            if model.config.mode == 'density':
+            if model.config.mode in ['density', 'classif']:
                 mu, log_var = outputs
                 predictions.append(mu.item())
                 stds.append(torch.exp(log_var/2).item())
@@ -88,7 +88,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         n_points = 20
         resize_factor = 20
         gaussian_predictions = np.random.normal(predictions, np.array(stds)/resize_factor, size=(n_points, len(predictions))).flatten().clip(0, 1)
-        associated_labels = np.tile(predictions, n_points)
+        associated_labels = np.tile(test_labels, n_points)
         sns.kdeplot(
             data={'Predictions': gaussian_predictions, 'Labels': associated_labels}, 
             x='Predictions', y='Labels', clip=((0, 1), (0, 1)),

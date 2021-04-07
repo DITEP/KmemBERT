@@ -32,7 +32,7 @@ class Config:
     days_threshold = 90
     max_ehrs = None
 
-    def __init__(self, args):
+    def __init__(self, args={}):
         for attr in dir(self):
             if not attr.startswith('__') and hasattr(args, attr):
                 setattr(self, attr, getattr(args, attr))

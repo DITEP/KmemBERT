@@ -12,6 +12,7 @@ import joblib
 
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -44,14 +45,20 @@ def main(args):
         X_train, X_val, y_train, y_val = train_test_split(texts, labels, train_size=args.train_size, random_state=0)
         labels = {"val" : y_val, "train" : y_train}
         texts = {"val" : X_val, "train" : X_train}
-
     print("Data loaded on {} lines".format(args.nrows))
 
     # Build model, train and evaluate
-    ehr_regressor = Pipeline([('tfidf', TfidfVectorizer()),
-                      ('rf', RandomForestRegressor()),
-                    ], verbose=args.verbose)
+    assert args.model in ["RF", "MLP"], "model argument should be either RF or MLP"
+    if args.model == "RF":
+        ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
+                        ('rf', RandomForestRegressor(verbose = args.verbose*1)),
+                        ], verbose=args.verbose)
+    else :
+        ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
+                        ('mlp', MLPRegressor(hidden_layer_sizes = (200,200,),verbose = args.verbose, max_iter=800)),
+                        ], verbose=args.verbose)
 
+    print("Lauching training... {} chosen as decoder with tf idf min count {}".format(args.model, args.min_tf))
     ehr_regressor.fit(texts["train"], labels["train"])
 
     predictions = ehr_regressor.predict(texts["val"])
@@ -76,9 +83,12 @@ if __name__ == "__main__":
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-fs", "--folder_to_save", type=str, default="baseline",
-    help = "folder to save the model")
+        help = "folder to save the model")
     parser.add_argument("-v", "--verbose", type=bool, default=True,
         help = "verbose arg of the pipeline")
-
-
+    parser.add_argument("-m", "--model", type=str, default="RF",
+        help = "Model to use for decoding : RF, MLP")
+    parser.add_argument("-mtf", "--min_tf", type=int, default=50,
+        help = "Minimum number of count for a word to be taken into account in tf idf")
+    
     main(parser.parse_args())

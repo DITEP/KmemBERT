@@ -123,7 +123,7 @@ class HealthBERT(ModelInterface):
             mu, log_var = outputs
             return (log_var + (labels - mu)**2/torch.exp(log_var)).mean()
 
-    def step(self, texts, labels=None):
+    def step(self, texts, labels=None, output_hidden_states=False):
         """
         Encode and forward the given texts. Compute the loss, and its backward.
 
@@ -147,8 +147,10 @@ class HealthBERT(ModelInterface):
             labels = labels.to(self.device)
 
         compute_start_time = time()
-        outputs = self(input_ids, attention_mask=attention_mask, labels=labels if self.mode == 'classif' else None)
+        outputs = self(input_ids, attention_mask=attention_mask, labels=(labels if self.mode == 'classif' else None), output_hidden_states=output_hidden_states)
         self.compute_time += time()-compute_start_time
+
+        if output_hidden_states: return outputs.hidden_states[-1][:,0,:]
 
         if labels is None: return outputs.logits if self.mode == 'classif' else outputs
 
