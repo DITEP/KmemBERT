@@ -85,7 +85,7 @@ We also perform some preprocessing in this script, notably:
 
 3. (`visualize_data.py`)
 
-Optional. Data visualization can be produced only after the execution of the previous scripts. Given a dataset, it will produce 7 plots highlighting : number of ehr per patient, sentence per ehr, mean token per sentence, number of tokens per ehr, number of known tokens per ehr, survival time distribution.
+Optional. Data visualization can be produced only after the execution of the previous scripts. Given a dataset, it will produce 6 plots highlighting : number of ehr per patient, sentence per ehr, mean token per sentence, number of tokens per ehr, number of known tokens per ehr, survival time distribution.
 
 4. `extract_unknown_words.py`
 
