@@ -16,7 +16,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from .dataset import EHRDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival, time_survival_to_label
 from .models.health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
