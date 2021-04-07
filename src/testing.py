@@ -135,7 +135,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics["MAE"] = np.mean(np.abs(predictions - test_labels))
     
     for days in [30,90,180,360,270]:
-        label = time_survival_to_label(days, mean_time_survival)
+        label = time_survival_to_label(days, config.mean_time_survival)
         bin_predictions = (predictions >= label).astype(int)
         bin_labels = (test_labels >= label).astype(int)
         
