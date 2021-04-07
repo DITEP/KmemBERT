@@ -52,7 +52,7 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
                 mu, _ = outputs
                 predictions += mu.tolist()
             elif model.mode == 'multi':
-                if model.config.mode in ['density', 'classif']:
+                if model.config.mode == 'density' or (model.config.mode == 'classif' and model.out_dim == 2):
                     mu, _ = outputs
                     predictions.append(mu.item())
                 else:

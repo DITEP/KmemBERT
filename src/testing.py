@@ -42,7 +42,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             predictions += mus.tolist()
             stds += torch.exp(log_vars/2).tolist()
         elif model.mode == 'multi':
-            if model.config.mode in ['density', 'classif']:
+            if model.config.mode == 'density' or (model.config.mode == 'classif' and model.out_dim == 2):
                 mu, log_var = outputs
                 predictions.append(mu.item())
                 stds.append(torch.exp(log_var/2).item())

@@ -154,5 +154,8 @@ def mean_error(labels, predictions, mean_time_survival):
                 label_to_time_survival(np.array(predictions), mean_time_survival))
 
 def collate_fn(batch):
+    """
+    Custom collate function for Predictions Dataset
+    """
     *outputs, dt, label = batch[0]
     return (outputs, torch.tensor(dt).type(torch.float32), torch.tensor([label]).type(torch.float32))

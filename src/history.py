@@ -29,8 +29,6 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
 
     if args.aggregator == 'transformer':
-        assert args.out_dim == 2, 'transformer for regression not supported yet'
-
         model = TransformerAggregator(device, config, 768, args.nhead, args.num_layers, args.out_dim)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)    
 
