@@ -81,7 +81,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             model.early_stopping += 1
             return mean_loss
 
-    print('    Saving predictions...\n')
+    print('    Saving predictions...')
     save_json(path_result, "test", {"labels": test_labels, "predictions": predictions, "stds": stds})
 
     predictions = np.array(predictions)
@@ -167,7 +167,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         plt.savefig(os.path.join(path_result, "roc_curve.png"))
         plt.close()
     except:
-        print("Error while computing ROC curve...")
+        printc("    Error while computing ROC curve", "WARNING")
 
     if not validation:
         print("Classification metrics:\n", metrics)
@@ -178,6 +178,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         'metrics': metrics,
         'ape_per_quantile': ape_per_quantile})
 
+    print(f"    (Ended {'validation' if validation else 'testing'})\n")
     return mean_loss
 
 def main(args):

@@ -36,7 +36,13 @@ class HealthBERT(ModelInterface):
         self.learning_rate = config.learning_rate
         self.voc_path = config.voc_path
         self.model_name = config.model_name
-        self.mode = config.mode
+
+        if config.mode is None:
+            assert self.config.resume is not None, 'Mode was not specified, cannot init HealthBERT'
+            with open(os.path.join('results', self.config.resume, 'args.json')) as json_file:
+                self.config.mode = json.load(json_file)["mode"]
+                printc(f"\nUsing mode {self.config.mode} (Health BERT checkpoint {self.config.resume})", "INFO")
+        self.mode = self.config.mode
 
         if self.mode == 'classif' or self.mode == 'density':
             self.num_labels = 2
