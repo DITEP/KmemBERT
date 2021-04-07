@@ -55,7 +55,7 @@ def main(args):
                         ], verbose=args.verbose)
     else :
         ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
-                        ('mlp', MLPRegressor(hidden_layer_sizes = (200,200),verbose = args.verbose, max_iter=800)),
+                        ('mlp', MLPRegressor(hidden_layer_sizes = (200,200,),verbose = args.verbose, max_iter=800)),
                         ], verbose=args.verbose)
 
     print("Lauching training... {} chosen as decoder with tf idf min count {}".format(args.model, args.min_tf))

@@ -16,7 +16,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from .dataset import EHRDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival, time_survival_to_label
 from .models.health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
@@ -82,7 +82,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             return mean_loss
 
     print('    Saving predictions...\n')
-    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
+    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions, "stds": stds})
 
     if len(stds) > 0:
         n_points = 20
@@ -98,6 +98,15 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         plt.savefig(os.path.join(path_result, "correlations_distributions.png"))
         plt.close()
 
+        plt.scatter(predictions, stds, s=0.1, alpha=0.5)
+        plt.xlabel("Predictions")
+        plt.ylabel("Standard Deviations")
+        plt.xlim(0, 1)
+        plt.ylim(0, max(stds))
+        plt.title("Predictions and corresponding standard deviations")
+        plt.savefig(os.path.join(path_result, "stds.png"))
+        plt.close() 
+
     plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
     plt.xlabel("Predictions")
     plt.ylabel("Labels")
@@ -111,8 +120,6 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     test_labels = np.array(test_labels)
 
     errors_dict = defaultdict(list)
-
-    thresholds = [int(label_to_time_survival(0.1*quantile, config.mean_time_survival)) for quantile in range(1, 10)]
     quantiles = np.floor(test_labels*10).astype(int).tolist()
 
     for pred, label, quantile in zip(predictions.tolist(), test_labels.tolist(), quantiles):
@@ -123,21 +130,25 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     std_mae_quantile = sorted([(quantile, np.std(l), np.mean(np.abs(l))) for quantile, l in errors_dict.items()])
 
 
-    bin_predictions = (predictions >= config.label_threshold).astype(int)
-    bin_labels = (test_labels >= config.label_threshold).astype(int)
-
     metrics = {}
-    metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
-    metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
-    metrics['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
-    metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
-    metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
-
+    metrics["correlation"] = np.corrcoef(predictions, test_labels)[0,1]
+    metrics["MAE"] = np.mean(np.abs(predictions - test_labels))
+    
+    for days in [30,90,180,360,270]:
+        label = time_survival_to_label(days, config.mean_time_survival)
+        bin_predictions = (predictions >= label).astype(int)
+        bin_labels = (test_labels >= label).astype(int)
+        
+        days = f"{days} days"
+        metrics[days] = {}
+        metrics[days]['accuracy'] = accuracy_score(bin_labels, bin_predictions)
+        metrics[days]['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
+        metrics[days]['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
+        
     try:
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
 
-        fpr, tpr, thresholds = roc_curve(bin_labels, predictions)
-        # metrics['thresholds'] = thresholds.tolist()
+        fpr, tpr, _ = roc_curve(bin_labels, predictions)
 
         plt.plot(fpr, tpr)
         plt.plot([0,1], [0,1], 'r--')
@@ -156,13 +167,8 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
 
     save_json(path_result, 'results', 
         {'mean_error': error,
-        'metrics': metrics,
         'mean_loss': mean_loss,
-        'predictions': predictions.tolist(),
-        'test_labels': test_labels.tolist(),
-        'label_threshold': config.label_threshold,
-        'bin_predictions': bin_predictions.tolist(),
-        'bin_labels': bin_labels.tolist(),
+        'metrics': metrics,
         'std_mae_quantile': std_mae_quantile})
 
     return mean_loss

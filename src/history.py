@@ -23,18 +23,11 @@ def main(args):
 
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    if config.train_size is None:
-        # Then we use a predifined validation split
-        if args.aggregator in ['conflation', 'health_check']:
-            test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, device=device, get_only_val=True)
-        else:
-            train_dataset, test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, output_hidden_states=(args.aggregator=='transformer') , device=device)
+    if args.aggregator in ['conflation', 'health_check']:
+        test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, device=device, get_only_val=True)
     else:
-        # Then we use a random validation split
-        dataset = PredictionsDataset(path_dataset, config, device=device)
-        train_size = int(config.train_size * len(dataset))
-        test_size = len(dataset) - train_size
-        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+        train_dataset, test_dataset = PredictionsDataset.get_train_validation(
+            path_dataset, config, output_hidden_states=(args.aggregator=='transformer'), device=device)
 
     if not args.aggregator in ['conflation', 'health_check']:
         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
@@ -45,7 +38,9 @@ def main(args):
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
 
     elif args.aggregator == 'transformer':
-        model = TransformerMulti(device, config, 768, 2, 1, 2)
+        assert args.out_dim == 2, 'transformer for regression not supported yet'
+
+        model = TransformerMulti(device, config, 768, args.nhead, args.num_layers, args.out_dim)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)    
 
     elif args.aggregator == 'conflation':
@@ -71,8 +66,6 @@ if __name__ == "__main__":
         help="number of epochs")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and validation")
-    parser.add_argument("-t", "--train_size", type=float, default=None, 
-        help="dataset train size")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
@@ -87,5 +80,11 @@ if __name__ == "__main__":
         help="Number of decreasing accuracy epochs to stop the training")
     parser.add_argument("-me", "--max_ehrs", type=int, default=4, 
         help="maximum number of ehrs to be used for multi ehrs prediction")
+    parser.add_argument("-nh", "--nhead", type=int, default=2, 
+        help="number of transformer heads")
+    parser.add_argument("-nl", "--num_layers", type=int, default=1, 
+        help="number of transformer layers")
+    parser.add_argument("-od", "--out_dim", type=int, default=2, 
+        help="trasnformer out_dim (1 regression or 2 density)")
 
     main(parser.parse_args())
