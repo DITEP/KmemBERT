@@ -37,7 +37,7 @@ def predict(texts):
 if __name__ == '__main__':
     config = Config({})
     config.path_result = ""
-    config.resume = "results/training_21-04-05_10h02m00s"
+    config.resume = "/training_21-04-05_10h02m00s"
     print(config.resume)
     model = HealthBERT("cpu", config)
 
