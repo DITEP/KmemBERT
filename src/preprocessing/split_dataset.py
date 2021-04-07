@@ -20,10 +20,10 @@ from src.preprocesser import EHRPreprocesser
 from ..utils import save_json, get_label
 
 
-train_size = 0.7
+train_size = 0.9
 validation_size = 0.02
 seed = 0
-max_words = 256
+max_words = 320
 min_characters = 250
 
 data_path = "/data/isilon/centraleNLP"
