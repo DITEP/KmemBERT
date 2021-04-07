@@ -60,7 +60,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         test_losses.append(mean_loss)
 
     error = mean_error(test_labels, predictions, config.mean_time_survival)
-    printc(f"    {'Validation' if validation else 'Test'} | mean error: {error:.2f} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
+    printc(f"    {'Validation' if validation else 'Test'} | MAPE: {error:.2f} - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if validation:
         if mean_loss < model.best_loss:
@@ -84,6 +84,9 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     print('    Saving predictions...\n')
     save_json(path_result, "test", {"labels": test_labels, "predictions": predictions, "stds": stds})
 
+    predictions = np.array(predictions)
+    test_labels = np.array(test_labels)
+
     if len(stds) > 0:
         n_points = 20
         resize_factor = 20
@@ -98,38 +101,40 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         plt.savefig(os.path.join(path_result, "correlations_distributions.png"))
         plt.close()
 
-        plt.scatter(predictions, stds, s=0.1, alpha=0.5)
-        plt.xlabel("Predictions")
+        plt.scatter(test_labels, stds, s=0.1, alpha=0.5)
+        plt.xlabel("Label")
         plt.ylabel("Standard Deviations")
         plt.xlim(0, 1)
         plt.ylim(0, max(stds))
-        plt.title("Predictions and corresponding standard deviations")
+        plt.title("Labels and corresponding standard deviations")
         plt.savefig(os.path.join(path_result, "stds.png"))
-        plt.close() 
+        plt.close()
 
-    plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
+    absolute_percentage_errors = np.abs(predictions - test_labels)/np.maximum(np.abs(test_labels), 1e-10)
+
+    plt.scatter(test_labels, absolute_percentage_errors, s=0.1, alpha=0.5)
     plt.xlabel("Predictions")
     plt.ylabel("Labels")
+    plt.xlim(0, 1)
+    plt.ylim(0, max(absolute_percentage_errors))
+    plt.title("Absolute percentage error distribution")
+    plt.savefig(os.path.join(path_result, "mape_distribution.png"))
+    plt.close()
+
+    plt.scatter(test_labels, predictions, s=0.1, alpha=0.5)
+    plt.xlabel("Labels")
+    plt.ylabel("Predictions")
     plt.xlim(0, 1)
     plt.ylim(0, 1)
     plt.title("Predictions / Labels correlation")
     plt.savefig(os.path.join(path_result, "correlations.png"))
     plt.close()
 
-    predictions = np.array(predictions)
-    test_labels = np.array(test_labels)
-
     errors_dict = defaultdict(list)
-
-    thresholds = [int(label_to_time_survival(0.1*quantile, config.mean_time_survival)) for quantile in range(1, 10)]
-    quantiles = np.floor(test_labels*10).astype(int).tolist()
-
-    for pred, label, quantile in zip(predictions.tolist(), test_labels.tolist(), quantiles):
-        errors_dict[quantile].append(
-            np.abs(label_to_time_survival(pred, config.mean_time_survival)
-                   - label_to_time_survival(label, config.mean_time_survival)))
-
-    std_mae_quantile = sorted([(quantile, np.std(l), np.mean(np.abs(l))) for quantile, l in errors_dict.items()])
+    for ape, label in zip(absolute_percentage_errors.tolist(), test_labels.tolist()):
+        quantile = np.floor(label*10)
+        errors_dict[quantile].append(ape)
+    ape_per_quantile = sorted([(quantile, np.mean(l), np.std(l)) for quantile, l in errors_dict.items()])
 
 
     bin_predictions = (predictions >= config.label_threshold).astype(int)
@@ -171,7 +176,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         'label_threshold': config.label_threshold,
         'bin_predictions': bin_predictions.tolist(),
         'bin_labels': bin_labels.tolist(),
-        'std_mae_quantile': std_mae_quantile})
+        'ape_per_quantile': ape_per_quantile})
 
     return mean_loss
 
