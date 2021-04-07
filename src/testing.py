@@ -82,7 +82,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             return mean_loss
 
     print('    Saving predictions...\n')
-    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
+    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions, "stds": stds})
 
     if len(stds) > 0:
         n_points = 20
@@ -97,6 +97,15 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         plt.title('Prediction distributions over labels')
         plt.savefig(os.path.join(path_result, "correlations_distributions.png"))
         plt.close()
+
+        plt.scatter(predictions, stds, s=0.1, alpha=0.5)
+        plt.xlabel("Predictions")
+        plt.ylabel("Standard Deviations")
+        plt.xlim(0, 1)
+        plt.ylim(0, max(stds))
+        plt.title("Predictions and corresponding standard deviations")
+        plt.savefig(os.path.join(path_result, "stds.png"))
+        plt.close() 
 
     plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
     plt.xlabel("Predictions")
@@ -136,8 +145,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     try:
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
 
-        fpr, tpr, thresholds = roc_curve(bin_labels, predictions)
-        # metrics['thresholds'] = thresholds.tolist()
+        fpr, tpr, _ = roc_curve(bin_labels, predictions)
 
         plt.plot(fpr, tpr)
         plt.plot([0,1], [0,1], 'r--')
