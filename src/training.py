@@ -29,7 +29,6 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
 
     losses = defaultdict(list)
     validation_losses = []
-    train_errors, validation_errors = [], []
     n_samples = config.print_every_k_batch * config.batch_size
     model.initialize_scheduler(config.epochs, train_loader)
     for epoch in range(config.epochs):
@@ -80,7 +79,6 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
                 k_batch_start_time = time()
 
         train_error = mean_error(train_labels, predictions, config.mean_time_survival)
-        train_errors.append(train_error)
 
         mean_loss = epoch_loss/len(train_loader.dataset)
         printc(f'    Training   | mean error: {train_error:.2f} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
@@ -93,9 +91,8 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
                 model.best_loss = mean_loss
             continue
 
-        validation_error = test(model, validation_loader, config, config.path_result, epoch=epoch, test_losses=validation_losses, validation=True)
-        validation_errors.append(validation_error)
-        
+        test(model, validation_loader, config, config.path_result, epoch=epoch, test_losses=validation_losses, validation=True)
+
         model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             printc(f'Breaking training after patience {config.patience} reached', 'INFO')
