@@ -77,9 +77,10 @@ class PredictionsDataset(EHRDataset):
     """
     health_bert = None
 
-    def __init__(self, *args, device=None, **kwargs):
+    def __init__(self, *args, device=None, output_hidden_states=False, **kwargs):
         super(PredictionsDataset, self).__init__(*args, **kwargs)
         self.device = device
+        self.output_hidden_states = output_hidden_states
         self.load_health_bert()
 
         self.patients = list(set(self.df.Noigr.values))
@@ -100,10 +101,13 @@ class PredictionsDataset(EHRDataset):
 
     def load_health_bert(self):
         if PredictionsDataset.health_bert is None:
-            with open(os.path.join('results', self.config.resume, 'args.json')) as json_file:
-                self.config.mode = json.load(json_file)["mode"]
-                assert self.config.mode != "classify", "Health Bert mode classify not supported for RNNs"
-                printc(f"\nUsing mode {self.config.mode} (Health BERT checkpoint {self.config.resume})", "INFO")
+            if self.output_hidden_states:
+                self.config.mode = "classif"
+            else:
+                with open(os.path.join('results', self.config.resume, 'args.json')) as json_file:
+                    self.config.mode = json.load(json_file)["mode"]
+                    assert self.config.mode != "classify", "Health Bert mode classify not supported for RNNs"
+                    printc(f"\nUsing mode {self.config.mode} (Health BERT checkpoint {self.config.resume})", "INFO")
 
             PredictionsDataset.health_bert = HealthBERT(self.device, self.config)
             for param in self.health_bert.parameters():
@@ -114,7 +118,7 @@ class PredictionsDataset(EHRDataset):
         self.noigr_to_outputs = defaultdict(list)
         for noigr, indices in tqdm(self.noigr_to_indices.items()):
             for index in indices:
-                output = self.health_bert.step([self.texts[index]])
+                output = self.health_bert.step([self.texts[index]], output_hidden_states=self.output_hidden_states)
                 self.noigr_to_outputs[noigr].append(output)
         printc(f'Successfully computed {self.length} Health Bert outputs\n', 'SUCCESS')
 
@@ -127,10 +131,14 @@ class PredictionsDataset(EHRDataset):
 
         outputs = self.noigr_to_outputs[noigr][:k][-self.config.max_ehrs:]
 
-        if self.config.mode == 'density':
+        if self.output_hidden_states:
+            return (torch.cat(outputs), dt, label)
+
+        elif self.config.mode == 'density':
             mus = torch.cat([output[0] for output in outputs]).view(-1)
             log_vars = torch.cat([output[1] for output in outputs]).view(-1)
             return (mus, log_vars, dt, label)
+
         else:
             mus = torch.cat(outputs).view(-1)
             return (mus, dt, label)

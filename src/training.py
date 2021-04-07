@@ -53,7 +53,7 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
                 mu, _ = outputs
                 predictions += mu.tolist()
             elif model.mode == 'multi':
-                if model.config.mode == 'density':
+                if model.config.mode in ['density', 'classif']:
                     mu, _ = outputs
                     predictions.append(mu.item())
                 else:

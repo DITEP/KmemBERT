@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from .dataset import PredictionsDataset
 from .utils import create_session, get_label_threshold
-from .models.multi_ehr import MultiEHR, Conflation, HealthCheck
+from .models.multi_ehr import MultiEHR, Conflation, HealthCheck, TransformerMulti
 from .training import train_and_validate
 from .testing import test
 
@@ -28,7 +28,7 @@ def main(args):
         if args.aggregator in ['conflation', 'health_check']:
             test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, device=device, get_only_val=True)
         else:
-            train_dataset, test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, device=device)
+            train_dataset, test_dataset = PredictionsDataset.get_train_validation(path_dataset, config, output_hidden_states=(args.aggregator=='transformer') , device=device)
     else:
         # Then we use a random validation split
         dataset = PredictionsDataset(path_dataset, config, device=device)
@@ -43,6 +43,10 @@ def main(args):
     if args.aggregator == 'gru':
         model = MultiEHR(device, config)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
+
+    elif args.aggregator == 'transformer':
+        model = TransformerMulti(device, config, 768, 2, 1, 2)
+        train_and_validate(model, train_loader, test_loader, device, config, config.path_result)    
 
     elif args.aggregator == 'conflation':
         model = Conflation(device, config)
@@ -60,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
     parser.add_argument("-a", "--aggregator", type=str, default="gru", 
-        help="aggregator name")
+        help="aggregator name", choices=['conflation', 'health_check', 'gru', 'transformer'])
     parser.add_argument("-r", "--resume", type=str, required=True, 
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
