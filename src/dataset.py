@@ -103,11 +103,6 @@ class PredictionsDataset(EHRDataset):
         if PredictionsDataset.health_bert is None:
             if self.output_hidden_states:
                 self.config.mode = "classif"
-            else:
-                with open(os.path.join('results', self.config.resume, 'args.json')) as json_file:
-                    self.config.mode = json.load(json_file)["mode"]
-                    assert self.config.mode != "classify", "Health Bert mode classify not supported for RNNs"
-                    printc(f"\nUsing mode {self.config.mode} (Health BERT checkpoint {self.config.resume})", "INFO")
 
             PredictionsDataset.health_bert = HealthBERT(self.device, self.config)
             for param in self.health_bert.parameters():

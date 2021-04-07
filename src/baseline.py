@@ -15,7 +15,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 
 from .utils import get_root, get_label
 from .preprocesser import EHRPreprocesser
@@ -63,9 +63,9 @@ def main(args):
 
     predictions = ehr_regressor.predict(texts["val"])
     rmse = mean_squared_error(labels["val"], predictions)**0.5
-    mae = mean_absolute_error(labels["val"], predictions)
+    mape = mean_absolute_percentage_error(labels["val"], predictions)
 
-    print("RMSE validation set : {}    MAE : {}".format(round(rmse,1), round(mae,1)))
+    print("RMSE validation set : {}    MAPE : {}".format(round(rmse,1), round(mape,1)))
 
     # Save the model
     path_to_save = os.path.join(path_root, args.folder_to_save)
