@@ -45,9 +45,9 @@ class TransformerMulti(ModelInterface):
         output = self(outputs, dt)
 
         if self.out_dim == 2:
-            mu, log_var = torch.split(output, 1)
+            mu, log_var = output[0], output[1]
             mu = torch.sigmoid(mu)
-            loss = log_var + (label - mu)**2/torch.exp(log_var)
+            loss = log_var + (label[0] - mu)**2/torch.exp(log_var)
             output = (mu, log_var)
         else:
             mu = torch.sigmoid(output)
