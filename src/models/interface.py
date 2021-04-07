@@ -39,7 +39,7 @@ class ModelInterface(nn.Module):
         self.encoding_time = 0
         self.compute_time = 0
 
-    def initialize_scheduler(self, epochs, train_loader):
+    def initialize_scheduler(self, epochs=0, train_loader=[]):
         """
         Creates a scheduler for a given otimizer
         """

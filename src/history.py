@@ -9,14 +9,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from .dataset import PredictionsDataset
-from .utils import create_session, get_label_threshold
+from .utils import create_session, get_label_threshold, collate_fn
 from .models.multi_ehr import MultiEHR, Conflation, HealthCheck, TransformerMulti
 from .training import train_and_validate
 from .testing import test
-
-def collate_fn(batch):
-    *outputs, dt, label = batch[0]
-    return (outputs, torch.tensor(dt).type(torch.float32), torch.tensor([label]).type(torch.float32))
 
 def main(args):
     path_dataset, _, device, config = create_session(args)

@@ -14,10 +14,11 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, r
 import seaborn as sns
 import torch
 from torch.utils.data import DataLoader
+import json
 
-from .dataset import EHRDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival, time_survival_to_label
-from .models.health_bert import HealthBERT
+from .dataset import EHRDataset, PredictionsDataset
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, time_survival_to_label, collate_fn
+from .models import HealthBERT, TransformerMulti, MultiEHR, Conflation, HealthCheck
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
     """
@@ -181,15 +182,46 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     print(f"    (Ended {'validation' if validation else 'testing'})\n")
     return mean_loss
 
+
+
 def main(args):
     path_dataset, _, device, config = create_session(args)
 
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    dataset = EHRDataset(path_dataset, config, train=False)
-    loader = DataLoader(dataset, batch_size=config.batch_size)
+    with open(os.path.join('results', config.resume, 'args.json')) as json_file:
+        training_args = json.load(json_file)
 
-    model = HealthBERT(device, config)
+    if hasattr(training_args, 'mode'):
+        model = HealthBERT(device, config)
+    else:
+        aggregator = training_args['aggregator']
+        config.max_ehrs = training_args['max_ehrs']
+
+        if aggregator == 'gru':
+            model = MultiEHR(device, config)
+            model.initialize_scheduler()
+            model.resume(config)
+
+        elif aggregator == 'transformer':
+            model = TransformerMulti(device, config, 768, training_args['nhead'], training_args['num_layers'], training_args['out_dim'])
+            model.initialize_scheduler()
+            model.resume(config)
+
+        elif aggregator == 'conflation':
+            model = Conflation(device, config)
+
+        elif aggregator == 'health_check':
+            model = HealthCheck(device, config)
+
+
+    if model.mode == 'multi':
+        config.resume = training_args['resume']
+        dataset = PredictionsDataset(path_dataset, config, train=False, device=device)
+        loader = DataLoader(dataset, batch_size=config.batch_size, collate_fn=collate_fn)
+    else:
+        dataset = EHRDataset(path_dataset, config, train=False)
+        loader = DataLoader(dataset, batch_size=config.batch_size)
 
     test(model, loader, config, config.path_result)
 

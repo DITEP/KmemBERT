@@ -152,3 +152,7 @@ def mean_error(labels, predictions, mean_time_survival):
     return mean_absolute_percentage_error(
                 label_to_time_survival(np.array(labels), mean_time_survival),
                 label_to_time_survival(np.array(predictions), mean_time_survival))
+
+def collate_fn(batch):
+    *outputs, dt, label = batch[0]
+    return (outputs, torch.tensor(dt).type(torch.float32), torch.tensor([label]).type(torch.float32))
