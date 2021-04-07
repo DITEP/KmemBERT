@@ -52,11 +52,12 @@ The data are stored inside `./data`. A folder inside `./data` corresponds to one
 
 ```
 .
-└── data                 - data folder
-    └── ehr              - one dataset
-        ├── config.json  - config file
-        ├── test.csv     - test set
-        └── train.csv    - train set
+└── data                            - data folder
+    └── ehr                         - one dataset
+        ├── config.json             - config file
+        ├── test.csv                - test set
+        ├── train.csv               - train set
+        └── validation_split.csv    - validation split (optional)
 ```
 
 For more details, please refer to `./data/README.md`. 
@@ -72,9 +73,9 @@ The final table stored in `concatenate.txt` is separated with `£` and has 9 col
 
 2. `split_dataset.py`
 
-This is one of the main script. Assuming that we already have the `concatenate.txt` file, it creates three other files from it: `train.csv`, `test.csv`, `config.json`.
+This is one of the main script. Assuming that we already have the `concatenate.txt` file, it creates four other files from it: `train.csv`, `test.csv`, `config.json`, `validation_split.csv`.
 
-The data are split according to the IGR numbers, so that no IGR number in the test set can be found within the train set.
+The data are split according to the IGR numbers, so that no IGR number in the test set can be found within the train set. We also split the data contained in `train.csv` into a train set and validation one, again with no common patient. This split is stored in the `validation_split.csv` file and will be used for training. 
 This is also where we compute the mean survival time, which is then stored in `config.json`.
 We also perform some preprocessing in this script, notably:
 - **Filtering**: we only keep EHRs with the type `"C.R. consultation"`. This step reduces the number of samples from 2,904,066 to 1,347,612
@@ -84,7 +85,7 @@ We also perform some preprocessing in this script, notably:
 
 3. (`visualize_data.py`)
 
-Optional. Data visualization can be produced only after the execution of the previous scripts. 
+Optional. Data visualization can be produced only after the execution of the previous scripts. Given a dataset, it will produce 7 plots highlighting : number of ehr per patient, sentence per ehr, mean token per sentence, number of tokens per ehr, number of known tokens per ehr, survival time distribution.
 
 4. `extract_unknown_words.py`
 
