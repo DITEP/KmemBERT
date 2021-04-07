@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from .utils import get_label, time_survival_to_label, printc
 from .preprocesser import EHRPreprocesser
-from .models.health_bert import HealthBERT
+from .models import HealthBERT
 
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""

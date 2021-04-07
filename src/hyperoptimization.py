@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from .utils import create_session, get_label_threshold
 from .training import train_and_validate
 from .dataset import EHRDataset, get_train_validation
-from .models.health_bert import HealthBERT
+from .models import HealthBERT
 
 def main(args):
     path_dataset, path_result, device, config = create_session(args)

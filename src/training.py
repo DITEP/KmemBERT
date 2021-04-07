@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from .dataset import EHRDataset
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
-from .models.health_bert import HealthBERT
+from .models import HealthBERT
 from .testing import test
 
 def train_and_validate(model, train_loader, validation_loader, device, config, path_result, train_only=False):

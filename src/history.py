@@ -5,12 +5,11 @@
 '''
 
 import argparse
-import torch
 from torch.utils.data import DataLoader
 
 from .dataset import PredictionsDataset
 from .utils import create_session, get_label_threshold, collate_fn
-from .models.multi_ehr import MultiEHR, Conflation, HealthCheck, TransformerMulti
+from .models import Conflation, HealthCheck, TransformerAggregator
 from .training import train_and_validate
 from .testing import test
 
@@ -29,14 +28,10 @@ def main(args):
         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
 
-    if args.aggregator == 'gru':
-        model = MultiEHR(device, config)
-        train_and_validate(model, train_loader, test_loader, device, config, config.path_result)
-
-    elif args.aggregator == 'transformer':
+    if args.aggregator == 'transformer':
         assert args.out_dim == 2, 'transformer for regression not supported yet'
 
-        model = TransformerMulti(device, config, 768, args.nhead, args.num_layers, args.out_dim)
+        model = TransformerAggregator(device, config, 768, args.nhead, args.num_layers, args.out_dim)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)    
 
     elif args.aggregator == 'conflation':

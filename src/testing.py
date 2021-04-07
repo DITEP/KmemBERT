@@ -18,7 +18,7 @@ import json
 
 from .dataset import EHRDataset, PredictionsDataset
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, time_survival_to_label, collate_fn
-from .models import HealthBERT, TransformerMulti, MultiEHR, Conflation, HealthCheck
+from .models import HealthBERT, TransformerAggregator, Conflation, HealthCheck
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
     """
@@ -198,13 +198,8 @@ def main(args):
         aggregator = training_args['aggregator']
         config.max_ehrs = training_args['max_ehrs']
 
-        if aggregator == 'gru':
-            model = MultiEHR(device, config)
-            model.initialize_scheduler()
-            model.resume(config)
-
-        elif aggregator == 'transformer':
-            model = TransformerMulti(device, config, 768, training_args['nhead'], training_args['num_layers'], training_args['out_dim'])
+        if aggregator == 'transformer':
+            model = TransformerAggregator(device, config, 768, training_args['nhead'], training_args['num_layers'], training_args['out_dim'])
             model.initialize_scheduler()
             model.resume(config)
 
