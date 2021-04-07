@@ -184,11 +184,3 @@ class HealthBERT(ModelInterface):
 
         self.camembert.resize_token_embeddings(len(self.tokenizer))
 
-    def train(self):
-        """Training mode"""
-        self.camembert.train()
-
-    def eval(self):
-        """Eval mode (no random)"""
-        self.camembert.eval()
-

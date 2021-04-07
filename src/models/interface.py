@@ -82,17 +82,5 @@ class ModelInterface(nn.Module):
         It is specific to the model, and the args have no specific format
         """
         raise NotImplementedError
-
-    def train(self):
-        """
-        Sets model to training mode
-        """
-        raise NotImplementedError
-
-    def eval(self):
-        """
-        Sets model to eval mode, e.g. sets dropout to 0
-        """
-        raise NotImplementedError
     
         

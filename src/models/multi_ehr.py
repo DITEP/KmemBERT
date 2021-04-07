@@ -68,15 +68,6 @@ class TransformerMulti(ModelInterface):
         x = self.out_proj(x[0, -1])
         return x
 
-    def train(self):
-        self.transformer_encoder.train()
-
-    def eval(self):
-        self.transformer_encoder.eval()
-
-
-
-
 class MultiEHR(ModelInterface):
     """
     Runs a GRU on Health Bert predictions on multiple EHRs
@@ -161,12 +152,6 @@ class MultiEHR(ModelInterface):
         out = self.GRU(seq[None,:], hidden)[1]
         out = self.out_proj(out).view(-1)
         return out
-
-    def train(self):
-        self.GRU.train()
-
-    def eval(self):
-        self.GRU.eval()
     
 
 class Conflation(ModelInterface):
@@ -216,14 +201,6 @@ class Conflation(ModelInterface):
             return (mu, torch.log(vars_product / products.sum()))
         else:
             return mu
-
-
-    def train(self, *args):
-        pass
-
-    def eval(self, *args):
-        pass
-
 class HealthCheck(ModelInterface):
     """
     Does nothing except returning Health Bert predictions 
@@ -243,9 +220,3 @@ class HealthCheck(ModelInterface):
         else:
             mus, *_ = outputs
             return torch.zeros(1), mus[-1]
-
-    def train(self, *args):
-        pass
-
-    def eval(self, *args):
-        pass
