@@ -16,7 +16,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from .dataset import EHRDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival, time_survival_to_label
 from .models.health_bert import HealthBERT
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
@@ -137,16 +137,21 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     ape_per_quantile = sorted([(quantile, np.mean(l), np.std(l)) for quantile, l in errors_dict.items()])
 
 
-    bin_predictions = (predictions >= config.label_threshold).astype(int)
-    bin_labels = (test_labels >= config.label_threshold).astype(int)
-
     metrics = {}
-    metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
-    metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
-    metrics['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
-    metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
-    metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
-
+    metrics["correlation"] = np.corrcoef(predictions, test_labels)[0,1]
+    metrics["MAE"] = np.mean(np.abs(predictions - test_labels))
+    
+    for days in [30,90,180,360,270]:
+        label = time_survival_to_label(days, config.mean_time_survival)
+        bin_predictions = (predictions >= label).astype(int)
+        bin_labels = (test_labels >= label).astype(int)
+        
+        days = f"{days} days"
+        metrics[days] = {}
+        metrics[days]['accuracy'] = accuracy_score(bin_labels, bin_predictions)
+        metrics[days]['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
+        metrics[days]['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
+        
     try:
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
 
@@ -169,13 +174,8 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
 
     save_json(path_result, 'results', 
         {'mean_error': error,
-        'metrics': metrics,
         'mean_loss': mean_loss,
-        'predictions': predictions.tolist(),
-        'test_labels': test_labels.tolist(),
-        'label_threshold': config.label_threshold,
-        'bin_predictions': bin_predictions.tolist(),
-        'bin_labels': bin_labels.tolist(),
+        'metrics': metrics,
         'ape_per_quantile': ape_per_quantile})
 
     return mean_loss
