@@ -53,7 +53,11 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
                 mu, _ = outputs
                 predictions += mu.tolist()
             elif model.mode == 'multi':
-                predictions.append(outputs.item())
+                if model.config.mode == 'density':
+                    mu, _ = outputs
+                    predictions.append(mu.item())
+                else:
+                    predictions.append(outputs.item())
             else:
                 raise ValueError(f'Mode {model.mode} unknown')
 
@@ -91,16 +95,6 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
 
         validation_error = test(model, validation_loader, config, config.path_result, epoch=epoch, test_losses=validation_losses, validation=True)
         validation_errors.append(validation_error)
-
-        save_json(path_result, "mae", { "train": train_errors, "validation": validation_errors })
-        plt.plot(train_errors)
-        plt.plot(validation_errors)
-        plt.xlabel("Epoch")
-        plt.ylabel("MAE (days)")
-        plt.legend(["Train", "Validation"])
-        plt.title("MAE Evolution")
-        plt.savefig(os.path.join(config.path_result, "mae.png"))
-        plt.close()
         
         model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):

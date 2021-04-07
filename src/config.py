@@ -7,6 +7,11 @@
 import json
 
 class Config:
+    """
+    Stores useful information
+    Many scripts uses a config instance. See utils.create_session for its initialization
+    """
+
     voc_path = None
     model_name = "camembert-base"
     data_folder = None

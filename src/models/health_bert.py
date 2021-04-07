@@ -109,9 +109,9 @@ class HealthBERT(ModelInterface):
             return torch.sigmoid(self.camembert(*input, **kwargs).logits)
         else:
             logits = self.camembert(*input, **kwargs).logits
-            mu = torch.sigmoid(logits[:,0])
-            log_var = logits[:,1]
-            return mu, log_var
+            mus = torch.sigmoid(logits[:,0])
+            log_vars = logits[:,1]
+            return mus, log_vars
 
     def get_loss(self, outputs, labels=None):
         """Returns the loss given outputs and labels"""
@@ -127,12 +127,13 @@ class HealthBERT(ModelInterface):
         """
         Encode and forward the given texts. Compute the loss, and its backward.
 
-        Inputs:
-        - texts: list of strings
-        - labels: list of 0-1 (classification) or float (regression)
+        Args:
+            texts (str list)
+            labels (tensor): tensor of 0-1 (classification) or float (regression)
 
-        Returns:
-        loss, camembert outputs
+        Outputs:
+            loss
+            camembert outputs
         """
         encoding_start_time = time()
         encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
@@ -165,8 +166,8 @@ class HealthBERT(ModelInterface):
         """
         Read a file of vocabulary and add the given tokens into the model
 
-        Inputs
-        - voc_path: path to a json file whose keys are words
+        Args:
+            voc_path: path to a json file whose keys are words
         """
         with open(voc_path) as json_file:
             voc_list = json.load(json_file)

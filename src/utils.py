@@ -14,21 +14,34 @@ import numpy as np
 from .config import Config
 
 def get_root():
+    """
+    Gets the absolute path to the root of the project
+    """
     return os.sep.join(os.getcwd().split(os.sep)[0 : os.getcwd().split(os.sep).index("EHR_Transformers") + 1])
 
 def pretty_time(t):
-    """Tranforms time t in seconds into a pretty string"""
+    """
+    Tranforms time t in seconds into a pretty string
+    """
     return f"{int(t//60)}m{int(t%60)}s"
 
 def time_survival_to_label(time_survival, mean_time_survival):
-    """Transforms times of survival into uniform labels in ]0,1["""
+    """
+    Transforms times of survival into uniform labels in ]0,1[
+    """
     return 1 - np.exp(-time_survival/mean_time_survival)
 
 def label_to_time_survival(label, mean_time_survival):
-    """Transforms labels in ]0,1[ into times of survival"""
+    """
+    Transforms labels in ]0,1[ into times of survival
+    """
     return - mean_time_survival*np.log(1-label)
 
 def shift_predictions(mus, mean_time_survival, shift):
+    """
+    Shift predictions in [0, 1] given a shift (transfer into survival time, 
+    shift, and back into [0, 1])
+    """
     time_survival = - mean_time_survival*torch.log(1-mus)
     time_survival -= shift
     return (1 - torch.exp(-time_survival/mean_time_survival)).clip(0, 1)
@@ -45,19 +58,34 @@ bcolors = {
 }
 
 def printc(log, color='HEADER'):
+    """
+    Prints logs with color according to the dict bcolors
+    """
     print(f"{bcolors[color]}{log}{bcolors['ENDC']}")
 
 def now():
+    """
+    Current date as a string
+    """
     return datetime.now().strftime('%y-%m-%d_%Hh%Mm%Ss')
 
 def save_json(path_result, name, x):
+    """
+    Saves x into path_result with the given name
+    """
     with open(os.path.join(path_result, f'{name}.json'), 'w') as f:
         json.dump(x, f, indent=4)
 
 def print_args(args):
+    """
+    Prints argparse arguments from the command line
+    """
     print(f"> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
 
 def create_session(args):
+    """
+    Initializes a script session (set seed, get the path to the result folder, ...)
+    """
     torch.manual_seed(0)
     
     print_args(args)
@@ -105,6 +133,9 @@ def get_label(str_date_deces, str_date_cr):
     return delta.days
 
 def get_label_threshold(config, path_dataset):
+    """
+    Converts a threshold as a number of days into a threshold as a label in [0, 1]
+    """
     config_path = os.path.join(path_dataset, "config.json")
     assert os.path.isfile(config_path), 'Config file not existing, please create it first using split_dataset.py'
     with open(config_path) as json_file:
@@ -113,5 +144,9 @@ def get_label_threshold(config, path_dataset):
     return time_survival_to_label(config.days_threshold, mean_time_survival)
 
 def mean_error(labels, predictions, mean_time_survival):
+    """
+    Computes the MAE after transferring the labels and 
+    predictions into survival time
+    """
     return np.abs(label_to_time_survival(np.array(labels), mean_time_survival) - 
                   label_to_time_survival(np.array(predictions), mean_time_survival)).mean()
