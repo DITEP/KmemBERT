@@ -114,7 +114,8 @@ class PredictionsDataset(EHRDataset):
         for noigr, indices in tqdm(self.noigr_to_indices.items()):
             for index in indices:
                 output = self.health_bert.step([self.texts[index]], output_hidden_states=self.output_hidden_states)
-                self.noigr_to_outputs[noigr].append(output)
+                self.noigr_to_outputs[noigr].append(output.tolist() if self.output_hidden_states else output)
+        print('size:', sys.getsizeof(self.noigr_to_outputs), 'bytes')
         printc(f'Successfully computed {self.length} Health Bert outputs\n', 'SUCCESS')
 
     def __getitem__(self, index):
@@ -127,7 +128,8 @@ class PredictionsDataset(EHRDataset):
         outputs = self.noigr_to_outputs[noigr][:k][-self.config.max_ehrs:]
 
         if self.output_hidden_states:
-            return (torch.cat(outputs), dt, label)
+            outputs = torch.tensor(outputs).type(torch.float32)
+            return (outputs[:,0,:], dt, label)
 
         elif self.config.mode == 'density':
             mus = torch.cat([output[0] for output in outputs]).view(-1)
