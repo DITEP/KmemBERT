@@ -95,7 +95,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         associated_labels = np.tile(test_labels, n_points)
         sns.kdeplot(
             data={'Predictions': gaussian_predictions, 'Labels': associated_labels}, 
-            x='Predictions', y='Labels', clip=((0, 1), (0, 1)),
+            y='Predictions', x='Labels', clip=((0, 1), (0, 1)),
             fill=True, thresh=0, levels=100, cmap="mako",
         )
         plt.title('Prediction distributions over labels')
@@ -114,8 +114,8 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     absolute_percentage_errors = np.abs(predictions - test_labels)/np.maximum(np.abs(test_labels), 1e-10)
 
     plt.scatter(test_labels, absolute_percentage_errors, s=0.1, alpha=0.5)
-    plt.xlabel("Predictions")
-    plt.ylabel("Labels")
+    plt.xlabel("Labels")
+    plt.ylabel("Predictions")
     plt.xlim(0, 1)
     plt.ylim(0, max(absolute_percentage_errors))
     plt.title("Absolute percentage error distribution")
@@ -142,7 +142,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics["correlation"] = np.corrcoef(predictions, test_labels)[0,1]
     metrics["MAE"] = np.mean(np.abs(predictions - test_labels))
     
-    for days in [30,90,180,360,270]:
+    for days in [30,90,180,270,360]:
         label = time_survival_to_label(days, config.mean_time_survival)
         bin_predictions = (predictions >= label).astype(int)
         bin_labels = (test_labels >= label).astype(int)
