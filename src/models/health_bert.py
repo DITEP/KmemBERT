@@ -5,7 +5,6 @@
 '''
 
 import json
-import numpy as np
 import os
 from transformers import CamembertForSequenceClassification, CamembertTokenizerFast
 import torch

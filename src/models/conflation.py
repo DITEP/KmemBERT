@@ -5,7 +5,6 @@
 '''
 
 import torch
-from torch.optim import Adam
 
 from .interface import ModelInterface
 from ..utils import shift_predictions
