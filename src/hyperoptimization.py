@@ -58,8 +58,8 @@ if __name__ == "__main__":
         help="dataset train size")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=10, 
         help="maximum number of samples for training and testing")
-    parser.add_argument("-v", "--voc_path", type=str, default=None, 
-        help="path to the new words to be added to the vocabulary of camembert")
+    parser.add_argument("-v", "--voc_file", type=str, default=None, 
+        help="voc file containing camembert added vocabulary")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and testing")
     parser.add_argument("-e", "--epochs", type=int, default=10, 

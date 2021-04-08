@@ -12,7 +12,7 @@ class Config:
     Many scripts uses a config instance. See utils.create_session for its initialization
     """
 
-    voc_path = None
+    voc_file = None
     model_name = "camembert-base"
     data_folder = None
     mode = None

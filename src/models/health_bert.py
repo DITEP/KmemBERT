@@ -33,7 +33,7 @@ class HealthBERT(ModelInterface):
         super(HealthBERT, self).__init__(device, config)
 
         self.learning_rate = config.learning_rate
-        self.voc_path = config.voc_path
+        self.voc_file = config.voc_file
         self.model_name = config.model_name
 
         if config.mode is None:
@@ -75,8 +75,8 @@ class HealthBERT(ModelInterface):
             set_dropout(self.camembert, drop_rate=self.drop_rate)
             print(f"Dropout rate set to {self.drop_rate}")
 
-        if self.voc_path:
-            self.add_tokens_from_path(self.voc_path)
+        if self.voc_file:
+            self.add_tokens_from_path(self.voc_file)
 
         self.eval()
 
@@ -169,14 +169,14 @@ class HealthBERT(ModelInterface):
 
         return loss, outputs.logits if self.mode == 'classif' else outputs
 
-    def add_tokens_from_path(self, voc_path):
+    def add_tokens_from_path(self, voc_file):
         """
         Read a file of vocabulary and add the given tokens into the model
 
         Args:
-            voc_path: path to a json file whose keys are words
+            voc_file: path to a json file whose keys are words
         """
-        with open(voc_path) as json_file:
+        with open(os.path.join('medical_voc', voc_file)) as json_file:
             voc_list = json.load(json_file)
             new_tokens = self.tokenizer.add_tokens([ token for (token, _) in voc_list ])
             print(f"Added {new_tokens} tokens to the tokenizer")

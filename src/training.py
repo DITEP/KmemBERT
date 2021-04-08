@@ -120,6 +120,8 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
 def main(args):
     path_dataset, _, device, config = create_session(args)
 
+    assert not (args.freeze and args.voc_file), "Don't use freeze argument while adding vocabulary. It would not be learned"
+
     config.label_threshold = get_label_threshold(config, path_dataset)
 
     train_dataset, validation_dataset = EHRDataset.get_train_validation(path_dataset, config)
@@ -135,14 +137,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
-    parser.add_argument("-m", "--mode", type=str, default="regression", choices=['classif', 'regression', 'density'],
+    parser.add_argument("-m", "--mode", type=str, default="regression", choices=['regression', 'density'],
         help="name of the task")
     parser.add_argument("-b", "--batch_size", type=int, default=8, 
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
     parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
-        help="dropout ratio")
+        help="dropout ratio. By default, None uses p=0.1")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and validation")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
@@ -157,8 +159,8 @@ if __name__ == "__main__":
         help="the ratio applied to lr for embeddings layer")
     parser.add_argument("-wg", "--weight_decay", type=float, default=0, 
         help="the weight decay for L2 regularization")
-    parser.add_argument("-v", "--voc_path", type=str, default=None, 
-        help="path to the new words to be added to the vocabulary of camembert")
+    parser.add_argument("-v", "--voc_file", type=str, default=None, 
+        help="voc file containing camembert added vocabulary")
     parser.add_argument("-r", "--resume", type=str, default=None, 
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
