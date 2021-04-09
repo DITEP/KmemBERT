@@ -45,7 +45,7 @@ class HealthCheckTransformer(ModelInterface):
 
         outputs = outputs[0].to(self.device)
         dt = dt.to(self.device)
-        label = dt.to(self.device)
+        label = label.to(self.device)
 
         output = self(outputs, dt)
 
