@@ -53,7 +53,7 @@ class TransformerAggregator(ModelInterface):
             loss = self.MSELoss(mu, label)
             output = mu
 
-        if self.transformer_encoder.training:
+        if self.training:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()

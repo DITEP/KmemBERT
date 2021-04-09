@@ -161,7 +161,7 @@ class HealthBERT(ModelInterface):
 
         loss = self.get_loss(outputs, labels=labels)
 
-        if self.camembert.training:
+        if self.training:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
