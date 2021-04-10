@@ -76,6 +76,7 @@ class PredictionsDataset(EHRDataset):
     The models defined inside models.multi_ehr needs this dataset.
     """
     health_bert = None
+    suffix = 'train'
 
     def __init__(self, *args, device=None, output_hidden_states=False, **kwargs):
         super(PredictionsDataset, self).__init__(*args, **kwargs)
@@ -100,6 +101,11 @@ class PredictionsDataset(EHRDataset):
         self.compute_prediction()
 
     def load_health_bert(self):
+        if self.output_hidden_states and os.path.exists(os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')):
+            print('Existing predictions saved - not loading health bert')
+            self.config.mode = "classif"
+            return
+
         if PredictionsDataset.health_bert is None:
             if self.output_hidden_states:
                 self.config.mode = "classif"
@@ -109,14 +115,29 @@ class PredictionsDataset(EHRDataset):
                 param.requires_grad = False
 
     def compute_prediction(self):
+        path = os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')
+        if self.output_hidden_states and os.path.exists(path):
+            with open(path, 'r') as f:
+                self.noigr_to_outputs = json.load(f)
+                self.noigr_to_outputs = {int(k): v for k, v in self.noigr_to_outputs.items()}
+                print('Loaded predictions')
+                PredictionsDataset.suffix = 'val'
+                return
+
         printc('\nComputing Health Bert predictions...', 'INFO')
         self.noigr_to_outputs = defaultdict(list)
         for noigr, indices in tqdm(self.noigr_to_indices.items()):
             for index in indices:
                 output = self.health_bert.step([self.texts[index]], output_hidden_states=self.output_hidden_states)
-                self.noigr_to_outputs[noigr].append(output.tolist() if self.output_hidden_states else output)
+                self.noigr_to_outputs[int(noigr)].append(output.tolist() if self.output_hidden_states else output)
         print('size:', sys.getsizeof(self.noigr_to_outputs), 'bytes')
         printc(f'Successfully computed {self.length} Health Bert outputs\n', 'SUCCESS')
+
+        if self.output_hidden_states:
+            with open(path, 'w') as f:
+                print('> Saved')
+                json.dump(self.noigr_to_outputs, f)
+            PredictionsDataset.suffix = 'val'
 
     def __getitem__(self, index):
         noigr, k = self.index_to_ehrs[index]
