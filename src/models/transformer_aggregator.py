@@ -22,12 +22,18 @@ class TransformerAggregator(ModelInterface):
         self.num_layers = num_layers
         self.out_dim = out_dim
 
-        assert self.out_dim in [1, 2], f'TransformersMulti out_dim should be 1 or 2. Found {out_dim}.'
+        assert self.out_dim in [1, 2], f'TransformerAggregator out_dim should be 1 or 2. Found {out_dim}.'
 
         self.t2v = Time2Vec(self.d_model)
+
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.d_model, nhead=self.nhead)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.num_layers)
-        self.out_proj = nn.Linear(self.d_model, self.out_dim)
+
+        self.out_proj = nn.Sequential(
+            nn.Linear(self.d_model, self.d_model),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.d_model, self.out_dim)
+        )
 
         self.optimizer = Adam(self.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
         self.MSELoss = nn.MSELoss()

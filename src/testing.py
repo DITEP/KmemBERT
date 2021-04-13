@@ -18,7 +18,7 @@ import json
 
 from .dataset import EHRDataset, PredictionsDataset
 from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error, time_survival_to_label, collate_fn
-from .models import HealthBERT, TransformerAggregator, Conflation, HealthCheck
+from .models import HealthBERT, TransformerAggregator, Conflation, SanityCheck
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
     """
@@ -206,8 +206,8 @@ def main(args):
         elif aggregator == 'conflation':
             model = Conflation(device, config)
 
-        elif aggregator == 'health_check':
-            model = HealthCheck(device, config)
+        elif aggregator == 'sanity_check':
+            model = SanityCheck(device, config)
 
 
     if model.mode == 'multi':

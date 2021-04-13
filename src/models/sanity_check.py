@@ -4,7 +4,7 @@ from torch.optim import Adam
 
 from .interface import ModelInterface
 
-class HealthCheck(ModelInterface):
+class SanityCheck(ModelInterface):
     """
     Does nothing except returning Health Bert predictions 
     It should have the same score than the loaded checkpoint
@@ -12,7 +12,7 @@ class HealthCheck(ModelInterface):
     mode = 'multi'
 
     def __init__(self, device, config):
-        super(HealthCheck, self).__init__(device, config)
+        super(SanityCheck, self).__init__(device, config)
 
     def step(self, *inputs):
         outputs, dt, _ = inputs
@@ -24,12 +24,12 @@ class HealthCheck(ModelInterface):
             mus, *_ = outputs
             return torch.zeros(1), mus[-1]
 
-class HealthCheckTransformer(ModelInterface):
+class SanityCheckTransformer(ModelInterface):
     mode = 'multi'
     out_dim = 1
 
     def __init__(self, device, config):
-        super(HealthCheckTransformer, self).__init__(device, config)
+        super(SanityCheckTransformer, self).__init__(device, config)
 
         self.dense = nn.Linear(768, 768)
         self.dropout = nn.Dropout(0.1)
