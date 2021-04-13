@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 import json
 
 from .dataset import EHRDataset, PredictionsDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, time_survival_to_label, collate_fn
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error, time_survival_to_label, collate_fn
 from .models import HealthBERT, TransformerAggregator, Conflation, HealthCheck
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
@@ -60,8 +60,8 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     if test_losses is not None:
         test_losses.append(mean_loss)
 
-    error = mean_error(test_labels, predictions, config.mean_time_survival)
-    printc(f"    {'Validation' if validation else 'Test'} | MAPE: {error:.2f} - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
+    error = get_error(test_labels, predictions, config.mean_time_survival)
+    printc(f"    {'Validation' if validation else 'Test'} | MAE: {int(error)} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if validation:
         if mean_loss < model.best_loss:
@@ -76,7 +76,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
                 'epoch': epoch,
                 'tokenizer': model.tokenizer if hasattr(model, 'tokenizer') else None
             }
-            torch.save(state, os.path.join(path_result, './checkpoint.pth'))
+            #torch.save(state, os.path.join(path_result, './checkpoint.pth'))
             model.early_stopping = 0
         else: 
             model.early_stopping += 1
@@ -111,15 +111,15 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         plt.savefig(os.path.join(path_result, "stds.png"))
         plt.close()
 
-    absolute_percentage_errors = np.abs(predictions - test_labels)/np.maximum(np.abs(test_labels), 1e-10)
+    all_errors = get_error(test_labels, predictions, config.mean_time_survival, mean=False)
 
-    plt.scatter(test_labels, absolute_percentage_errors, s=0.1, alpha=0.5)
+    plt.scatter(test_labels, all_errors, s=0.1, alpha=0.5)
     plt.xlabel("Labels")
-    plt.ylabel("Predictions")
+    plt.ylabel("MAE")
     plt.xlim(0, 1)
-    plt.ylim(0, max(absolute_percentage_errors))
-    plt.title("Absolute percentage error distribution")
-    plt.savefig(os.path.join(path_result, "mape_distribution.png"))
+    plt.ylim(0, max(all_errors))
+    plt.title("MAE distribution")
+    plt.savefig(os.path.join(path_result, "mae_distribution.png"))
     plt.close()
 
     plt.scatter(test_labels, predictions, s=0.1, alpha=0.5)
@@ -132,9 +132,9 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     plt.close()
 
     errors_dict = defaultdict(list)
-    for ape, label in zip(absolute_percentage_errors.tolist(), test_labels.tolist()):
+    for mae, label in zip(all_errors.tolist(), test_labels.tolist()):
         quantile = np.floor(label*10)
-        errors_dict[quantile].append(ape)
+        errors_dict[quantile].append(mae)
     ape_per_quantile = sorted([(quantile, np.mean(l), np.std(l)) for quantile, l in errors_dict.items()])
 
 
@@ -174,7 +174,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         print("Classification metrics:\n", metrics)
 
     save_json(path_result, 'results', 
-        {'mean_error': error,
+        {'get_error': error,
         'mean_loss': mean_loss,
         'metrics': metrics,
         'ape_per_quantile': ape_per_quantile})

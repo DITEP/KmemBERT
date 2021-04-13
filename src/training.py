@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from .dataset import EHRDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error
 from .models import HealthBERT
 from .testing import test
 
@@ -78,10 +78,10 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
                 k_batch_loss = 0
                 k_batch_start_time = time()
 
-        train_error = mean_error(train_labels, predictions, config.mean_time_survival)
+        train_error = get_error(train_labels, predictions, config.mean_time_survival)
 
         mean_loss = epoch_loss/len(train_loader.dataset)
-        printc(f'    Training   | MAPE: {train_error:.2f} - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+        printc(f'    Training   | MAE: {int(train_error)} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         if train_only:
             """
             We won't evaluate the model on the validation set.

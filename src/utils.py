@@ -10,7 +10,6 @@ from datetime import datetime, date
 import sys
 import json
 import numpy as np
-from sklearn.metrics import mean_absolute_percentage_error
 
 from .config import Config
 
@@ -144,14 +143,14 @@ def get_label_threshold(config, path_dataset):
 
     return time_survival_to_label(config.days_threshold, mean_time_survival)
 
-def mean_error(labels, predictions, mean_time_survival):
+def get_error(labels, predictions, mean_time_survival, mean=True):
     """
-    Computes the MAPE after transferring the labels and 
+    Computes the MAE after transferring the labels and 
     predictions into survival time
     """
-    return mean_absolute_percentage_error(
-                label_to_time_survival(np.array(labels), mean_time_survival),
-                label_to_time_survival(np.array(predictions), mean_time_survival))
+    errors = np.abs(label_to_time_survival(np.array(labels), mean_time_survival)
+                - label_to_time_survival(np.array(predictions), mean_time_survival))
+    return errors.mean() if mean else errors
 
 def collate_fn(batch):
     """
