@@ -76,7 +76,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
                 'epoch': epoch,
                 'tokenizer': model.tokenizer if hasattr(model, 'tokenizer') else None
             }
-            #torch.save(state, os.path.join(path_result, './checkpoint.pth'))
+            torch.save(state, os.path.join(path_result, './checkpoint.pth'))
             model.early_stopping = 0
         else: 
             model.early_stopping += 1
