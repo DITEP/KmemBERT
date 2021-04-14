@@ -148,13 +148,13 @@ if __name__ == "__main__":
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and validation")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
-        help="maximum number of samples for training and validation")
+        help="prints training loss every k batch")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
         help="whether or not to freeze the Bert part")
-    parser.add_argument("-dt", "--days_threshold", type=int, default=90, 
+    parser.add_argument("-dt", "--days_threshold", type=int, default=365, 
         help="days threshold to convert into classification task")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
-        help="dataset train size")
+        help="model learning rate")
     parser.add_argument("-r_lr", "--ratio_lr_embeddings", type=float, default=1, 
         help="the ratio applied to lr for embeddings layer")
     parser.add_argument("-wg", "--weight_decay", type=float, default=0, 

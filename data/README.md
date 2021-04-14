@@ -2,6 +2,8 @@
 
 The data is stored inside this folder. A folder corresponds to one single dataset, and has to contain three files. For example, the `ehr` dataset bellow has the right format.
 
+> NB: the `ehr` dataset is just a fake example with the right format
+
 ```
 .
 └── ehr                         - one dataset

@@ -51,7 +51,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
-        help="dataset filename")
+        help="data folder name")
     parser.add_argument("-n", "--n_unknown_words", type=int, default=1000,
         help="save the n most frequent unknown words")
     parser.add_argument("-c", "--chunksize", type=int, default=10,

@@ -12,20 +12,14 @@ from torch.utils.data import DataLoader
 
 from .utils import create_session, get_label_threshold
 from .training import train_and_validate
-from .dataset import EHRDataset, get_train_validation
+from .dataset import EHRDataset
 from .models import HealthBERT
 
 def main(args):
     path_dataset, path_result, device, config = create_session(args)
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    if config.train_size is None:
-        train_dataset, test_dataset = get_train_validation(path_dataset, config)
-    else:
-        dataset = EHRDataset(path_dataset, config)
-        train_size = int(config.train_size * len(dataset))
-        test_size = len(dataset) - train_size
-        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    train_dataset, test_dataset = EHRDataset.get_train_validation(path_dataset, config)
 
     def objective(trial):
         config.batch_size = 8 # trial.suggest_categorical('batch_size', [32, 64, 128])
@@ -54,10 +48,8 @@ if __name__ == "__main__":
         help="number of trials")
     parser.add_argument("-m", "--mode", type=str, default="regression", choices=['classif', 'regression', 'density'],
         help="name of the task")
-    parser.add_argument("-t", "--train_size", type=float, default=None, 
-        help="dataset train size")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=10, 
-        help="maximum number of samples for training and testing")
+        help="prints training loss every k batch")
     parser.add_argument("-v", "--voc_file", type=str, default=None, 
         help="voc file containing camembert added vocabulary")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
