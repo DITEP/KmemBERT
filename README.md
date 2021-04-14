@@ -176,3 +176,16 @@ python -m src.<filename> <command-line-arguments>
 ```
 
 Execute `python -m src.<filename> -h` to know more about all the possible command line parameters.
+
+## Testing
+
+There is a bash script at the root of the project: `test.sh`. This script aims at testing that the main python scripts runs smoothly. It basically runs a bunch of python scripts and check that they do not return any errors.
+
+To run the script, execute the following command:
+```
+bash test.sh
+```
+If you want a more exhaustive testing (it is going to take more time), execute the following command:
+```
+bash test.sh long
+```
