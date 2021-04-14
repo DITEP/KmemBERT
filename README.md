@@ -1,10 +1,10 @@
 # EHR_Transformers
 
-Transformers for time of survival estimation based on french EHRs
+Estimation of cancer patients survival time based on french medical reports and using Transformers
 
 ## Getting started
 
-Please make sure you have python >= 3.7. **Every** script has to be executed at the root of the project using the `-m` option.
+Please make sure you have python >= 3.7. **Every** script has to be executed at the root of the project using the `-m` option (please consider the doc about [using the module option](https://docs.python.org/3/using/cmdline.html)).
 
 The requirements can be installed with the following command line:
 
@@ -12,7 +12,7 @@ The requirements can be installed with the following command line:
 pip install -r requirements.txt
 ```
 
-Before to continue, please make sure the following command line is correctly running. If if runs until printing "DONE" then you can move on to the next section.
+Before to continue, please make sure the following command line is correctly running. If it runs until printing "DONE" then you can move on to the next section.
 
 ```
 python -m src.training
@@ -24,43 +24,48 @@ The main files and folders are briefly described below. Some files that don't ne
 
 ```
 .
-├── data                         - folder containing the csv data files (details below)
-├── exploration                  - folder of notebooks used for exploration
-├── medical_voc                  - folder containing the medical vocabulary
-├── results                      - folder storing results
-├── src                          - python package
-│   ├── preprocessing            - folder containing preprocessing scripts
-│   │   ├── concatenate_files.py - concatenate GR data files
-│   │   ├── correction.py        - correct mispellings on a dataset
-│   │   ├── extract_unknown_words.py  - build a medical vocabulary
-│   │   ├── preprocess_voc.py    - clean up the medical vocabulary
-│   │   ├── split_dataset.py     - split a dataset into train and test and apply basic preprocessing (details below)
-│   │   └── visualize_data.py    - visualize a dataset
-│   ├── config.py                - class containing the config variables
-│   ├── dataset.py               - PyTorch Dataset implementation
-│   ├── health_bert.py           - camembert implementation
-│   ├── hyperoptimization.py     - optuna hyperoptimization
-│   ├── training.py              - training and validation of a model
-│   ├── testing.py               - testing of a model
-│   └── utils.py                 - utils
-└── ****.sh                      - scripts used to run a job on the cluster of CentraleSupélec
+├── data         - folder containing the csv data files (details below)
+│   └── ...
+├── medical_voc  - folder containing the medical vocabulary files
+│   └── ...
+├── results      - folder storing results (see its own README)
+│   └── ...
+├── graphs       - folder storing graphs and data viz
+│   └── ...
+└── src                          - python package
+    ├── models
+    │   ├── conflation.py        - conflation of multiple ehrs
+    │   ├── health_bert.py       - main transformer model
+    │   ├── interface.py         - model class interface
+    │   ├── sanity_check.py
+    │   ├── time2vec.py
+    │   └── transformer_aggregator.py  - transformer using multiple ehrs
+    ├── preprocessing            - folder containing preprocessing scripts
+    │   ├── concatenate_files.py - concatenate GR data files
+    │   ├── correction.py        - correct mispellings on a dataset
+    │   ├── extract_unknown_words.py  - build a medical vocabulary
+    │   ├── preprocess_voc.py    - clean up the medical vocabulary
+    │   ├── split_dataset.py     - splits a dataset (details below)
+    │   └── visualize_data.py    - visualize a dataset
+    ├── config.py                - class containing the config variables
+    ├── baseline.py              - TFIDF baseline
+    ├── dataset.py               - PyTorch Dataset implementation
+    ├── history.py               - training of models using multiple ehrs
+    ├── health_bert.py           - camembert implementation
+    ├── hyperoptimization.py     - optuna hyperoptimization
+    ├── training.py              - training and validation of a model
+    ├── testing.py               - testing of a model
+    ├── predict.py               - runs a model on a few samples
+    ├── preprocesser.py          - preprocess texts
+    ├── utils.py                 - utils
+    └── visualize_attention.ipynb - visualize bert heads attention
 ```
 
 ## Data
 
-The data are stored inside `./data`. A folder inside `./data` corresponds to one single dataset, and has to contain three files. For example, the `ehr` dataset below has the right format.
+The data are stored inside `./data`. A folder inside `./data` corresponds to one single dataset, and has to contain four files. For example, the `./data/ehr` folder has the right format.
 
-```
-.
-└── data                            - data folder
-    └── ehr                         - one dataset
-        ├── config.json             - config file
-        ├── test.csv                - test set
-        ├── train.csv               - train set
-        └── validation_split.csv    - validation split (optional)
-```
-
-For more details, please refer to `./data/README.md`. 
+For more details, see `./data/README.md`. 
 
 ## Preprocessing
 
@@ -105,7 +110,7 @@ Corrects a dataset using sym_spell to remove the main misspellings and accents m
 Once a clean dataset is created according to the previous section, one can train a model.
 It retrains a pre-trained camembert model on a given csv dataset for a classification, regression or density task.
 
-It creates a folder in `./results` where results are saved.
+It creates a folder in `./results` where results are saved. See `./results/README.md` for more details.
 
 ```
 python -m src.training <command-line-arguments>
@@ -114,90 +119,73 @@ python -m src.training <command-line-arguments>
 Execute `python -m src.training -h` to know more about all the possible command line parameters (see below).
 
 ```
-  -h, --help            
-        show this help message and exit
+  -h, --help
+      show this help message and exit
   -d DATA_FOLDER, --data_folder DATA_FOLDER
-        data folder name
-  -m {classif,regression,density}, --mode {classif,regression,density}
-        name of the task
+      data folder name
+  -m {regression,density}, --mode {regression,density}
+      name of the task
   -b BATCH_SIZE, --batch_size BATCH_SIZE
-        dataset batch size
+      dataset batch size
   -e EPOCHS, --epochs EPOCHS
-        number of epochs
-  -t TRAIN_SIZE, --train_size TRAIN_SIZE
-        dataset train size
+      number of epochs
   -drop DROP_RATE, --drop_rate DROP_RATE
-        dropout ratio
+      dropout ratio. By default, None uses p=0.1
   -nr NROWS, --nrows NROWS
-        maximum number of samples for training and testing
+      maximum number of samples for training and validation
   -k PRINT_EVERY_K_BATCH, --print_every_k_batch PRINT_EVERY_K_BATCH
-        maximum number of samples for training and testing
+      prints training loss every k batch
   -f [FREEZE], --freeze [FREEZE]
-        whether or not to freeze the Bert part
+      whether or not to freeze the Bert part
   -dt DAYS_THRESHOLD, --days_threshold DAYS_THRESHOLD
-        days threshold to convert into classification task
+      days threshold to convert into classification task
   -lr LEARNING_RATE, --learning_rate LEARNING_RATE
-        dataset train size
+      model learning rate
   -r_lr RATIO_LR_EMBEDDINGS, --ratio_lr_embeddings RATIO_LR_EMBEDDINGS
-        the ratio applied to lr for embeddings layer
+      the ratio applied to lr for embeddings layer
   -wg WEIGHT_DECAY, --weight_decay WEIGHT_DECAY
-        the weight decay for L2 regularization
-  -v VOC_PATH, --voc_path VOC_PATH
-        path to the new words to be added to the vocabulary of camembert
+      the weight decay for L2 regularization
+  -v VOC_FILE, --voc_file VOC_FILE
+      voc file containing camembert added vocabulary
   -r RESUME, --resume RESUME
-        result folder in with the saved checkpoint will be reused
+      result folder in which the saved checkpoint will be reused
   -p PATIENCE, --patience PATIENCE
-        Number of decreasing accuracy epochs to stop the training
+      number of decreasing accuracy epochs to stop the training
 ```
 
-For example, the following command line gets the csv files inside `./data/ehr`, sets the dropout rate to 0.5, and uses the classification mode.
+For example, the following command line gets the csv files inside `./data/ehr`, uses the first 10,000 rows, and uses the density mode.
 
-```bash
-python -m src.training --dataset ehr -drop 0.5 --mode classif
 ```
+python -m src.training --data_folder ehr --nrows 10000 --mode density
+```
+
+## Other scripts
+
+You can also execute the following scripts:
+- `src.preprocessing.<every-file>` runs preprocessing (every file under preprocessing can be run)
+- `src.history` runs a multi-ehr model
+- `src.testing` tests a model
+- `src.hyperoptimization` runs hyperoptimization
+- `src.baseline` runs the baseline
+- `src.predict` runs the model on a few samples
+
+Using the following command line
+
+```
+python -m src.<filename> <command-line-arguments>
+```
+
+Execute `python -m src.<filename> -h` to know more about all the possible command line parameters.
 
 ## Testing
 
+There is a bash script at the root of the project: `test.sh`. This script aims at testing that the main python scripts runs smoothly. It basically runs a bunch of python scripts and check that they do not return any errors.
+
+To run the script, execute the following command:
 ```
-python -m src.testing <command-line-arguments>
+bash test.sh
 ```
-
-Execute `python -m src.testing -h` to know more about all the possible command line parameters.
-
-## Fine tuning hyperparameters
-
-Fine tuning of hyperparameters using Optuna.
-
+If you want a more exhaustive testing (it is going to take more time), execute the following command:
 ```
-python -m src.hyperoptimization <command-line-arguments>
-```
-
-Execute `python -m src.hyperoptimization -h` to know more about all the possible command line parameters.
-
-## Saved results
-
-This is an example of a result folder saved after training.
-
-```
-.
-└── training_21-01-27_16h25m41s - folder name (script name + date)
-    ├── args.json               - command line arguments
-    ├── checkpoint.pth          - checkpoint (see below)
-    ├── loss.png                - train and validation loss evolution
-    ├── losses.json             - json of all the losses
-    └── test.json               - predictions and labels on the validation dataset
-```
-
-### Checkpoint
-
-Use `checkpoint = torch.load(<path_checkpoint>, map_location=<device>)` to load a checkpoint on a given device.
-
-The checkpoints are composed of the following items.
-```
-{
-    'model': model.state_dict(),   - model state dict
-    'accuracy': test_accuracy,     - model accuracy on the validation dataset
-    'epoch': epoch,                - at which epoch it was saved
-    'tokenizer': model.tokenizer   - the model tokenizer
-}
+bash test.sh long
 ```

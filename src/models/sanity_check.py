@@ -25,6 +25,12 @@ class SanityCheck(ModelInterface):
             return torch.zeros(1), mus[-1]
 
 class SanityCheckTransformer(ModelInterface):
+    """
+    Does nothing except returning Health Bert predictions 
+    It should have the same score than the loaded checkpoint
+
+    This model uses the multi ehr dataset instead of the usual one
+    """
     mode = 'multi'
     out_dim = 1
 

@@ -2,6 +2,8 @@
 
 The data is stored inside this folder. A folder corresponds to one single dataset, and has to contain three files. For example, the `ehr` dataset bellow has the right format.
 
+> NB: the `ehr` dataset is just a fake example with the right format
+
 ```
 .
 └── ehr                         - one dataset
@@ -32,6 +34,8 @@ Noigr,clef,Date deces,Date cr,Code nature,Nature doct,Sce,Contexte,Texte
 
 The config file has to be named `config.json`.
 
+> It is automatically created during the data processing.
+
 This is a config file example.
 ```
 {
@@ -41,3 +45,5 @@ This is a config file example.
 
 ## Validation split 
 This is a data frame of one column filled with booleans indicating the row to use for validation set in the `train.csv` file. In practice, we make sure that there isn't any patient with EHR both in training and validation. 
+
+> It is automatically created during the data processing.

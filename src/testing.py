@@ -192,7 +192,7 @@ def main(args):
     with open(os.path.join('results', config.resume, 'args.json')) as json_file:
         training_args = json.load(json_file)
 
-    if hasattr(training_args, 'mode'):
+    if 'mode' in training_args.keys():
         model = HealthBERT(device, config)
     else:
         aggregator = training_args['aggregator']
@@ -228,7 +228,7 @@ if __name__ == "__main__":
         help="data folder name")
     parser.add_argument("-r", "--resume", type=str, required=True, 
         help="result folder in with the saved checkpoint will be reused")
-    parser.add_argument("-dt", "--days_threshold", type=int, default=90, 
+    parser.add_argument("-dt", "--days_threshold", type=int, default=365, 
         help="days threshold to convert into classification task")
     parser.add_argument("-b", "--batch_size", type=int, default=8, 
         help="dataset batch size")

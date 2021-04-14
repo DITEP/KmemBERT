@@ -93,7 +93,7 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
 
         test(model, validation_loader, config, config.path_result, epoch=epoch, test_losses=validation_losses, validation=True)
 
-        model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
+        model.scheduler.step()
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             printc(f'Breaking training after patience {config.patience} reached', 'INFO')
             break
@@ -148,13 +148,13 @@ if __name__ == "__main__":
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
         help="maximum number of samples for training and validation")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
-        help="maximum number of samples for training and validation")
+        help="prints training loss every k batch")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
         help="whether or not to freeze the Bert part")
-    parser.add_argument("-dt", "--days_threshold", type=int, default=90, 
+    parser.add_argument("-dt", "--days_threshold", type=int, default=365, 
         help="days threshold to convert into classification task")
     parser.add_argument("-lr", "--learning_rate", type=float, default=1e-4, 
-        help="dataset train size")
+        help="model learning rate")
     parser.add_argument("-r_lr", "--ratio_lr_embeddings", type=float, default=1, 
         help="the ratio applied to lr for embeddings layer")
     parser.add_argument("-wg", "--weight_decay", type=float, default=0, 
@@ -164,6 +164,6 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--resume", type=str, default=None, 
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
-        help="Number of decreasing accuracy epochs to stop the training")
+        help="number of decreasing accuracy epochs to stop the training")
 
     main(parser.parse_args())

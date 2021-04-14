@@ -117,13 +117,13 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
     parser.add_argument("-dict", "--dict_name", type=str, default="fr-100k.txt", 
-        help="dict path")
+        help="french dict path. Please use the default one except if you know what you are doing")
     parser.add_argument("-dist", "--distance", type=int, default=2, 
         help="distance parameter")
     parser.add_argument("-mtl", "--min_token_length", type=int, default=5, 
         help="min token length to be corrected")
     parser.add_argument("-pa", "--parallel_apply", type=bool, default=False, const=True, nargs="?", 
-        help="use parallel_apply")
+        help="use parallel_apply (usually slower)")
     
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")
