@@ -101,6 +101,7 @@ class PredictionsDataset(EHRDataset):
         self.compute_prediction()
 
     def load_health_bert(self):
+        #TODO: remove after tested transformer_aggregator
         if self.output_hidden_states and os.path.exists(os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')):
             print('Existing predictions saved - not loading health bert')
             self.config.mode = "classif"
@@ -116,6 +117,7 @@ class PredictionsDataset(EHRDataset):
 
     def compute_prediction(self):
         path = os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')
+        #TODO: remove after tested transformer_aggregator
         if self.output_hidden_states and os.path.exists(path):
             with open(path, 'r') as f:
                 self.noigr_to_outputs = json.load(f)
@@ -133,6 +135,7 @@ class PredictionsDataset(EHRDataset):
         print('size:', sys.getsizeof(self.noigr_to_outputs), 'bytes')
         printc(f'Successfully computed {self.length} Health Bert outputs\n', 'SUCCESS')
 
+        #TODO: remove after tested transformer_aggregator
         if self.output_hidden_states:
             with open(path, 'w') as f:
                 print('> Saved')

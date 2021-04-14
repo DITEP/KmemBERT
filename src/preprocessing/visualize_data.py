@@ -81,7 +81,7 @@ def main(args):
     max_value_desired = 150
     plt.figure(2)
     plt.xlim((0, min(total_sentence_max, max_value_desired)))
-    df_count["total_sentence"].plot.hist(bins=100)
+    df_count["total_sentence"].plot.hist(bins=50)
     plt.title("Sentences per EHR")
     plt.xlabel("Nb of sentences")
     plt.savefig(os.path.join(folder_to_save, "sentences_distribution.png"))
@@ -113,7 +113,7 @@ def main(args):
     plt.xlim((0, min(max_known_tokens, nb_tokens_desired)))
     df_count["known_tokens"].plot.hist(bins=100)
     plt.title("Number of known tokens per EHR")
-    plt.xlabel("Total number of tokens")
+    plt.xlabel("Total number of known tokens")
     plt.savefig(os.path.join(folder_to_save, f"nb_known_tokens_distribution_{args.voc_file if args.voc_file else 'no-voc'}.png"))
     plt.close()
 
