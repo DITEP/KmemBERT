@@ -15,7 +15,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, accuracy_score
 
 from .utils import get_root, get_label
 from .preprocesser import EHRPreprocesser
@@ -59,18 +59,27 @@ def main(args):
                         ], verbose=args.verbose)
 
     print("Lauching training... {} chosen as decoder with tf idf min count {}".format(args.model, args.min_tf))
+
     ehr_regressor.fit(texts["train"], labels["train"])
 
     predictions = ehr_regressor.predict(texts["val"])
     rmse = mean_squared_error(labels["val"], predictions)**0.5
     mae = mean_absolute_error(labels["val"], predictions)
 
-    print("RMSE validation set : {}    MAE : {}".format(round(rmse,1), round(mae,1)))
+    corr = np.corrcoef(predictions, labels["val"])[0,1]
+
+    d_for_accuracy = 365
+    bin_predictions = (predictions >= d_for_accuracy).astype(int)
+    bin_labels = (labels["val"] >= d_for_accuracy).astype(int)
+    acc = accuracy_score(bin_labels, bin_predictions)
+
+    print("RMSE validation set : {}\tMAE : {}\tAccuracy : {}\tCorrelation : {}".format(round(rmse,1), round(mae,1), round(acc*100,1), round(corr,4)))
 
     # Save the model
     path_to_save = os.path.join(path_root, args.folder_to_save)
     if not os.path.isdir(path_to_save):
         os.mkdir(path_to_save)
+    model_name = "model_mae" + str(round(mae,1))+".pkl"
     joblib.dump(ehr_regressor, os.path.join(path_to_save, "model.pkl"), compress = 1)
 
 
