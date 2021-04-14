@@ -90,15 +90,15 @@ class HealthBERT(ModelInterface):
 
         try:
             self.load_state_dict(checkpoint['model'])
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
+            self.scheduler.load_state_dict(checkpoint['scheduler'])
         except:
             printc('Resuming from a model trained on a different mode. The last classification layer has to be trained again.', 'WARNING')
+            printc('This may lead to unexpected behaviors.', 'WARNING')
             for parameter in checkpoint['model'].keys():
                 if parameter.split('.')[2] == 'out_proj':
                     checkpoint['model'][parameter] = self.state_dict()[parameter]
             self.load_state_dict(checkpoint['model'])
-
-        self.optimizer.load_state_dict(checkpoint['optimizer'])
-        self.scheduler.load_state_dict(checkpoint['scheduler'])
 
     def freeze(self):
         """Freezes the encoder layer. Only the classification head on top will learn"""

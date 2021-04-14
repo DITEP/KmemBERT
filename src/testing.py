@@ -192,7 +192,7 @@ def main(args):
     with open(os.path.join('results', config.resume, 'args.json')) as json_file:
         training_args = json.load(json_file)
 
-    if hasattr(training_args, 'mode'):
+    if 'mode' in training_args.keys():
         model = HealthBERT(device, config)
     else:
         aggregator = training_args['aggregator']
