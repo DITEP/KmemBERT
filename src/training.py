@@ -164,6 +164,6 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--resume", type=str, default=None, 
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
-        help="Number of decreasing accuracy epochs to stop the training")
+        help="number of decreasing accuracy epochs to stop the training")
 
     main(parser.parse_args())
