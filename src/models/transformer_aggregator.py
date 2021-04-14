@@ -41,6 +41,19 @@ class TransformerAggregator(ModelInterface):
         self.to(self.device)
 
     def step(self, *inputs):
+        """
+        Runs a transformer on multiple medical reports corresponding to one patient
+        The positional encoding is based on Time2Vec (see time2vec.py)
+
+        Args:
+            outputs (tensor of size Nx768): health bert encoder outputs
+            dt (tensor of size N): times diff with most recent medical report
+            label (tensor): survival time in [0,1]
+
+        Outputs:
+            loss
+            output: mu or (mu, log_var)
+        """
         outputs, dt, label = inputs
 
         outputs = outputs[0].to(self.device)

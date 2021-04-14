@@ -93,7 +93,7 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
 
         test(model, validation_loader, config, config.path_result, epoch=epoch, test_losses=validation_losses, validation=True)
 
-        model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
+        model.scheduler.step()
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             printc(f'Breaking training after patience {config.patience} reached', 'INFO')
             break

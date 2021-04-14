@@ -14,6 +14,9 @@ from .training import train_and_validate
 from .testing import test
 
 def main(args):
+    """
+    Trains a model that predicts survival times using multiple medical reports
+    """
     path_dataset, _, device, config = create_session(args)
 
     config.label_threshold = get_label_threshold(config, path_dataset)

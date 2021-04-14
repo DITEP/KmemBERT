@@ -7,7 +7,6 @@
 import argparse
 
 import optuna
-import torch
 from torch.utils.data import DataLoader
 
 from .utils import create_session, get_label_threshold
@@ -16,6 +15,9 @@ from .dataset import EHRDataset
 from .models import HealthBERT
 
 def main(args):
+    """
+    Runs optuna for hyperparameter optimization 
+    """
     path_dataset, path_result, device, config = create_session(args)
     config.label_threshold = get_label_threshold(config, path_dataset)
 
