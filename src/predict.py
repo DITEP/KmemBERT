@@ -44,6 +44,11 @@ def main(args):
 
     exp = explainer.explain_instance(text_to_classify[0], predict, num_features=15,num_samples=100)
     print(exp.as_list())
+    plt.figure(0)
+    fig = exp.as_pyplot_figure()
+    plt.savefig(os.path.join(args.folder_to_save, "Interpretation.png"))
+    plt.close()
+
 
 
 
@@ -56,7 +61,8 @@ if __name__ == '__main__':
     
     parser.add_argument("-nr", "--nrows", type=int, default=1, 
         help="maximum number of samples for testing")
-
+    parser.add_argument("-f", "--folder_to_save", type=str, default="graphs", 
+        help="folder to save the figures")
     main(parser.parse_args())
 
 
