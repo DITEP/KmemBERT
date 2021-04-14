@@ -66,7 +66,7 @@ def main(args):
     rmse = mean_squared_error(labels["val"], predictions)**0.5
     mae = mean_absolute_error(labels["val"], predictions)
 
-    corr = np.corrcoef(predictions, labels["val"])[0,1]
+    corr = np.corrcoef(np.array(predictions), np.array(labels["val"]))[0,1]
 
     d_for_accuracy = 365
     bin_predictions = (predictions >= d_for_accuracy).astype(int)
