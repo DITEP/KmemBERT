@@ -9,6 +9,7 @@ import pandas as pd
 import argparse
 from lime.lime_text import LimeTextExplainer
 import matplotlib.pyplot as plt
+import os
 
 from .models import HealthBERT
 from .config import Config
