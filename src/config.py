@@ -7,10 +7,15 @@
 import json
 
 class Config:
-    voc_path = None
+    """
+    Stores useful information
+    Many scripts uses a config instance. See utils.create_session for its initialization
+    """
+
+    voc_file = None
     model_name = "camembert-base"
     data_folder = None
-    mode = "regression"
+    mode = None
     print_every_k_batch = 8
     nrows = None
     batch_size = 64
@@ -25,8 +30,9 @@ class Config:
     resume = None
     patience = None
     days_threshold = 90
+    max_ehrs = None
 
-    def __init__(self, args):
+    def __init__(self, args={}):
         for attr in dir(self):
             if not attr.startswith('__') and hasattr(args, attr):
                 setattr(self, attr, getattr(args, attr))

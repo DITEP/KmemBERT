@@ -10,14 +10,15 @@ import argparse
 from time import time
 import matplotlib.pyplot as plt
 from collections import defaultdict
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, confusion_matrix, roc_curve
-
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, roc_curve
+import seaborn as sns
 import torch
 from torch.utils.data import DataLoader
+import json
 
-from .dataset import EHRDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error, label_to_time_survival
-from .health_bert import HealthBERT
+from .dataset import EHRDataset, PredictionsDataset
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error, time_survival_to_label, collate_fn
+from .models import HealthBERT, TransformerAggregator, Conflation, SanityCheck
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
     """
@@ -25,90 +26,137 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     """
     
     model.eval()
-    predictions, test_labels = [], []
+    predictions, test_labels, stds = [], [], []
     test_start_time = time()
 
     total_loss = 0
-    for _, (texts, labels) in enumerate(test_loader):
-        loss, outputs = model.step(texts, labels)
+    for _, (*data, labels) in enumerate(test_loader):
+        loss, outputs = model.step(*data, labels)
         
         if model.mode == 'classif':
             predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
         elif model.mode == 'regression':
             predictions += outputs.flatten().tolist()
+        elif model.mode == 'density':
+            mus, log_vars = outputs
+            predictions += mus.tolist()
+            stds += torch.exp(log_vars/2).tolist()
+        elif model.mode == 'multi':
+            if model.config.mode == 'density' or (model.config.mode == 'classif' and model.out_dim == 2):
+                mu, log_var = outputs
+                predictions.append(mu.item())
+                stds.append(torch.exp(log_var/2).item())
+            else:
+                predictions.append(outputs.item())
         else:
-            mu, _ = outputs
-            predictions += mu.tolist()
+            raise ValueError(f'Mode {model.mode} unknown')
         
         test_labels += labels.tolist()
         total_loss += loss.item()
+    
+    mean_loss = total_loss/(config.batch_size*len(test_loader))
+    print(f"    {'Validation' if validation else 'Test'} loss: {mean_loss:.2f}")
 
     if test_losses is not None:
-        test_losses.append(total_loss/(config.batch_size*len(test_loader)))
+        test_losses.append(mean_loss)
 
-    error = mean_error(test_labels, predictions, config.mean_time_survival)
-    printc(f"    {'Validation' if validation else 'Test'} mean error: {error:.2f} days -  Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
+    error = get_error(test_labels, predictions, config.mean_time_survival)
+    printc(f"    {'Validation' if validation else 'Test'} | MAE: {int(error)} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if validation:
-        if error < model.best_error:
-            model.best_error = error
-            printc('    Best accuracy so far', 'SUCCESS')
+        if mean_loss < model.best_loss:
+            model.best_loss = mean_loss
+            printc('    Best loss so far', 'SUCCESS')
             print('    Saving model state...')
             state = {
                 'model': model.state_dict(),
-                'mean_error': error,
+                'optimizer': model.optimizer.state_dict(),
+                'scheduler': model.scheduler.state_dict(),
+                'best_loss': model.best_loss,
                 'epoch': epoch,
-                'tokenizer': model.tokenizer
+                'tokenizer': model.tokenizer if hasattr(model, 'tokenizer') else None
             }
             torch.save(state, os.path.join(path_result, './checkpoint.pth'))
             model.early_stopping = 0
         else: 
             model.early_stopping += 1
-            return error
+            return mean_loss
 
-    print('    Saving predictions...\n')
-    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
+    print('    Saving predictions...')
+    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions, "stds": stds})
 
-    plt.scatter(predictions, test_labels, s=0.1, alpha=0.5)
-    plt.xlabel("Predictions")
-    plt.ylabel("Labels")
+    predictions = np.array(predictions)
+    test_labels = np.array(test_labels)
+
+    if len(stds) > 0:
+        n_points = 20
+        resize_factor = 20
+        gaussian_predictions = np.random.normal(predictions, np.array(stds)/resize_factor, size=(n_points, len(predictions))).flatten().clip(0, 1)
+        associated_labels = np.tile(test_labels, n_points)
+        sns.kdeplot(
+            data={'Predictions': gaussian_predictions, 'Labels': associated_labels}, 
+            y='Predictions', x='Labels', clip=((0, 1), (0, 1)),
+            fill=True, thresh=0, levels=100, cmap="mako",
+        )
+        plt.title('Prediction distributions over labels')
+        plt.savefig(os.path.join(path_result, "correlations_distributions.png"))
+        plt.close()
+
+        plt.scatter(test_labels, stds, s=0.1, alpha=0.5)
+        plt.xlabel("Label")
+        plt.ylabel("Standard Deviations")
+        plt.xlim(0, 1)
+        plt.ylim(0, max(stds))
+        plt.title("Labels and corresponding standard deviations")
+        plt.savefig(os.path.join(path_result, "stds.png"))
+        plt.close()
+
+    all_errors = get_error(test_labels, predictions, config.mean_time_survival, mean=False)
+
+    plt.scatter(test_labels, all_errors, s=0.1, alpha=0.5)
+    plt.xlabel("Labels")
+    plt.ylabel("MAE")
+    plt.xlim(0, 1)
+    plt.ylim(0, max(all_errors))
+    plt.title("MAE distribution")
+    plt.savefig(os.path.join(path_result, "mae_distribution.png"))
+    plt.close()
+
+    plt.scatter(test_labels, predictions, s=0.1, alpha=0.5)
+    plt.xlabel("Labels")
+    plt.ylabel("Predictions")
     plt.xlim(0, 1)
     plt.ylim(0, 1)
     plt.title("Predictions / Labels correlation")
     plt.savefig(os.path.join(path_result, "correlations.png"))
     plt.close()
 
-    predictions = np.array(predictions)
-    test_labels = np.array(test_labels)
-
     errors_dict = defaultdict(list)
+    for mae, label in zip(all_errors.tolist(), test_labels.tolist()):
+        quantile = np.floor(label*10)
+        errors_dict[quantile].append(mae)
+    ape_per_quantile = sorted([(quantile, np.mean(l), np.std(l)) for quantile, l in errors_dict.items()])
 
-    thresholds = [int(label_to_time_survival(0.1*quantile, config.mean_time_survival)) for quantile in range(1, 10)]
-    quantiles = np.floor(test_labels*10).astype(int).tolist()
-
-    for pred, label, quantile in zip(predictions.tolist(), test_labels.tolist(), quantiles):
-        errors_dict[quantile].append(
-            np.abs(label_to_time_survival(pred, config.mean_time_survival)
-                   - label_to_time_survival(label, config.mean_time_survival)))
-
-    std_mae_quantile = sorted([(quantile, np.std(l), np.mean(np.abs(l))) for quantile, l in errors_dict.items()])
-
-
-    bin_predictions = (predictions >= config.label_threshold).astype(int)
-    bin_labels = (test_labels >= config.label_threshold).astype(int)
 
     metrics = {}
-    metrics['accuracy'] = accuracy_score(bin_labels, bin_predictions)
-    metrics['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
-    metrics['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
-    metrics['confusion_matrix'] = confusion_matrix(bin_labels, bin_predictions).tolist()
-    metrics['correlation'] = float(np.corrcoef(predictions, test_labels)[0,1])
-
+    metrics["correlation"] = np.corrcoef(predictions, test_labels)[0,1]
+    metrics["MAE"] = np.mean(np.abs(predictions - test_labels))
+    
+    for days in [30,90,180,270,360]:
+        label = time_survival_to_label(days, config.mean_time_survival)
+        bin_predictions = (predictions >= label).astype(int)
+        bin_labels = (test_labels >= label).astype(int)
+        
+        days = f"{days} days"
+        metrics[days] = {}
+        metrics[days]['accuracy'] = accuracy_score(bin_labels, bin_predictions)
+        metrics[days]['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
+        metrics[days]['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
+        
     try:
         metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
 
-        fpr, tpr, thresholds = roc_curve(bin_labels, predictions)
-        metrics['thresholds'] = thresholds.tolist()
+        fpr, tpr, _ = roc_curve(bin_labels, predictions)
 
         plt.plot(fpr, tpr)
         plt.plot([0,1], [0,1], 'r--')
@@ -120,32 +168,55 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         plt.savefig(os.path.join(path_result, "roc_curve.png"))
         plt.close()
     except:
-        print("Error while computing ROC curve...")
+        printc("    Error while computing ROC curve", "WARNING")
 
     if not validation:
         print("Classification metrics:\n", metrics)
 
     save_json(path_result, 'results', 
-        {'mean_error': error,
+        {'get_error': error,
+        'mean_loss': mean_loss,
         'metrics': metrics,
-        'predictions': predictions.tolist(),
-        'test_labels': test_labels.tolist(),
-        'label_threshold': config.label_threshold,
-        'bin_predictions': bin_predictions.tolist(),
-        'bin_labels': bin_labels.tolist(),
-        'std_mae_quantile': std_mae_quantile})
+        'ape_per_quantile': ape_per_quantile})
 
-    return error
+    print(f"    (Ended {'validation' if validation else 'testing'})\n")
+    return mean_loss
+
+
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
 
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    dataset = EHRDataset(path_dataset, config, train=False)
-    loader = DataLoader(dataset, batch_size=config.batch_size)
+    with open(os.path.join('results', config.resume, 'args.json')) as json_file:
+        training_args = json.load(json_file)
 
-    model = HealthBERT(device, config)
+    if hasattr(training_args, 'mode'):
+        model = HealthBERT(device, config)
+    else:
+        aggregator = training_args['aggregator']
+        config.max_ehrs = training_args['max_ehrs']
+
+        if aggregator == 'transformer':
+            model = TransformerAggregator(device, config, 768, training_args['nhead'], training_args['num_layers'], training_args['out_dim'])
+            model.initialize_scheduler()
+            model.resume(config)
+
+        elif aggregator == 'conflation':
+            model = Conflation(device, config)
+
+        elif aggregator == 'sanity_check':
+            model = SanityCheck(device, config)
+
+
+    if model.mode == 'multi':
+        config.resume = training_args['resume']
+        dataset = PredictionsDataset(path_dataset, config, train=False, device=device)
+        loader = DataLoader(dataset, batch_size=config.batch_size, collate_fn=collate_fn)
+    else:
+        dataset = EHRDataset(path_dataset, config, train=False)
+        loader = DataLoader(dataset, batch_size=config.batch_size)
 
     test(model, loader, config, config.path_result)
 

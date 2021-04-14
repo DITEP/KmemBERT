@@ -4,6 +4,7 @@
     Python Version: >= 3.7
 '''
 
+import torch
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
@@ -11,21 +12,11 @@ import json
 import os
 import sys
 from collections import defaultdict
+from tqdm import tqdm
 
-from .utils import get_label, time_survival_to_label
+from .utils import get_label, time_survival_to_label, printc
 from .preprocesser import EHRPreprocesser
-
-def get_train_validation(path_dataset, config):
-    """
-    Returns train and validation set based on a predefined split
-    """
-    df = pd.read_csv(os.path.join(path_dataset, "train.csv"))
-    validation_split = pd.read_csv(os.path.join(path_dataset, "validation_split.csv"), dtype=bool)
-    
-    validation = df[validation_split["validation"]]
-    train = df.drop(validation.index)
-
-    return EHRDataset(path_dataset, config, df=train), EHRDataset(path_dataset, config, df=validation)
+from .models import HealthBERT
 
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""
@@ -33,7 +24,7 @@ class EHRDataset(Dataset):
     def __init__(self, path_dataset, config, train=True, df=None):
         super(EHRDataset, self).__init__()
         self.path_dataset = path_dataset
-        self.nrows = config.nrows
+        self.config = config
         self.train = train
         self.config_path = os.path.join(self.path_dataset, "config.json")
         self.preprocesser = EHRPreprocesser()
@@ -64,23 +55,111 @@ class EHRDataset(Dataset):
     def __len__(self):
         return len(self.labels)
 
-class EHRHistoryDataset(EHRDataset):
-    """PyTorch Dataset class for a full history of EHRs"""
+    @classmethod
+    def get_train_validation(cls, path_dataset, config, get_only_val=False, **kwargs):
+        """
+        Returns train and validation set based on a predefined split
+        """
+        df = pd.read_csv(os.path.join(path_dataset, "train.csv"))
+        validation_split = pd.read_csv(os.path.join(path_dataset, "validation_split.csv"), dtype=bool)
+        
+        validation = df[validation_split["validation"]]
+        train = df.drop(validation.index)
 
-    def __init__(self, *args, **kwargs):
-        super(EHRHistoryDataset, self).__init__(*args, **kwargs)
+        if get_only_val:
+            return cls(path_dataset, config, df=validation, **kwargs)
+        return cls(path_dataset, config, df=train, **kwargs), cls(path_dataset, config, df=validation, **kwargs)
+
+class PredictionsDataset(EHRDataset):
+    """
+    Dataset dealing with multiple EHRs instead of only one.
+    The models defined inside models.multi_ehr needs this dataset.
+    """
+    health_bert = None
+    suffix = 'train'
+
+    def __init__(self, *args, device=None, output_hidden_states=False, **kwargs):
+        super(PredictionsDataset, self).__init__(*args, **kwargs)
+        self.device = device
+        self.output_hidden_states = output_hidden_states
+        self.load_health_bert()
 
         self.patients = list(set(self.df.Noigr.values))
-        self.patient_to_indices = defaultdict(list)
+        self.noigr_to_indices = defaultdict(list)
+        self.length = 0
         for i, noigr in enumerate(self.df.Noigr.values):
-            self.patient_to_indices[noigr].append(i)
-        
-    def __getitem__(self, index):
-        indices = sorted(self.patient_to_indices[self.patients[index]], key=lambda i: -self.survival_times[i])
-        last_survival_time = min(self.survival_times[indices])
-        return ([self.texts[text_index] for text_index in indices], 
-                self.survival_times[indices] - last_survival_time, 
-                min(self.labels[indices]))
+            self.noigr_to_indices[noigr].append(i)
+            self.length += 1
+            if self.config.nrows and self.length == self.config.nrows:
+                break
 
+        for noigr, indices in self.noigr_to_indices.items():
+            self.noigr_to_indices[noigr] = sorted(indices, key=lambda i: -self.survival_times[i])
+
+        self.index_to_ehrs = [(noigr, k) for noigr, indices in self.noigr_to_indices.items() for k in range(1, len(indices)+1)]
+
+        self.compute_prediction()
+
+    def load_health_bert(self):
+        if self.output_hidden_states and os.path.exists(os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')):
+            print('Existing predictions saved - not loading health bert')
+            self.config.mode = "classif"
+            return
+
+        if PredictionsDataset.health_bert is None:
+            if self.output_hidden_states:
+                self.config.mode = "classif"
+
+            PredictionsDataset.health_bert = HealthBERT(self.device, self.config)
+            for param in self.health_bert.parameters():
+                param.requires_grad = False
+
+    def compute_prediction(self):
+        path = os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')
+        if self.output_hidden_states and os.path.exists(path):
+            with open(path, 'r') as f:
+                self.noigr_to_outputs = json.load(f)
+                self.noigr_to_outputs = {int(k): v for k, v in self.noigr_to_outputs.items()}
+                print('Loaded predictions')
+                PredictionsDataset.suffix = 'val'
+                return
+
+        printc('\nComputing Health Bert predictions...', 'INFO')
+        self.noigr_to_outputs = defaultdict(list)
+        for noigr, indices in tqdm(self.noigr_to_indices.items()):
+            for index in indices:
+                output = self.health_bert.step([self.texts[index]], output_hidden_states=self.output_hidden_states)
+                self.noigr_to_outputs[int(noigr)].append(output.tolist() if self.output_hidden_states else output)
+        print('size:', sys.getsizeof(self.noigr_to_outputs), 'bytes')
+        printc(f'Successfully computed {self.length} Health Bert outputs\n', 'SUCCESS')
+
+        if self.output_hidden_states:
+            with open(path, 'w') as f:
+                print('> Saved')
+                json.dump(self.noigr_to_outputs, f)
+            PredictionsDataset.suffix = 'val'
+
+    def __getitem__(self, index):
+        noigr, k = self.index_to_ehrs[index]
+
+        indices = self.noigr_to_indices[noigr][:k][-self.config.max_ehrs:]
+        dt = self.survival_times[indices] - min(self.survival_times[indices])
+        label = min(self.labels[indices])
+
+        outputs = self.noigr_to_outputs[noigr][:k][-self.config.max_ehrs:]
+
+        if self.output_hidden_states:
+            outputs = torch.tensor(outputs).type(torch.float32)
+            return (outputs[:,0,:], dt, label)
+
+        elif self.config.mode == 'density':
+            mus = torch.cat([output[0] for output in outputs]).view(-1)
+            log_vars = torch.cat([output[1] for output in outputs]).view(-1)
+            return (mus, log_vars, dt, label)
+
+        else:
+            mus = torch.cat(outputs).view(-1)
+            return (mus, dt, label)
+        
     def __len__(self):
-        return len(self.patients)
+        return self.length

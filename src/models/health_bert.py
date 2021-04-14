@@ -5,9 +5,8 @@
 '''
 
 import json
-import numpy as np
 import os
-from transformers import CamembertForSequenceClassification, CamembertTokenizerFast, get_linear_schedule_with_warmup
+from transformers import CamembertForSequenceClassification, CamembertTokenizerFast
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -16,7 +15,8 @@ import logging
 from time import time
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
-from .utils import printc
+from ..utils import printc
+from .interface import ModelInterface
 
 def set_dropout(model, drop_rate=0.1):
     for _, child in model.named_children():
@@ -24,21 +24,24 @@ def set_dropout(model, drop_rate=0.1):
             child.p = drop_rate
         set_dropout(child, drop_rate=drop_rate)
 
-class HealthBERT(nn.Module):
+class HealthBERT(ModelInterface):
     """
     Model that instanciates a camembert model, a tokenizer and an optimizer.
     It supports methods to train it.
     """
     def __init__(self, device, config):
-        super(HealthBERT, self).__init__()
-        
-        self.device = device
+        super(HealthBERT, self).__init__(device, config)
+
         self.learning_rate = config.learning_rate
-        self.voc_path = config.voc_path
+        self.voc_file = config.voc_file
         self.model_name = config.model_name
-        self.mode = config.mode
-        self.best_error = np.inf
-        self.early_stopping = 0
+
+        if config.mode is None:
+            assert self.config.resume is not None, 'Mode was not specified, cannot init HealthBERT'
+            with open(os.path.join('results', self.config.resume, 'args.json')) as json_file:
+                self.config.mode = json.load(json_file)["mode"]
+                printc(f"\nUsing mode {self.config.mode} (Health BERT checkpoint {self.config.resume})", "INFO")
+        self.mode = self.config.mode
 
         if self.mode == 'classif' or self.mode == 'density':
             self.num_labels = 2
@@ -72,10 +75,9 @@ class HealthBERT(nn.Module):
             set_dropout(self.camembert, drop_rate=self.drop_rate)
             print(f"Dropout rate set to {self.drop_rate}")
 
-        if self.voc_path:
-            self.add_tokens_from_path(self.voc_path)
+        if self.voc_file:
+            self.add_tokens_from_path(self.voc_file)
 
-        self.start_epoch_timers()
         self.eval()
 
     def resume(self, config):
@@ -95,15 +97,8 @@ class HealthBERT(nn.Module):
                     checkpoint['model'][parameter] = self.state_dict()[parameter]
             self.load_state_dict(checkpoint['model'])
 
-    def start_epoch_timers(self):
-        self.encoding_time = 0
-        self.compute_time = 0
-    
-    def initialize_scheduler(self, epochs, train_loader):
-        total_steps = len(train_loader) * epochs
-        self.scheduler = get_linear_schedule_with_warmup(self.optimizer,
-                                                        num_warmup_steps=2, # Default value
-                                                        num_training_steps=total_steps)
+        self.optimizer.load_state_dict(checkpoint['optimizer'])
+        self.scheduler.load_state_dict(checkpoint['scheduler'])
 
     def freeze(self):
         """Freezes the encoder layer. Only the classification head on top will learn"""
@@ -119,9 +114,9 @@ class HealthBERT(nn.Module):
             return torch.sigmoid(self.camembert(*input, **kwargs).logits)
         else:
             logits = self.camembert(*input, **kwargs).logits
-            mu = torch.sigmoid(logits[:,0])
-            log_var = logits[:,1]
-            return mu, log_var
+            mus = torch.sigmoid(logits[:,0])
+            log_vars = logits[:,1]
+            return mus, log_vars
 
     def get_loss(self, outputs, labels=None):
         """Returns the loss given outputs and labels"""
@@ -133,16 +128,17 @@ class HealthBERT(nn.Module):
             mu, log_var = outputs
             return (log_var + (labels - mu)**2/torch.exp(log_var)).mean()
 
-    def step(self, texts, labels=None):
+    def step(self, texts, labels=None, output_hidden_states=False):
         """
         Encode and forward the given texts. Compute the loss, and its backward.
 
-        Inputs:
-        - texts: list of strings
-        - labels: list of 0-1 (classification) or float (regression)
+        Args:
+            texts (str list)
+            labels (tensor): tensor of 0-1 (classification) or float (regression)
 
-        Returns:
-        loss, camembert outputs
+        Outputs:
+            loss
+            camembert outputs
         """
         encoding_start_time = time()
         encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
@@ -156,14 +152,16 @@ class HealthBERT(nn.Module):
             labels = labels.to(self.device)
 
         compute_start_time = time()
-        outputs = self(input_ids, attention_mask=attention_mask, labels=labels if self.mode == 'classif' else None)
+        outputs = self(input_ids, attention_mask=attention_mask, labels=(labels if self.mode == 'classif' else None), output_hidden_states=output_hidden_states)
         self.compute_time += time()-compute_start_time
+
+        if output_hidden_states: return outputs.hidden_states[-1][:,0,:]
 
         if labels is None: return outputs.logits if self.mode == 'classif' else outputs
 
         loss = self.get_loss(outputs, labels=labels)
 
-        if self.camembert.training:
+        if self.training:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -171,25 +169,17 @@ class HealthBERT(nn.Module):
 
         return loss, outputs.logits if self.mode == 'classif' else outputs
 
-    def add_tokens_from_path(self, voc_path):
+    def add_tokens_from_path(self, voc_file):
         """
         Read a file of vocabulary and add the given tokens into the model
 
-        Inputs
-        - voc_path: path to a json file whose keys are words
+        Args:
+            voc_file: path to a json file whose keys are words
         """
-        with open(voc_path) as json_file:
+        with open(os.path.join('medical_voc', voc_file)) as json_file:
             voc_list = json.load(json_file)
             new_tokens = self.tokenizer.add_tokens([ token for (token, _) in voc_list ])
             print(f"Added {new_tokens} tokens to the tokenizer")
 
         self.camembert.resize_token_embeddings(len(self.tokenizer))
-
-    def train(self):
-        """Training mode"""
-        self.camembert.train()
-
-    def eval(self):
-        """Eval mode (no random)"""
-        self.camembert.eval()
 

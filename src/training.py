@@ -14,24 +14,21 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
-from .dataset import EHRDataset, get_train_validation
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, mean_error
-from .health_bert import HealthBERT
+from .dataset import EHRDataset
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error
+from .models import HealthBERT
 from .testing import test
 
-def train_and_validate(train_loader, test_loader, device, config, path_result, train_only=False):
+def train_and_validate(model, train_loader, validation_loader, device, config, path_result, train_only=False):
     """
     Creates a camembert model and retrain it, with eventually a larger vocabulary.
 
     Inputs: please refer bellow, to the argparse arguments.
     """
-    model = HealthBERT(device, config)
-
     printc("\n----- STARTING TRAINING -----")
 
     losses = defaultdict(list)
-    test_losses = []
-    train_errors, test_errors = [], []
+    validation_losses = []
     n_samples = config.print_every_k_batch * config.batch_size
     model.initialize_scheduler(config.epochs, train_loader)
     for epoch in range(config.epochs):
@@ -42,18 +39,26 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
         model.start_epoch_timers()
         predictions, train_labels = [], []
 
-        for i, (texts, labels) in enumerate(train_loader):
+        for i, (*data, labels) in enumerate(train_loader):
             if config.nrows and i*config.batch_size >= config.nrows:
                 break
-            loss, outputs = model.step(texts, labels)
+            loss, outputs = model.step(*data, labels)
 
             if model.mode == 'classif':
                 predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
             elif model.mode == 'regression':
                 predictions += outputs.flatten().tolist()
-            else:
+            elif model.mode == 'density':
                 mu, _ = outputs
                 predictions += mu.tolist()
+            elif model.mode == 'multi':
+                if model.config.mode == 'density' or (model.config.mode == 'classif' and model.out_dim == 2):
+                    mu, _ = outputs
+                    predictions.append(mu.item())
+                else:
+                    predictions.append(outputs.item())
+            else:
+                raise ValueError(f'Mode {model.mode} unknown')
 
             train_labels += labels.tolist()
 
@@ -73,30 +78,21 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
                 k_batch_loss = 0
                 k_batch_start_time = time()
 
-        train_error = mean_error(train_labels, predictions, config.mean_time_survival)
-        train_errors.append(train_error)
-        printc(f'    Training mean error: {train_error:.2f} days - Global average loss: {epoch_loss/len(train_loader.dataset):.4f}  -  Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+        train_error = get_error(train_labels, predictions, config.mean_time_survival)
+
+        mean_loss = epoch_loss/len(train_loader.dataset)
+        printc(f'    Training   | MAE: {int(train_error)} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         if train_only:
             """
             We won't evaluate the model on the validation set.
             This is used in hyperoptimization to reduce the running time.
             """
-            if train_error < model.best_error:
-                model.best_error = train_error
+            if mean_loss < model.best_loss:
+                model.best_loss = mean_loss
             continue
 
-        test_error = test(model, test_loader, config, config.path_result, epoch=epoch, test_losses=test_losses, validation=True)
-        test_errors.append(test_error)
+        test(model, validation_loader, config, config.path_result, epoch=epoch, test_losses=validation_losses, validation=True)
 
-        plt.plot(train_errors)
-        plt.plot(test_errors)
-        plt.xlabel("Epoch")
-        plt.ylabel("MAE (days)")
-        plt.legend(["Train", "Validation"])
-        plt.title("MAE Evolution")
-        plt.savefig(os.path.join(config.path_result, "mae.png"))
-        plt.close()
-        
         model.scheduler.step() #Scheduler that reduces lr if test error stops decreasing
         if (config.patience is not None) and (model.early_stopping >= config.patience):
             printc(f'Breaking training after patience {config.patience} reached', 'INFO')
@@ -105,11 +101,12 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
     printc("-----  Ended Training  -----\n")
 
     print("Saving losses...")
-    save_json(path_result, "losses", { "train": losses, "validation": test_losses })
+    save_json(path_result, "losses", { "train": losses, "validation": validation_losses })
     epochs_realized = len(losses)
     plt.plot(np.linspace(1, epochs_realized, sum([len(l) for l in losses.values()])),
              [ l for ll in losses.values() for l in ll ])
-    plt.plot(range(1, epochs_realized+1), test_losses)
+    plt.plot(range(1, epochs_realized+1), validation_losses)
+
     plt.legend(["Train loss", "Validation loss"])
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
@@ -118,46 +115,40 @@ def train_and_validate(train_loader, test_loader, device, config, path_result, t
     plt.close()
     print("[DONE]")
 
-    return model.best_error
+    return model.best_loss
 
 def main(args):
     path_dataset, _, device, config = create_session(args)
 
+    assert not (args.freeze and args.voc_file), "Don't use freeze argument while adding vocabulary. It would not be learned"
+
     config.label_threshold = get_label_threshold(config, path_dataset)
 
-    if config.train_size is None:
-        # Then we use a predifined validation split
-        train_dataset, test_dataset = get_train_validation(path_dataset, config)
-    else:
-        # Then we use a random validation split
-        dataset = EHRDataset(path_dataset, config)
-        train_size = int(config.train_size * len(dataset))
-        test_size = len(dataset) - train_size
-        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    train_dataset, validation_dataset = EHRDataset.get_train_validation(path_dataset, config)
 
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+    validation_loader = DataLoader(validation_dataset, batch_size=1, shuffle=True)
 
-    train_and_validate(train_loader, test_loader, device, config, config.path_result)
+    model = HealthBERT(device, config)
+    train_and_validate(model, train_loader, validation_loader, device, config, config.path_result)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
         help="data folder name")
-    parser.add_argument("-m", "--mode", type=str, default="regression", choices=['classif', 'regression', 'density'],
+    parser.add_argument("-m", "--mode", type=str, default="regression", choices=['regression', 'density'],
         help="name of the task")
     parser.add_argument("-b", "--batch_size", type=int, default=8, 
         help="dataset batch size")
     parser.add_argument("-e", "--epochs", type=int, default=2, 
         help="number of epochs")
-    parser.add_argument("-t", "--train_size", type=float, default=None, 
-        help="dataset train size")
     parser.add_argument("-drop", "--drop_rate", type=float, default=None, 
-        help="dropout ratio")
+        help="dropout ratio. By default, None uses p=0.1")
     parser.add_argument("-nr", "--nrows", type=int, default=None, 
-        help="maximum number of samples for training and testing")
+        help="maximum number of samples for training and validation")
     parser.add_argument("-k", "--print_every_k_batch", type=int, default=1, 
-        help="maximum number of samples for training and testing")
+        help="maximum number of samples for training and validation")
     parser.add_argument("-f", "--freeze", type=bool, default=False, const=True, nargs="?",
         help="whether or not to freeze the Bert part")
     parser.add_argument("-dt", "--days_threshold", type=int, default=90, 
@@ -168,8 +159,8 @@ if __name__ == "__main__":
         help="the ratio applied to lr for embeddings layer")
     parser.add_argument("-wg", "--weight_decay", type=float, default=0, 
         help="the weight decay for L2 regularization")
-    parser.add_argument("-v", "--voc_path", type=str, default=None, 
-        help="path to the new words to be added to the vocabulary of camembert")
+    parser.add_argument("-v", "--voc_file", type=str, default=None, 
+        help="voc file containing camembert added vocabulary")
     parser.add_argument("-r", "--resume", type=str, default=None, 
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 

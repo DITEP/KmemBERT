@@ -20,9 +20,11 @@ from src.preprocesser import EHRPreprocesser
 from ..utils import save_json, get_label
 
 
-train_size = 0.7
+train_size = 0.9
 validation_size = 0.02
 seed = 0
+max_words = 320
+min_characters = 250
 
 data_path = "/data/isilon/centraleNLP"
 file_path = os.path.join(data_path, "concatenate.txt")
@@ -53,12 +55,21 @@ print(counter)
 
 print("\nFiltering EHR...")
 # 2904066
-df = df[df["Nature doct"] == "C.R. consultation"]
-print(f"{df.shape[0]} rows left")
+# df = df[df["Nature doct"].isin([
+#     "C.R. consultation",
+#     "C.R. Hospitalisation",
+#     "C.R. Radio"
+# ])]
+# print(f"{df.shape[0]} rows left")
 # 1347612
-preprocesser = EHRPreprocesser()
-df["Texte"] = df["Texte"].progress_apply(lambda text: preprocesser(text.lower()).strip())
-df["Texte"].replace("", np.nan, inplace=True)
+preprocesser = EHRPreprocesser(max_words=max_words)
+def filter_text(text, min_characters=min_characters):
+    text = preprocesser(text.lower()).strip()
+    if len(text)<min_characters:
+        return np.nan
+    return text
+
+df["Texte"] = df["Texte"].progress_apply(filter_text)
 #df["Texte"].replace("^(\s*(#\$)*)*$", np.nan, regex=True, inplace=True)
 df["Date deces"].replace("", np.nan, inplace=True)
 df["Date cr"].replace("", np.nan, inplace=True)

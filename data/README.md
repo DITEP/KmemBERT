@@ -4,10 +4,11 @@ The data is stored inside this folder. A folder corresponds to one single datase
 
 ```
 .
-└── ehr              - one dataset
-    ├── config.json  - config file
-    ├── test.csv     - test set
-    └── train.csv    - train set
+└── ehr                         - one dataset
+    ├── config.json             - config file
+    ├── test.csv                - test set
+    ├── train.csv               - train set
+    └── validation_split.csv    - validation split (optional)
 ```
 
 ## Train and Test csv
@@ -37,3 +38,6 @@ This is a config file example.
     "mean_time_survival": 800
 }
 ```
+
+## Validation split 
+This is a data frame of one column filled with booleans indicating the row to use for validation set in the `train.csv` file. In practice, we make sure that there isn't any patient with EHR both in training and validation. 
