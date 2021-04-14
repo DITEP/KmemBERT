@@ -35,13 +35,14 @@ def main(args):
     model = HealthBERT("cpu", config)
     file_to_classify = pd.read_csv(config.data_folder, nrows = config.nrows)
     text_to_classify = file_to_classify.Texte
+    print(text_to_classify)
 
     #text_to_classify = ["il va bientôt mourir", "Le patient va très bien, son corps se comporte bien, il va bientôt guérir","Aujourd'hui, il y a eu une très grande amélioration de l'état du patient","Le patient va mourir en moins d'une semaine, c'est alertant"]
     class_names = ["Moins de trois mois", "Plus de trois mois"]
 
     explainer = LimeTextExplainer(class_names=class_names)
 
-    exp = explainer.explain_instance(text_to_classify[0], predict, num_features=15,num_samples=100)
+    exp = explainer.explain_instance(text_to_classify[0], predict, num_features=15,num_samples=510)
     print(exp.as_list())
 
 
