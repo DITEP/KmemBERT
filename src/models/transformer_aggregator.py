@@ -29,6 +29,8 @@ class TransformerAggregator(ModelInterface):
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.d_model, nhead=self.nhead)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.num_layers)
 
+        self.fc = nn.Linear(self.d_model, self.d_model)
+
         self.out_proj = nn.Sequential(
             nn.Linear(self.d_model, self.d_model),
             nn.ReLU(inplace=True),
@@ -81,7 +83,7 @@ class TransformerAggregator(ModelInterface):
 
     def forward(self, outputs, dt):
         positional_encoding = self.t2v(dt[:, None])
-        x = outputs + positional_encoding
+        x = self.fc(outputs) + positional_encoding
         x = self.transformer_encoder(x[None, :])
         x = self.out_proj(x[0, -1])
         return x
