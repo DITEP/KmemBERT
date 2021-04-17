@@ -55,7 +55,6 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         total_loss += loss.item()
     
     mean_loss = total_loss/(config.batch_size*len(test_loader))
-    print(f"    {'Validation' if validation else 'Test'} loss: {mean_loss:.2f}")
 
     if test_losses is not None:
         test_losses.append(mean_loss)

@@ -140,9 +140,7 @@ class HealthBERT(ModelInterface):
             loss
             camembert outputs
         """
-        encoding_start_time = time()
         encoding = self.tokenizer(list(texts), return_tensors='pt', padding=True, truncation=True)
-        self.encoding_time += time()-encoding_start_time
 
         input_ids = encoding['input_ids'].to(self.device)
         attention_mask = encoding['attention_mask'].to(self.device)
@@ -151,9 +149,7 @@ class HealthBERT(ModelInterface):
                 labels = labels.type(torch.FloatTensor)
             labels = labels.to(self.device)
 
-        compute_start_time = time()
         outputs = self(input_ids, attention_mask=attention_mask, labels=(labels if self.mode == 'classif' else None), output_hidden_states=output_hidden_states)
-        self.compute_time += time()-compute_start_time
 
         if output_hidden_states: return outputs.hidden_states[-1][:,0,:]
 

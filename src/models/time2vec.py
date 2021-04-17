@@ -8,11 +8,11 @@ class Time2Vec(nn.Module):
 
     Please see https://arxiv.org/pdf/1907.05321.pdf
     """
-    def __init__(self, d_model):
+    def __init__(self, time_dim):
         super(Time2Vec, self).__init__()
 
-        self.d_model = d_model
-        self.linear = nn.Linear(1, self.d_model)
+        self.time_dim = time_dim
+        self.linear = nn.Linear(1, self.time_dim)
 
     def forward(self, t):
         """

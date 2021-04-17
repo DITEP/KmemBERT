@@ -13,23 +13,22 @@ from .time2vec import Time2Vec
 
 class TransformerAggregator(ModelInterface):
     mode = 'multi'
+    camembert_d_model = 768
 
-    def __init__(self, device, config, d_model, nhead, num_layers, out_dim):
+    def __init__(self, device, config, nhead, num_layers, out_dim, time_dim):
         super(TransformerAggregator, self).__init__(device, config)
 
-        self.d_model = d_model
+        self.d_model = self.camembert_d_model + time_dim
         self.nhead = nhead
         self.num_layers = num_layers
         self.out_dim = out_dim
 
         assert self.out_dim in [1, 2], f'TransformerAggregator out_dim should be 1 or 2. Found {out_dim}.'
 
-        self.t2v = Time2Vec(self.d_model)
+        self.t2v = Time2Vec(time_dim)
 
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.d_model, nhead=self.nhead)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.num_layers)
-
-        self.fc = nn.Linear(self.d_model, self.d_model)
 
         self.out_proj = nn.Sequential(
             nn.Linear(self.d_model, self.d_model),
@@ -82,8 +81,8 @@ class TransformerAggregator(ModelInterface):
         return loss, output
 
     def forward(self, outputs, dt):
-        positional_encoding = self.t2v(dt[:, None])
-        x = self.fc(outputs) + positional_encoding
+        time_encoding = self.t2v(dt[:, None])
+        x = torch.cat([outputs, time_encoding], dim=1)
         x = self.transformer_encoder(x[None, :])
         x = self.out_proj(x[0, -1])
         return x

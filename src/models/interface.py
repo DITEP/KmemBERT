@@ -29,15 +29,6 @@ class ModelInterface(nn.Module):
         self.config = config
         self.best_loss = np.inf
         self.early_stopping = 0
-        self.start_epoch_timers()
-
-    def start_epoch_timers(self):
-        """
-        Starts timers at the beginning of an epoch.
-        It is automatically incremented and printed during training
-        """
-        self.encoding_time = 0
-        self.compute_time = 0
 
     def initialize_scheduler(self, epochs=0, train_loader=[]):
         """

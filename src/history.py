@@ -32,8 +32,7 @@ def main(args):
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate_fn)
 
     if args.aggregator == 'transformer':
-        camembert_d_model = 768
-        model = TransformerAggregator(device, config, camembert_d_model, args.nhead, args.num_layers, args.out_dim)
+        model = TransformerAggregator(device, config, args.nhead, args.num_layers, args.out_dim, args.time_dim)
         train_and_validate(model, train_loader, test_loader, device, config, config.path_result)  
 
     elif args.aggregator == 'sanity_check_transformer':
@@ -81,5 +80,7 @@ if __name__ == "__main__":
         help="number of transformer layers")
     parser.add_argument("-od", "--out_dim", type=int, default=2, 
         help="trasnformer out_dim (1 regression or 2 density)")
+    parser.add_argument("-td", "--time_dim", type=int, default=8, 
+        help="trasnformer time_dim")
 
     main(parser.parse_args())
