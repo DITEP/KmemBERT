@@ -66,6 +66,7 @@ class TransformerAggregator(ModelInterface):
         if self.out_dim == 2:
             mu, log_var = output[0], output[1]
             mu = torch.sigmoid(mu)
+            log_var = log_var.clamp(-3, 1)
             loss = log_var + (label - mu)**2/torch.exp(log_var)
             output = (mu, log_var)
         else:

@@ -35,7 +35,8 @@ def label_to_time_survival(label, mean_time_survival):
     """
     Transforms labels in ]0,1[ into times of survival
     """
-    return - mean_time_survival*np.log(1-label)
+    return - mean_time_survival*np.log(
+        np.clip(1-label, a_min=1e-5, a_max=1))
 
 def shift_predictions(mus, mean_time_survival, shift):
     """

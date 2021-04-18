@@ -139,7 +139,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
 
     metrics = {}
     metrics["correlation"] = np.corrcoef(predictions, test_labels)[0,1]
-    metrics["MAE"] = np.mean(np.abs(predictions - test_labels))
+    metrics["label_mae"] = np.mean(np.abs(predictions - test_labels))
     
     for days in [30,90,180,270,360]:
         label = time_survival_to_label(days, config.mean_time_survival)
@@ -173,7 +173,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         print("Classification metrics:\n", metrics)
 
     save_json(path_result, 'results', 
-        {'get_error': error,
+        {'mae': error,
         'mean_loss': mean_loss,
         'metrics': metrics,
         'ape_per_quantile': ape_per_quantile})
