@@ -152,10 +152,11 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         metrics[days]['accuracy'] = accuracy_score(bin_labels, bin_predictions)
         metrics[days]['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
         metrics[days]['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
-        metrics['auc'] = roc_auc_score(bin_labels, bin_predictions).tolist()
         
     try:
+        # Error when only one class (in practice it happens only on the `ehr` sanity-check dataset)
         # For 360 days
+        metrics['auc'] = roc_auc_score(bin_labels, bin_predictions).tolist()
         fpr, tpr, _ = roc_curve(bin_labels, bin_predictions)
 
         plt.plot(fpr, tpr)
