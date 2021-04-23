@@ -10,7 +10,7 @@ import argparse
 from time import time
 import matplotlib.pyplot as plt
 from collections import defaultdict
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, roc_curve
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, roc_curve, r2_score
 import seaborn as sns
 import torch
 from torch.utils.data import DataLoader
@@ -140,6 +140,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     metrics = {}
     metrics["correlation"] = np.corrcoef(predictions, test_labels)[0,1]
     metrics["label_mae"] = np.mean(np.abs(predictions - test_labels))
+    metrics["r2_score"] = r2_score(test_labels, predictions)
     
     for days in [30,90,180,270,360]:
         label = time_survival_to_label(days, config.mean_time_survival)
@@ -151,11 +152,11 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         metrics[days]['accuracy'] = accuracy_score(bin_labels, bin_predictions)
         metrics[days]['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
         metrics[days]['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
+        metrics['auc'] = roc_auc_score(bin_labels, bin_predictions).tolist()
         
     try:
-        metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
-
-        fpr, tpr, _ = roc_curve(bin_labels, predictions)
+        # For 360 days
+        fpr, tpr, _ = roc_curve(bin_labels, bin_predictions)
 
         plt.plot(fpr, tpr)
         plt.plot([0,1], [0,1], 'r--')
