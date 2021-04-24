@@ -84,6 +84,6 @@ class TransformerAggregator(ModelInterface):
     def forward(self, outputs, dt):
         time_encoding = self.t2v(dt[:, None])
         x = torch.cat([outputs, time_encoding], dim=1)
-        x = self.transformer_encoder(x[None, :])
-        x = self.out_proj(x[0, -1])
+        x = self.transformer_encoder(x[:, None, :])
+        x = self.out_proj(x[-1, 0])
         return x
