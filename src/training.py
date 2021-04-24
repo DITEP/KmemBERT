@@ -66,7 +66,7 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
 
             if (i+1) % config.print_every_k_batch == 0:
                 average_loss = k_batch_loss / n_samples
-                print(f'    [{i+1-config.print_every_k_batch}-{i+1}]  -  Average loss: {average_loss:.4f}  -  Time elapsed: {pretty_time(time()-k_batch_start_time)}')
+                print(f'    [{i+1-config.print_every_k_batch}-{i+1}]  -  Average loss: {average_loss:.6f}  -  Time elapsed: {pretty_time(time()-k_batch_start_time)}')
                 losses[epoch].append(average_loss)
                 k_batch_loss = 0
                 k_batch_start_time = time()
