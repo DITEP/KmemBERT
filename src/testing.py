@@ -60,7 +60,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         test_losses.append(mean_loss)
 
     error = get_error(test_labels, predictions, config.mean_time_survival)
-    printc(f"    {'Validation' if validation else 'Test'} | MAE: {int(error)} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
+    printc(f"    {'Validation' if validation else 'Test'} | MAE: {int(error)} days - Global average loss: {mean_loss:.6f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if validation:
         if mean_loss < model.best_loss:

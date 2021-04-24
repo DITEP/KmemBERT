@@ -74,7 +74,7 @@ def train_and_validate(model, train_loader, validation_loader, device, config, p
         train_error = get_error(train_labels, predictions, config.mean_time_survival)
 
         mean_loss = epoch_loss/len(train_loader.dataset)
-        printc(f'    Training   | MAE: {int(train_error)} days - Global average loss: {mean_loss:.4f} - Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
+        printc(f'    Training   | MAE: {int(train_error)} days - Global average loss: {mean_loss:.6f} - Time elapsed: {pretty_time(time()-epoch_start_time)}\n', 'RESULTS')
         if train_only:
             """
             We won't evaluate the model on the validation set.
