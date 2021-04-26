@@ -15,7 +15,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error, accuracy_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error, balanced_accuracy_score, roc_auc_score, f1_score
 
 from .utils import get_root, get_label
 from .preprocesser import EHRPreprocesser
@@ -61,6 +61,7 @@ def main(args):
     print("Lauching training... {} chosen as decoder with tf idf min count {}".format(args.model, args.min_tf))
 
     ehr_regressor.fit(texts["train"], labels["train"])
+    print("Vocabualry size : {}".format(len(ehr_regressor['tfidf'].vocabulary_)))
 
     predictions = ehr_regressor.predict(texts["val"])
     rmse = mean_squared_error(labels["val"], predictions)**0.5
@@ -71,9 +72,14 @@ def main(args):
     d_for_accuracy = 365
     bin_predictions = (predictions >= d_for_accuracy).astype(int)
     bin_labels = (labels["val"] >= d_for_accuracy).astype(int)
-    acc = accuracy_score(bin_labels, bin_predictions)
+    acc = balanced_accuracy_score(bin_labels, bin_predictions)
+    f1 = f1_score(bin_labels, bin_predictions, average=None).tolist()
+    try:
+        auc = roc_auc_score(bin_labels, bin_predictions).tolist()
+    except:
+        auc = None
 
-    print("RMSE validation set : {}\tMAE : {}\tAccuracy : {}\tCorrelation : {}".format(round(rmse,1), round(mae,1), round(acc*100,1), round(corr,4)))
+    print("RMSE validation set : {}\tMAE : {}\tBalanced Accuracy : {}\tCorrelation : {}\tF1 : {}\tAUC : {}\t".format(round(rmse,1), round(mae,1), round(acc*100,1), round(corr,4), f1, auc))
 
     # Save the model
     path_to_save = os.path.join(path_root, args.folder_to_save)
