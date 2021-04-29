@@ -26,8 +26,8 @@ class SanityCheck(ModelInterface):
 
 class SanityCheckTransformer(ModelInterface):
     """
-    Does nothing except returning Health Bert predictions 
-    It should have the same score than the loaded checkpoint
+    Sanity check for the TransformerAggregator inputs
+    It should learn pretty fast and get the results of the loaded model
 
     This model uses the multi ehr dataset instead of the usual one
     """

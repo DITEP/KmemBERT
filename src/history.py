@@ -19,6 +19,8 @@ def main(args):
     """
     path_dataset, _, device, config = create_session(args)
 
+    assert (768 + args.time_dim) % args.nhead == 0, f'd_model (i.e. 768 + time_dim) must be divisible by nhead. Found time_dim {args.time_dim} and nhead {args.nhead}'
+
     config.label_threshold = get_label_threshold(config, path_dataset)
 
     if not args.aggregator in ['conflation', 'sanity_check']:
