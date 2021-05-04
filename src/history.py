@@ -81,8 +81,8 @@ if __name__ == "__main__":
     parser.add_argument("-nl", "--num_layers", type=int, default=2, 
         help="number of transformer layers")
     parser.add_argument("-od", "--out_dim", type=int, default=2, 
-        help="trasnformer out_dim (1 regression or 2 density)")
+        help="transformer out_dim (1 regression or 2 density)")
     parser.add_argument("-td", "--time_dim", type=int, default=8, 
-        help="trasnformer time_dim")
+        help="transformer time_dim")
 
     main(parser.parse_args())

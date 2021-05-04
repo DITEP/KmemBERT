@@ -90,7 +90,7 @@ class PredictionsDataset(EHRDataset):
         for i, noigr in enumerate(self.df.Noigr.values):
             self.noigr_to_indices[noigr].append(i)
             self.length += 1
-            if self.config.nrows and self.length == self.config.nrows:
+            if self.config.nrows and self.length == self.config.nrows and not hasattr(self, 'load_full'):
                 break
 
         for noigr, indices in self.noigr_to_indices.items():
@@ -105,6 +105,7 @@ class PredictionsDataset(EHRDataset):
         if self.output_hidden_states and os.path.exists(os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')):
             print('Existing predictions saved - not loading health bert')
             self.config.mode = "classif"
+            self.load_full = True
             return
 
         if PredictionsDataset.health_bert is None:

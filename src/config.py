@@ -18,7 +18,7 @@ class Config:
     mode = None
     print_every_k_batch = 8
     nrows = None
-    batch_size = 64
+    batch_size = 1
     learning_rate = 1e-5
     epochs = 20
     freeze = False

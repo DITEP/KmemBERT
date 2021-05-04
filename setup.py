@@ -4,13 +4,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="ehr-package-IGRxCS",
+    name="kmembert",
     version="0.0.1",
     author="CentraleSupelec",
-    description="Transformers for EHRs",
+    description="Transformers for medical reports",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    package_dir={"": "src"},
-    packages=setuptools.find_packages(where="src"),
+    packages=setuptools.find_packages(),
     python_requires=">=3.7",
 )
