@@ -200,7 +200,7 @@ def main(args):
         config.max_ehrs = training_args['max_ehrs']
 
         if aggregator == 'transformer':
-            model = TransformerAggregator(device, config, 768, training_args['nhead'], training_args['num_layers'], training_args['out_dim'])
+            model = TransformerAggregator(device, config, training_args['nhead'], training_args['num_layers'], training_args['out_dim'], training_args['time_dim'])
             model.initialize_scheduler()
             model.resume(config)
 
