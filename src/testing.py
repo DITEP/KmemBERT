@@ -213,7 +213,7 @@ def main(args):
 
     if model.mode == 'multi':
         config.resume = training_args['resume']
-        dataset = PredictionsDataset(path_dataset, config, train=False, device=device)
+        dataset = PredictionsDataset(path_dataset, config, train=False, device=device, output_hidden_states=(aggregator == 'transformer'))
         loader = DataLoader(dataset, batch_size=config.batch_size, collate_fn=collate_fn)
     else:
         dataset = EHRDataset(path_dataset, config, train=False)
