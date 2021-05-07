@@ -90,7 +90,7 @@ class PredictionsDataset(EHRDataset):
         for i, noigr in enumerate(self.df.Noigr.values):
             self.noigr_to_indices[noigr].append(i)
             self.length += 1
-            if self.config.nrows and self.length == self.config.nrows and not hasattr(self, 'load_full'):
+            if self.config.nrows and self.length == self.config.nrows: # and not hasattr(self, 'load_full'):
                 break
 
         for noigr, indices in self.noigr_to_indices.items():
@@ -102,11 +102,11 @@ class PredictionsDataset(EHRDataset):
 
     def load_health_bert(self):
         #TODO: remove after tested transformer_aggregator
-        if self.output_hidden_states and os.path.exists(os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')):
-            print('Existing predictions saved - not loading health bert')
-            self.config.mode = "classif"
-            self.load_full = True
-            return
+        # if self.output_hidden_states and os.path.exists(os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')):
+        #     print('Existing predictions saved - not loading health bert')
+        #     self.config.mode = "classif"
+        #     self.load_full = True
+        #     return
 
         if PredictionsDataset.health_bert is None:
             if self.output_hidden_states:
@@ -119,13 +119,13 @@ class PredictionsDataset(EHRDataset):
     def compute_prediction(self):
         path = os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')
         #TODO: remove after tested transformer_aggregator
-        if self.output_hidden_states and os.path.exists(path):
-            with open(path, 'r') as f:
-                self.noigr_to_outputs = json.load(f)
-                self.noigr_to_outputs = {int(k): v for k, v in self.noigr_to_outputs.items()}
-                print('Loaded predictions')
-                PredictionsDataset.suffix = 'val'
-                return
+        # if self.output_hidden_states and os.path.exists(path):
+        #     with open(path, 'r') as f:
+        #         self.noigr_to_outputs = json.load(f)
+        #         self.noigr_to_outputs = {int(k): v for k, v in self.noigr_to_outputs.items()}
+        #         print('Loaded predictions')
+        #         PredictionsDataset.suffix = 'val'
+        #         return
 
         printc('\nComputing Health Bert predictions...', 'INFO')
         self.noigr_to_outputs = defaultdict(list)
@@ -137,11 +137,11 @@ class PredictionsDataset(EHRDataset):
         printc(f'Successfully computed {self.length} Health Bert outputs\n', 'SUCCESS')
 
         #TODO: remove after tested transformer_aggregator
-        if self.output_hidden_states:
-            with open(path, 'w') as f:
-                print('> Saved')
-                json.dump(self.noigr_to_outputs, f)
-            PredictionsDataset.suffix = 'val'
+        # if self.output_hidden_states:
+        #     with open(path, 'w') as f:
+        #         print('> Saved')
+        #         json.dump(self.noigr_to_outputs, f)
+        #     PredictionsDataset.suffix = 'val'
 
     def __getitem__(self, index):
         noigr, k = self.index_to_ehrs[index]
