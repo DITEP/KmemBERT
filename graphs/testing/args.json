@@ -1,0 +1,8 @@
+{
+    "data_folder": "ehr_dataset_v4",
+    "resume": "kmembert-T2",
+    "days_threshold": 365,
+    "batch_size": 8,
+    "nrows": null,
+    "path_result": "/home/lverlingue/EHR_Transformers/results/testing_21-05-08_01h58m41s"
+}
