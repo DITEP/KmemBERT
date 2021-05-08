@@ -1,4 +1,4 @@
-# EHR_Transformers
+# K-memBERT
 
 Estimation of cancer patients survival time based on french medical reports and using Transformers
 
@@ -15,8 +15,18 @@ pip install -r requirements.txt
 Before to continue, please make sure the following command line is correctly running. If it runs until printing "DONE" then you can move on to the next section.
 
 ```
-python -m src.training
+python -m kmembert.training
 ```
+
+## Installing the kmembert package
+
+If you want so, you can install the package using pip, else move on to the next section. At the root of the project, install it via pip:
+
+`sudo pip install .`
+
+Or in dev mode
+
+`sudo pip install -e .`
 
 ## Project structure
 
@@ -32,7 +42,7 @@ The main files and folders are briefly described below. Some files that don't ne
 │   └── ...
 ├── graphs       - folder storing graphs and data viz
 │   └── ...
-└── src                          - python package
+└── kmembert                          - python package
     ├── models
     │   ├── conflation.py        - conflation of multiple ehrs
     │   ├── health_bert.py       - main transformer model
@@ -69,7 +79,7 @@ For more details, see `./data/README.md`.
 
 ## Preprocessing
 
-Many scripts are available under `./src/preprocessing` and all deals with preprocessing. The preprocessing pipeline is described below.
+Many scripts are available under `./kmembert/preprocessing` and all deals with preprocessing. The preprocessing pipeline is described below.
 
 1. `concatenate_files.py`
 
@@ -113,10 +123,10 @@ It retrains a pre-trained camembert model on a given csv dataset for a classific
 It creates a folder in `./results` where results are saved. See `./results/README.md` for more details.
 
 ```
-python -m src.training <command-line-arguments>
+python -m kmembert.training <command-line-arguments>
 ```
 
-Execute `python -m src.training -h` to know more about all the possible command line parameters (see below).
+Execute `python -m kmembert.training -h` to know more about all the possible command line parameters (see below).
 
 ```
   -h, --help
@@ -156,26 +166,26 @@ Execute `python -m src.training -h` to know more about all the possible command 
 For example, the following command line gets the csv files inside `./data/ehr`, uses the first 10,000 rows, and uses the density mode.
 
 ```
-python -m src.training --data_folder ehr --nrows 10000 --mode density
+python -m kmembert.training --data_folder ehr --nrows 10000 --mode density
 ```
 
 ## Other scripts
 
 You can also execute the following scripts:
-- `src.preprocessing.<every-file>` runs preprocessing (every file under preprocessing can be run)
-- `src.history` runs a multi-ehr model
-- `src.testing` tests a model
-- `src.hyperoptimization` runs hyperoptimization
-- `src.baseline` runs the baseline
-- `src.predict` runs the model on a few samples
+- `kmembert.preprocessing.<every-file>` runs preprocessing (every file under preprocessing can be run)
+- `kmembert.history` runs a multi-ehr model
+- `kmembert.testing` tests a model
+- `kmembert.hyperoptimization` runs hyperoptimization
+- `kmembert.baseline` runs the baseline
+- `kmembert.predict` runs the model on a few samples
 
 Using the following command line
 
 ```
-python -m src.<filename> <command-line-arguments>
+python -m kmembert.<filename> <command-line-arguments>
 ```
 
-Execute `python -m src.<filename> -h` to know more about all the possible command line parameters.
+Execute `python -m kmembert.<filename> -h` to know more about all the possible command line parameters.
 
 ## Testing
 
