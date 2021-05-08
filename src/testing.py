@@ -155,9 +155,10 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
         
     try:
         # Error when only one class (in practice it happens only on the `ehr` sanity-check dataset)
-        # For 360 days
-        metrics['auc'] = roc_auc_score(bin_labels, bin_predictions).tolist()
-        fpr, tpr, _ = roc_curve(bin_labels, bin_predictions)
+        
+        bin_labels = (test_labels >= 0.5).astype(int)
+        metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
+        fpr, tpr, _ = roc_curve(bin_labels, predictions)
 
         plt.plot(fpr, tpr)
         plt.plot([0,1], [0,1], 'r--')
