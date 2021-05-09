@@ -45,7 +45,7 @@ def shift_predictions(mus, mean_time_survival, shift):
     """
     time_survival = - mean_time_survival*torch.log(1-mus)
     time_survival -= shift
-    return (1 - torch.exp(-time_survival/mean_time_survival)).clip(0, 1)
+    return (1 - torch.exp(-time_survival/mean_time_survival)).clamp(0, 1)
 
 bcolors = {
     'RESULTS': '\033[95m',

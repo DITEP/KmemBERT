@@ -72,10 +72,6 @@ def main(args):
 
     Inputs: please refer bellow, to the argparse arguments.
     """
-    if args.parallel_apply:
-        from pandarallel import pandarallel
-        pandarallel.initialize(progress_bar=True)
-
     nlp = spacy.load('fr_core_news_sm')
 
     corrector = get_corrector(args)
@@ -99,10 +95,7 @@ def main(args):
         df = pd.read_csv(path_csv)
         text_corrector.reset()
 
-        if args.parallel_apply:
-            df["Texte"] = df["Texte"].parallel_apply(lambda text: text_corrector(text))
-        else:
-            df["Texte"] = df["Texte"].progress_apply(text_corrector)
+        df["Texte"] = df["Texte"].progress_apply(text_corrector)
         
         print('num_corrected_tokens:', text_corrector.num_corrected_tokens)
         print(f"{100*text_corrector.num_corrected_tokens/text_corrector.num_tokens:.2f}% of all / {100*text_corrector.num_corrected_tokens/text_corrector.num_long_tokens:.2f}% of long tokens")
@@ -122,8 +115,6 @@ if __name__ == "__main__":
         help="distance parameter")
     parser.add_argument("-mtl", "--min_token_length", type=int, default=5, 
         help="min token length to be corrected")
-    parser.add_argument("-pa", "--parallel_apply", type=bool, default=False, const=True, nargs="?", 
-        help="use parallel_apply (usually slower)")
     
     args = parser.parse_args()
     print(f"\n> args:\n{json.dumps(vars(args), sort_keys=True, indent=4)}\n")

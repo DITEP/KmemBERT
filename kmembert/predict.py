@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import os
 
 from .models import HealthBERT
-from .config import Config
 from .utils import create_session
 
 
