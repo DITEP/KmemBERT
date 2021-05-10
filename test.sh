@@ -24,53 +24,53 @@ function checkError(){
 
 # Test baseline
 echo "$(tput setaf 3)TESTING BASELINE...$(tput sgr0)"
-python -m src.baseline -d ehr -mtf 1 > test_output_tmp.txt
+python -m kmembert.baseline -d ehr -mtf 1 > test_output_tmp.txt
 checkError
 
 
 # Test training and resume - density
 echo "$(tput setaf 3)TESTING DENSITY TRAINING...$(tput sgr0)"
-python -m src.training -d ehr -m density >> test_output_tmp.txt
+python -m kmembert.training -d ehr -m density >> test_output_tmp.txt
 checkError
 RESUME_DENSE=$(ls -t results | head -1)
-python -m src.training -d ehr -m density -r "${RESUME_DENSE}" >> test_output_tmp.txt
+python -m kmembert.training -d ehr -m density -r "${RESUME_DENSE}" >> test_output_tmp.txt
 checkError
 
 # Test training and resume - regression
 echo "$(tput setaf 3)TESTING REGRESSION TRAINING...$(tput sgr0)"
-python -m src.training -d ehr -m regression >> test_output_tmp.txt
+python -m kmembert.training -d ehr -m regression >> test_output_tmp.txt
 checkError
 RESUME_REG=$(ls -t results | head -1)
-python -m src.training -d ehr -m regression -r "${RESUME_REG}" >> test_output_tmp.txt
+python -m kmembert.training -d ehr -m regression -r "${RESUME_REG}" >> test_output_tmp.txt
 checkError
 
 # Test testing
 echo "$(tput setaf 3)TESTING TESTING...$(tput sgr0)"
-python -m src.testing -d ehr -r "${RESUME_REG}" >> test_output_tmp.txt
+python -m kmembert.testing -d ehr -r "${RESUME_REG}" >> test_output_tmp.txt
 checkError
 
 # Test history
 echo "$(tput setaf 3)TESTING HISTORY (REGRESSION - CONFLATION)...$(tput sgr0)"
-python -m src.history -d ehr -r "${RESUME_REG}" -a conflation >> test_output_tmp.txt
+python -m kmembert.history -d ehr -r "${RESUME_REG}" -a conflation >> test_output_tmp.txt
 checkError
 
 echo "$(tput setaf 3)TESTING HISTORY (REGRESSION - TRANSFORMER)...$(tput sgr0)"
-python -m src.history -d ehr -r "${RESUME_DENSE}" -a transformer >> test_output_tmp.txt
+python -m kmembert.history -d ehr -r "${RESUME_DENSE}" -a transformer >> test_output_tmp.txt
 checkError
 
 if [[ $1 == "long" ]]; then
     echo "$(tput setaf 3)TESTING HISTORY (DENSITY - CONFLATION)...$(tput sgr0)"
-    python -m src.history -d ehr -r "${RESUME_REG}" -a transformer >> test_output_tmp.txt
+    python -m kmembert.history -d ehr -r "${RESUME_REG}" -a transformer >> test_output_tmp.txt
     checkError
 
     echo "$(tput setaf 3)TESTING HISTORY (DENSITY - TRANSFORMER)...$(tput sgr0)"
-    python -m src.history -d ehr -r "${RESUME_DENSE}" -a conflation >> test_output_tmp.txt
+    python -m kmembert.history -d ehr -r "${RESUME_DENSE}" -a conflation >> test_output_tmp.txt
     checkError
 fi
 
 # Test hyperoptimization
 echo "$(tput setaf 3)TESTING HYPEROPTIMIZATION...$(tput sgr0)"
-python -m src.hyperoptimization -d ehr -n 2 -e 2 >> test_output_tmp.txt
+python -m kmembert.hyperoptimization -d ehr -n 2 -e 2 >> test_output_tmp.txt
 checkError
 
 echo "$(tput setaf 3)TESTING FINISHED: ${PASSED}/${TEST} PASSED$(tput sgr0)"
