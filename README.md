@@ -1,4 +1,4 @@
-# K-memBERT
+# KmemBERT
 
 Estimation of cancer patients survival time based on french medical reports and using Transformers
 
