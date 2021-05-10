@@ -6,6 +6,9 @@ results/*
 !results/.gitkeep
 !results/README.md
 
+test_output_tmp.txt
+baseline
+
 # exploration
 exploration/*
 
