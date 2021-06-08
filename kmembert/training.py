@@ -158,5 +158,7 @@ if __name__ == "__main__":
         help="result folder in which the saved checkpoint will be reused")
     parser.add_argument("-p", "--patience", type=int, default=4, 
         help="number of decreasing accuracy epochs to stop the training")
+    parser.add_argument("-pd", "--path_dataset", type=str, default=None, 
+        help="custom path to the dataset, in case the data folder wouldn't be in KmemBERT/data/")
 
     main(parser.parse_args())

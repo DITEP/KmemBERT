@@ -97,7 +97,7 @@ def create_session(args):
     path_root = get_root()
     printc(f"> ROOT:    {path_root}", "INFO")
 
-    path_dataset = os.path.join(path_root, "data", args.data_folder)
+    path_dataset = args.path_dataset or os.path.join(path_root, "data", args.data_folder)
 
     main_file = os.path.splitext(os.path.basename(sys.argv[0]))[0]
     session_id = f"{main_file}_{now()}"
