@@ -80,13 +80,17 @@ print(f"{df.shape[0]} rows left")
 df = df[df["Date cr"]<df["Date deces"]]
 print(f"{df.shape[0]} rows left")
 # 1342860
+n_truncated = df["Texte"].progress_apply(lambda t: len(t.split())>=max_words-1).sum()
+print(f"{n_truncated} texts were truncated because they had more than {max_words} words")
 
 # Shuffle
 df = df.sample(frac=1).reset_index(drop=True)
 
 # Split
 noigrs = pd.unique(df["Noigr"])
+print(f"{len(noigrs)} patients in the dataset")
 train_noigrs, test_noigrs = train_test_split(noigrs, train_size=train_size, random_state=seed)
+print(f"Train : {len(train_noigrs)} - Test : {len(test_noigrs)}")
 
 train = df[df["Noigr"].isin(train_noigrs)]
 test=df.drop(train.index)
@@ -112,6 +116,8 @@ print("\nTrain samples: {}\nTest samples: {}\nTrain ratio: {}".format(n_train, n
 
 print("\nCreating a validation split...")
 _, validation_noigrs = train_test_split(train_noigrs, test_size=validation_size, random_state=seed)
+print(f"Validation : {len(validation_noigrs)}")
+
 df = pd.read_csv(train_path)
 validation_split = df["Noigr"].isin(validation_noigrs)
 validation_split.rename("validation").to_csv(validation_split_path, index=False)
