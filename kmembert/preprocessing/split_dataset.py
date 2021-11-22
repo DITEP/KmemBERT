@@ -49,10 +49,6 @@ rows = list(filter(lambda x: len(x)==9, [f_line(line) for line in open(file_path
 df = pd.DataFrame(rows[1:], columns=rows[0])
 print(f"df shape: {df.shape}")
 
-print("\nCounting EHR categories...\n")
-counter = df.groupby("Nature doct").count()["Noigr"]
-print(counter)
-
 print("\nFiltering EHR...")
 # 2904066
 # df = df[df["Nature doct"].isin([
@@ -82,6 +78,9 @@ print(f"{df.shape[0]} rows left")
 # 1342860
 n_truncated = df["Texte"].progress_apply(lambda t: len(t.split())>=max_words-1).sum()
 print(f"{n_truncated} texts were truncated because they had more than {max_words} words")
+print("\nCounting EHR categories...\n")
+counter = df.groupby("Nature doct").count()["Noigr"]
+print(counter)
 
 # Shuffle
 df = df.sample(frac=1).reset_index(drop=True)
