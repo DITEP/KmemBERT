@@ -159,3 +159,11 @@ def collate_fn(batch):
     """
     *outputs, dt, label = batch[0]
     return (outputs, torch.tensor(dt).type(torch.float32), torch.tensor([label]).type(torch.float32))
+
+    
+def collate_fn_with_id(batch):
+    """
+    Custom collate function for Predictions Dataset
+    """
+    noigr, *outputs, dt, label = batch[0]
+    return (noigr, outputs, torch.tensor(dt).type(torch.float32), torch.tensor([label]).type(torch.float32))

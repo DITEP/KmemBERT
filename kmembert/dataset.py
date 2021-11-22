@@ -21,11 +21,12 @@ from .models import HealthBERT
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""
 
-    def __init__(self, path_dataset, config, train=True, df=None):
+    def __init__(self, path_dataset, config, train=True, df=None, return_id=False):
         super(EHRDataset, self).__init__()
         self.path_dataset = path_dataset
         self.config = config
         self.train = train
+        self.return_id = return_id
         self.config_path = os.path.join(self.path_dataset, "config.json")
         self.preprocesser = EHRPreprocesser()
 
@@ -48,8 +49,11 @@ class EHRDataset(Dataset):
 
         self.labels = time_survival_to_label(self.survival_times, self.mean_time_survival)
         self.texts = list(self.df["Texte"].astype(str).apply(self.preprocesser))
+        self.noigr = list(self.df["Noigr"])
         
     def __getitem__(self, index):
+        if self.return_id :
+            return self.texts[index], self.noigr[index], self.labels[index], 
         return self.texts[index], self.labels[index]
 
     def __len__(self):
@@ -78,10 +82,11 @@ class PredictionsDataset(EHRDataset):
     health_bert = None
     suffix = 'train'
 
-    def __init__(self, *args, device=None, output_hidden_states=False, **kwargs):
+    def __init__(self, *args, device=None, output_hidden_states=False, return_id=False, **kwargs):
         super(PredictionsDataset, self).__init__(*args, **kwargs)
         self.device = device
         self.output_hidden_states = output_hidden_states
+        self.return_id = return_id
         self.load_health_bert()
 
         self.patients = list(set(self.df.Noigr.values))
@@ -154,15 +159,21 @@ class PredictionsDataset(EHRDataset):
 
         if self.output_hidden_states:
             outputs = torch.tensor(outputs).type(torch.float32)
+            if self.return_id :
+                return (noigr, outputs[:,0,:], dt, label)
             return (outputs[:,0,:], dt, label)
 
         elif self.config.mode == 'density':
             mus = torch.cat([output[0] for output in outputs]).view(-1)
             log_vars = torch.cat([output[1] for output in outputs]).view(-1)
+            if self.return_id :
+                return (noigr, mus, log_vars, dt, label)
             return (mus, log_vars, dt, label)
 
         else:
             mus = torch.cat(outputs).view(-1)
+            if self.return_id :
+                return (noigr, mus, dt, label)
             return (mus, dt, label)
         
     def __len__(self):

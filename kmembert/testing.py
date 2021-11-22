@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 import json
 
 from .dataset import EHRDataset, PredictionsDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error, time_survival_to_label, collate_fn
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error, time_survival_to_label, collate_fn, collate_fn_with_id
 from .models import HealthBERT, TransformerAggregator, Conflation, SanityCheck
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
@@ -26,11 +26,12 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     """
     
     model.eval()
-    predictions, test_labels, stds = [], [], []
+    predictions, test_labels, stds, noigr = [], [], [], []
     test_start_time = time()
 
     total_loss = 0
-    for _, (*data, labels) in enumerate(test_loader):
+    for _, (id, *data, labels) in enumerate(test_loader):
+        noigr.append(id)
         loss, outputs = model.step(*data, labels)
         
         if model.mode == 'classif':
@@ -82,7 +83,7 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             return mean_loss
 
     print('    Saving predictions...')
-    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions, "stds": stds})
+    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions, "stds": stds, "noigr": noigr})
 
     predictions = np.array(predictions)
     test_labels = np.array(test_labels)
@@ -214,10 +215,10 @@ def main(args):
 
     if model.mode == 'multi':
         config.resume = training_args['resume']
-        dataset = PredictionsDataset(path_dataset, config, train=False, device=device, output_hidden_states=(aggregator == 'transformer'))
-        loader = DataLoader(dataset, batch_size=config.batch_size, collate_fn=collate_fn)
+        dataset = PredictionsDataset(path_dataset, config, train=False, device=device, output_hidden_states=(aggregator == 'transformer'), return_id=True)
+        loader = DataLoader(dataset, batch_size=config.batch_size, collate_fn=collate_fn_with_id)
     else:
-        dataset = EHRDataset(path_dataset, config, train=False)
+        dataset = EHRDataset(path_dataset, config, train=False, return_id=True)
         loader = DataLoader(dataset, batch_size=config.batch_size)
 
     test(model, loader, config, config.path_result)
