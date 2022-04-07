@@ -19,8 +19,8 @@ from ..preprocesser import EHRPreprocesser
 
 class TextCorrector:
     def __init__(self, nlp, corrector, min_token_length = 5):
-        self.nlp = nlp
-        self.corrector = corrector
+        self.nlp = nlp # corpus of text (ex: spacy fr)
+        self.corrector = corrector # function which returns corrector
         self.min_token_length = min_token_length
         self.preprocesser = EHRPreprocesser()
         self.reset()
@@ -60,9 +60,29 @@ class TextCorrector:
             self.correction_failed += 1
             return text
 
+def get_args_corrector():
+    """
+    Returns:
+        argparse to execute get_corrector in other function in local
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--data_folder", type=str, default="ehr", 
+        help="data folder name")
+    parser.add_argument("-dict", "--dict_name", type=str, default="fr-100k.txt", 
+        help="french dict path. Please use the default one except if you know what you are doing")
+    parser.add_argument("-dist", "--distance", type=int, default=2, 
+        help="distance parameter")
+    parser.add_argument("-mtl", "--min_token_length", type=int, default=5, 
+        help="min token length to be corrected")
+    
+    args = parser.parse_args("")
+
+    return args
+
 def get_corrector(args):
     sym_spell = SymSpell()
-    dict_path = os.path.join('medical_voc', args.dict_name)
+    #dict_path = os.path.join('medical_voc', args.dict_name)
+    dict_path = os.path.join('medical_voc', "fr-100k.txt")
     sym_spell.load_dictionary(dict_path, term_index=0, count_index=1)
     return lambda word: sym_spell.lookup(word, Verbosity.CLOSEST, max_edit_distance=args.distance, include_unknown=True)[0].term
 
@@ -72,7 +92,9 @@ def main(args):
 
     Inputs: please refer bellow, to the argparse arguments.
     """
+    
     nlp = spacy.load('fr_core_news_sm')
+
 
     corrector = get_corrector(args)
 

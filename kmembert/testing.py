@@ -12,13 +12,14 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score, roc_curve, r2_score
 import seaborn as sns
+import itertools
 import torch
 from torch.utils.data import DataLoader
 import json
 
-from .dataset import EHRDataset, PredictionsDataset
-from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error, time_survival_to_label, collate_fn, collate_fn_with_id
-from .models import HealthBERT, TransformerAggregator, Conflation, SanityCheck
+from .dataset import EHRDataset
+from .utils import pretty_time, printc, create_session, save_json, get_label_threshold, get_error, get_error_IT, time_survival_to_label, collate_fn, collate_fn_with_id
+from .models import CamembertRegressor, TransformerAggregator, Conflation, SanityCheck
 
 def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, validation=False):
     """
@@ -28,40 +29,41 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
     model.eval()
     predictions, test_labels, stds, noigr = [], [], [], []
     test_start_time = time()
-
     total_loss = 0
-    for _, (id, *data, labels) in enumerate(test_loader):
+    test_labels_IT, test_outputs_IT = [], [] # Error per IT
+
+    for id, (*data, labels) in enumerate(test_loader):
         noigr.append(id)
+
+        # Make prediction: Get Loss and Outputs
         loss, outputs = model.step(*data, labels)
+
+        # Stock predictions and labels
+        labels = labels.tolist(); outputs = outputs.tolist();
+
+        # To get error per time interval
+        test_labels_IT += labels
+        test_outputs_IT += outputs
+
+        # To get overall error
+        test_labels += list(itertools.chain(*labels))
+        predictions += list(itertools.chain(*outputs))
         
-        if model.mode == 'classif':
-            predictions += torch.softmax(outputs, dim=1).argmax(axis=1).tolist()
-        elif model.mode == 'regression':
-            predictions += outputs.flatten().tolist()
-        elif model.mode == 'density':
-            mus, log_vars = outputs
-            predictions += mus.tolist()
-            stds += torch.exp(log_vars/2).tolist()
-        elif model.mode == 'multi':
-            if model.config.mode == 'density' or (model.config.mode == 'classif' and model.out_dim == 2):
-                mu, log_var = outputs
-                predictions.append(mu.item())
-                stds.append(torch.exp(log_var/2).item())
-            else:
-                predictions.append(outputs.item())
-        else:
-            raise ValueError(f'Mode {model.mode} unknown')
-        
-        test_labels += labels.tolist()
+        # Compute loss
         total_loss += loss.item()
     
-    mean_loss = total_loss/(config.batch_size*len(test_loader))
+    # Get mean loss and error of the prediction
+    mean_loss = total_loss/len(test_loader)
+
+    # Get overall and per IT error
+    error_test = get_error(np.array(test_labels), np.array(predictions))
+    error_IT_test = get_error_IT(np.array(test_labels_IT), np.array(test_outputs_IT))
+    
 
     if test_losses is not None:
         test_losses.append(mean_loss)
 
-    error = get_error(test_labels, predictions, config.mean_time_survival)
-    printc(f"    {'Validation' if validation else 'Test'} | MAE: {int(error)} days - Global average loss: {mean_loss:.6f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
+    printc(f"    {'Validation' if validation else 'Test'} | Error: {error_test} - Global average loss: {mean_loss:.6f} - Time elapsed: {pretty_time(time()-test_start_time)}\n", 'RESULTS')
 
     if validation:
         if mean_loss < model.best_loss:
@@ -83,107 +85,10 @@ def test(model, test_loader, config, path_result, epoch=-1, test_losses=None, va
             return mean_loss
 
     print('    Saving predictions...')
-    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions, "stds": stds, "noigr": noigr})
-
-    predictions = np.array(predictions)
-    test_labels = np.array(test_labels)
-
-    if len(stds) > 0:
-        n_points = 20
-        resize_factor = 20
-        gaussian_predictions = np.random.normal(predictions, np.array(stds)/resize_factor, size=(n_points, len(predictions))).flatten().clip(0, 1)
-        associated_labels = np.tile(test_labels, n_points)
-        sns.kdeplot(
-            data={'Predictions': gaussian_predictions, 'Labels': associated_labels}, 
-            y='Predictions', x='Labels', clip=((0, 1), (0, 1)),
-            fill=True, thresh=0, levels=100, cmap="mako",
-        )
-        plt.title('Prediction distributions over labels')
-        plt.savefig(os.path.join(path_result, "correlations_distributions.png"))
-        plt.close()
-
-        plt.scatter(test_labels, stds, s=0.1, alpha=0.5)
-        plt.xlabel("Label")
-        plt.ylabel("Standard Deviations")
-        plt.xlim(0, 1)
-        plt.ylim(0, max(stds))
-        plt.title("Labels and corresponding standard deviations")
-        plt.savefig(os.path.join(path_result, "stds.png"))
-        plt.close()
-
-    all_errors = get_error(test_labels, predictions, config.mean_time_survival, mean=False)
-
-    plt.scatter(test_labels, all_errors, s=0.1, alpha=0.5)
-    plt.xlabel("Labels")
-    plt.ylabel("MAE")
-    plt.xlim(0, 1)
-    plt.ylim(0, max(all_errors))
-    plt.title("MAE distribution")
-    plt.savefig(os.path.join(path_result, "mae_distribution.png"))
-    plt.close()
-
-    plt.scatter(test_labels, predictions, s=0.1, alpha=0.5)
-    plt.xlabel("Labels")
-    plt.ylabel("Predictions")
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
-    plt.title("Predictions / Labels correlation")
-    plt.savefig(os.path.join(path_result, "correlations.png"))
-    plt.close()
-
-    errors_dict = defaultdict(list)
-    for mae, label in zip(all_errors.tolist(), test_labels.tolist()):
-        quantile = np.floor(label*10)
-        errors_dict[quantile].append(mae)
-    ape_per_quantile = sorted([(quantile, np.mean(l), np.std(l)) for quantile, l in errors_dict.items()])
+    save_json(path_result, "test", {"labels": test_labels, "predictions": predictions})
 
 
-    metrics = {}
-    metrics["correlation"] = np.corrcoef(predictions, test_labels)[0,1]
-    metrics["label_mae"] = np.mean(np.abs(predictions - test_labels))
-    metrics["r2_score"] = r2_score(test_labels, predictions)
-    
-    for days in [30,90,180,270,360]:
-        label = time_survival_to_label(days, config.mean_time_survival)
-        bin_predictions = (predictions >= label).astype(int)
-        bin_labels = (test_labels >= label).astype(int)
-        
-        days = f"{days} days"
-        metrics[days] = {}
-        metrics[days]['accuracy'] = accuracy_score(bin_labels, bin_predictions)
-        metrics[days]['balanced_accuracy'] = balanced_accuracy_score(bin_labels, bin_predictions)
-        metrics[days]['f1_score'] = f1_score(bin_labels, bin_predictions, average=None).tolist()
-        
-    try:
-        # Error when only one class (in practice it happens only on the `ehr` sanity-check dataset)
-        
-        bin_labels = (test_labels >= 0.5).astype(int)
-        metrics['auc'] = roc_auc_score(bin_labels, predictions).tolist()
-        fpr, tpr, _ = roc_curve(bin_labels, predictions)
-
-        plt.plot(fpr, tpr)
-        plt.plot([0,1], [0,1], 'r--')
-        plt.xlabel("False Positive rate")
-        plt.ylabel("True Positive rate")
-        plt.xlim(0, 1)
-        plt.ylim(0, 1)
-        plt.title("ROC curve")
-        plt.savefig(os.path.join(path_result, "roc_curve.png"))
-        plt.close()
-    except:
-        printc("    Error while computing ROC curve", "WARNING")
-
-    if not validation:
-        print("Classification metrics:\n", metrics)
-
-    save_json(path_result, 'results', 
-        {'mae': error,
-        'mean_loss': mean_loss,
-        'metrics': metrics,
-        'ape_per_quantile': ape_per_quantile})
-
-    print(f"    (Ended {'validation' if validation else 'testing'})\n")
-    return mean_loss
+    return mean_loss, error_test, error_IT_test
 
 
 
@@ -196,7 +101,7 @@ def main(args):
         training_args = json.load(json_file)
 
     if 'mode' in training_args.keys():
-        model = HealthBERT(device, config)
+        model = CamembertRegressor(device, config)
     else:
         aggregator = training_args['aggregator']
         config.max_ehrs = training_args['max_ehrs']
@@ -214,9 +119,7 @@ def main(args):
 
 
     if model.mode == 'multi':
-        config.resume = training_args['resume']
-        dataset = PredictionsDataset(path_dataset, config, train=False, device=device, output_hidden_states=(aggregator == 'transformer'), return_id=True)
-        loader = DataLoader(dataset, batch_size=config.batch_size, collate_fn=collate_fn_with_id)
+        None
     else:
         dataset = EHRDataset(path_dataset, config, train=False, return_id=True)
         loader = DataLoader(dataset, batch_size=config.batch_size)

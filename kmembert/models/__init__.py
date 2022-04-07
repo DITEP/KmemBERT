@@ -1,4 +1,4 @@
-from .health_bert import HealthBERT
+from .health_bert import CamembertRegressor
 from .interface import ModelInterface
 from .transformer_aggregator import TransformerAggregator
 from .sanity_check import SanityCheck, SanityCheckTransformer

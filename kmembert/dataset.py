@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from .utils import get_label, time_survival_to_label, printc
 from .preprocesser import EHRPreprocesser
-from .models import HealthBERT
+from .models import CamembertRegressor
 
 class EHRDataset(Dataset):
     """PyTorch Dataset class for EHRs"""
@@ -47,13 +47,23 @@ class EHRDataset(Dataset):
             sys.exit("config.json is needed for testing. Exiting..")
         config.mean_time_survival = self.mean_time_survival
 
-        self.labels = time_survival_to_label(self.survival_times, self.mean_time_survival)
+        # Initialize inputs and outputs of the dataset
+        # Inputs: the text
         self.texts = list(self.df["Texte"].astype(str).apply(self.preprocesser))
-        self.noigr = list(self.df["Noigr"])
+
+        # Outputs: Labels for each Time Interval
+        self.num_label = config.num_label
+        zip_columns = zip(df["f1"])
+        # Add each column (IT: Time Interval) to 'the labels' feature
+        for i in range(1, self.num_label):
+            zip_columns = zip(*zip(*zip_columns), df["f"+str(i+1)])
+        self.labels = torch.tensor(list(map(list, zip_columns)), dtype=float)
         
     def __getitem__(self, index):
+        """
         if self.return_id :
-            return self.texts[index], self.noigr[index], self.labels[index], 
+            return self.texts[index], self.noigr[index], (self.labels1[index], self.labels2[index])
+        """
         return self.texts[index], self.labels[index]
 
     def __len__(self):
@@ -65,6 +75,9 @@ class EHRDataset(Dataset):
         Returns train and validation set based on a predefined split
         """
         df = pd.read_csv(os.path.join(path_dataset, "train.csv"))
+
+        df["f1"]=[1]*18; df["f2"]=[0]*9+[1]*9; df["f3"]=[0]*9+[-1]*9
+
         validation_split = pd.read_csv(os.path.join(path_dataset, "validation_split.csv"), dtype=bool)
         
         validation = df[validation_split["validation"]]
@@ -73,108 +86,3 @@ class EHRDataset(Dataset):
         if get_only_val:
             return cls(path_dataset, config, df=validation, **kwargs)
         return cls(path_dataset, config, df=train, **kwargs), cls(path_dataset, config, df=validation, **kwargs)
-
-class PredictionsDataset(EHRDataset):
-    """
-    Dataset dealing with multiple EHRs instead of only one.
-    The models defined inside models.multi_ehr needs this dataset.
-    """
-    health_bert = None
-    suffix = 'train'
-
-    def __init__(self, *args, device=None, output_hidden_states=False, return_id=False, **kwargs):
-        super(PredictionsDataset, self).__init__(*args, **kwargs)
-        self.device = device
-        self.output_hidden_states = output_hidden_states
-        self.return_id = return_id
-        self.load_health_bert()
-
-        self.patients = list(set(self.df.Noigr.values))
-        self.noigr_to_indices = defaultdict(list)
-        self.length = 0
-        for i, noigr in enumerate(self.df.Noigr.values):
-            self.noigr_to_indices[noigr].append(i)
-            self.length += 1
-            if self.config.nrows and self.length == self.config.nrows: # and not hasattr(self, 'load_full'):
-                break
-
-        for noigr, indices in self.noigr_to_indices.items():
-            self.noigr_to_indices[noigr] = sorted(indices, key=lambda i: -self.survival_times[i])
-
-        self.index_to_ehrs = [(noigr, k) for noigr, indices in self.noigr_to_indices.items() for k in range(1, len(indices)+1)]
-
-        self.compute_prediction()
-
-    def load_health_bert(self):
-        #TODO: remove after tested transformer_aggregator
-        # if self.output_hidden_states and os.path.exists(os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')):
-        #     print('Existing predictions saved - not loading health bert')
-        #     self.config.mode = "classif"
-        #     self.load_full = True
-        #     return
-
-        if PredictionsDataset.health_bert is None:
-            if self.output_hidden_states:
-                self.config.mode = "classif"
-
-            PredictionsDataset.health_bert = HealthBERT(self.device, self.config)
-            for param in self.health_bert.parameters():
-                param.requires_grad = False
-
-    def compute_prediction(self):
-        path = os.path.join('results', self.config.resume, f'predictions_{PredictionsDataset.suffix}.json')
-        #TODO: remove after tested transformer_aggregator
-        # if self.output_hidden_states and os.path.exists(path):
-        #     with open(path, 'r') as f:
-        #         self.noigr_to_outputs = json.load(f)
-        #         self.noigr_to_outputs = {int(k): v for k, v in self.noigr_to_outputs.items()}
-        #         print('Loaded predictions')
-        #         PredictionsDataset.suffix = 'val'
-        #         return
-
-        printc('\nComputing Health Bert predictions...', 'INFO')
-        self.noigr_to_outputs = defaultdict(list)
-        for noigr, indices in tqdm(self.noigr_to_indices.items()):
-            for index in indices:
-                output = self.health_bert.step([self.texts[index]], output_hidden_states=self.output_hidden_states)
-                self.noigr_to_outputs[int(noigr)].append(output.tolist() if self.output_hidden_states else output)
-        print('size:', sys.getsizeof(self.noigr_to_outputs), 'bytes')
-        printc(f'Successfully computed {self.length} Health Bert outputs\n', 'SUCCESS')
-
-        #TODO: remove after tested transformer_aggregator
-        # if self.output_hidden_states:
-        #     with open(path, 'w') as f:
-        #         print('> Saved')
-        #         json.dump(self.noigr_to_outputs, f)
-        #     PredictionsDataset.suffix = 'val'
-
-    def __getitem__(self, index):
-        noigr, k = self.index_to_ehrs[index]
-
-        indices = self.noigr_to_indices[noigr][:k][-self.config.max_ehrs:]
-        dt = self.survival_times[indices] - min(self.survival_times[indices])
-        label = min(self.labels[indices])
-
-        outputs = self.noigr_to_outputs[noigr][:k][-self.config.max_ehrs:]
-
-        if self.output_hidden_states:
-            outputs = torch.tensor(outputs).type(torch.float32)
-            if self.return_id :
-                return (noigr, outputs[:,0,:], dt, label)
-            return (outputs[:,0,:], dt, label)
-
-        elif self.config.mode == 'density':
-            mus = torch.cat([output[0] for output in outputs]).view(-1)
-            log_vars = torch.cat([output[1] for output in outputs]).view(-1)
-            if self.return_id :
-                return (noigr, mus, log_vars, dt, label)
-            return (mus, log_vars, dt, label)
-
-        else:
-            mus = torch.cat(outputs).view(-1)
-            if self.return_id :
-                return (noigr, mus, dt, label)
-            return (mus, dt, label)
-        
-    def __len__(self):
-        return self.length
