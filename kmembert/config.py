@@ -31,7 +31,6 @@ class Config:
     patience = None
     days_threshold = 90
     max_ehrs = None
-    num_label = None
 
     def __init__(self, args={}):
         for attr in dir(self):
