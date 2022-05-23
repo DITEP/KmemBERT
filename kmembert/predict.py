@@ -55,7 +55,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data_folder", type=str, default="data/ehr_dataset_v4/train.csv", 
+    parser.add_argument("-d", "--data_folder", type=str, default="data/ehr/train.csv", 
         help="data path to access to the testing file")
     parser.add_argument("-r", "--resume", type=str, required=True, 
         help="result folder in with the saved checkpoint will be reused")

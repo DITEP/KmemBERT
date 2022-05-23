@@ -17,7 +17,7 @@ def get_root():
     """
     Gets the absolute path to the root of the project
     """
-    return os.sep.join(os.getcwd().split(os.sep)[0 : os.getcwd().split(os.sep).index("EHR_Transformers") + 1])
+    return os.sep.join(os.getcwd().split(os.sep)[0 : os.getcwd().split(os.sep).index("KmemBERT") + 1])
 
 def pretty_time(t):
     """

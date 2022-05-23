@@ -11,8 +11,8 @@ import argparse
 import matplotlib.pyplot as plt
 import os
 from scipy.special import softmax
-from .models import HealthBERT
-from .utils import create_session
+from ..models import HealthBERT
+from ..utils import create_session
 import json
 
 
@@ -31,10 +31,10 @@ def compute_attention(sentence):
     evolution_from_tokens = np.zeros((12, len(tokens)))
     for i in range(12):
         att = attention[i][0]
-        evolution_from_tokens[i] = att[:].sum(1).mean(0)   
+        evolution_from_tokens[i] = att.mean(1).mean(0)   
         if i ==11:
-          to_cls = att[:, 0, :].mean(0)
-    return softmax(evolution_from_tokens[1:-1], axis = -1), softmax(to_cls[1:-1], axis = -1),  tokens[1:-1]
+          to_cls = att[:, :, 0].mean(0)
+    return softmax(evolution_from_tokens[:, 1:], axis = -1), softmax(to_cls[1:], axis = -1),  tokens[1:-1]
 
 
 def main(args):
@@ -50,6 +50,9 @@ def main(args):
     # Load the text that we are going to use for attention-based interpretation
     file_to_classify = pd.read_csv(config.data_folder, nrows = config.nrows)
     texts_to_classify = file_to_classify.Texte.values
+    
+    
+    print(texts_to_classify[0])
     
     # Load medical vocabulary. Can be ignored if we don't want to focus on it.
     f = open("medical_voc/large.json")
@@ -71,7 +74,7 @@ def main(args):
         attention_layers, to_cls_attention, sentence_tokenized = compute_attention(sentence)
         idx_med = []
         for i in range(len(sentence_tokenized)):
-            if (len(sentence_tokenized[i]) > 3) and sentence_tokenized[i] in medical_vocab: # 3 can be changed to include more words
+            if (len(sentence_tokenized[i]) > 1) and sentence_tokenized[i] in medical_vocab: # 3 can be changed to include more words
                 print(sentence_tokenized[i])
                 idx_med.append(i)
         percentage_med_terms.append(len(idx_med)/len(sentence_tokenized))
@@ -135,9 +138,9 @@ def main(args):
    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data_folder", type=str, default="data/ehr/train.csv", 
+    parser.add_argument("-d", "--data_folder", type=str, default="data/ehr/test_head.csv", 
         help="data path to access to the testing file")
-    parser.add_argument("-p", "--path_dataset", type=str, default="data/ehr/train.csv", 
+    parser.add_argument("-p", "--path_dataset", type=str, default="data/ehr/test_head.csv", 
         help="data path to access to the testing file")
     parser.add_argument("-r", "--resume", type=str, required=True, 
         help="result folder in with the saved checkpoint will be reused")

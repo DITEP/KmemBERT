@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import os
 import collections, functools, operator
 
-from .models import HealthBERT
-from .utils import create_session
+from ..models import HealthBERT
+from ..utils import create_session
 
 
 
@@ -81,9 +81,9 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data_folder", type=str, default="data/ehr/train.csv", 
+    parser.add_argument("-d", "--data_folder", type=str, default="data/ehr/test_head.csv", 
         help="data path to access to the testing file")
-    parser.add_argument("-p", "--path_dataset", type=str, default="data/ehr/train.csv", 
+    parser.add_argument("-p", "--path_dataset", type=str, default="data/ehr/test_head.csv", 
         help="data path to access to the testing file")
     parser.add_argument("-r", "--resume", type=str, required=True, 
         help="result folder in with the saved checkpoint will be reused")
