@@ -1,0 +1,53 @@
+result_plot = {key if key != 'e' else 'hospitalisée': value for key, value in result_plot.items()}
+del result_plot['hospitalisé']
+
+result_plot = {key if key != 'rappelle' else 'Je rappelle': value for key, value in result_plot.items()}
+
+result_plot = {key if key != 'TRI' else 'TRINOVIA': value for key, value in result_plot.items()}
+del result_plot['NOV'], result_plot['A']
+
+result_plot = {key if key != 'chimio' else 'chiomiothérapie': value for key, value in result_plot.items()}
+del result_plot['thérapie']
+
+result_plot = {key if key != 'ème' else 'oedème': value for key, value in result_plot.items()}
+del result_plot['o'], result_plot['ed']
+
+result_plot = {key if key != 'important' else 'importants': value for key, value in result_plot.items()}
+del result_plot['s']
+
+result_plot = {key if key != "album" else "d'hypokaliémie hypo-albuminémie": value for key, value in result_plot.items()}
+del result_plot['hypo'], result_plot['ka'], result_plot['li'], result_plot['émie'], result_plot['in']
+
+result_plot = {key if key != "pelvien" else "thoraco-abdomino-pelvien": value for key, value in result_plot.items()}
+del result_plot['thor'], result_plot['aco'], result_plot['ab'], result_plot['dom'], result_plot['ino']
+
+result_plot = {key if key != "ctif" else "obstructif": value for key, value in result_plot.items()}
+del result_plot['obstru']
+
+result_plot = {key if key != "sigmoïde" else "oïde": value for key, value in result_plot.items()}
+del result_plot['si'], result_plot['g'], result_plot['m']
+
+result_plot = {key if key != "èmes" else "oedèmes": value for key, value in result_plot.items()}
+
+result_plot = {key if key != "La" else "La patiente a": value for key, value in result_plot.items()}
+
+result_plot = {key if key != "pro" else "endo-prothèse": value for key, value in result_plot.items()}
+del result_plot['thèse']
+
+result_plot = {key if key != "ienne" else "sténose sigmoïdienne": value for key, value in result_plot.items()}
+del result_plot['oïd']
+
+result_plot = {key if key != "cle" else "débâcle diarrhéique": value for key, value in result_plot.items()}
+del result_plot['déb'], result_plot['di'], result_plot['arr'], result_plot['hé'], result_plot['ique']
+
+# Mise en forme pour affichage
+txt = list(result_plot.keys()) # Le texte
+txt_data = (list(map(( lambda x: x+' '), txt)),)
+val = list(result_plot.values()) # Les valeurs
+txt_values = np.array([val])
+
+# Création de l'objet shap et affichage
+test = shap._explanation.Explanation(values=txt_values)
+test.data = txt_data
+test.base_values = np.array([0.])
+shap.plots.text(test[0])

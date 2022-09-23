@@ -1,0 +1,25 @@
+result_plot = {key if key != 'moral' else 'fémorale': value for key, value in result_plot.items()}
+del result_plot['fé'], result_plot['e']
+
+result_plot = {key if key != 'ité' else 'poplité': value for key, value in result_plot.items()}
+del result_plot['pop'], result_plot['l']
+
+result_plot = {key if key != 'IN' else 'INOHEP': value for key, value in result_plot.items()}
+del result_plot['OH'], result_plot['EP']
+
+result_plot = {key if key != 'quasi' else 'quasi disparition': value for key, value in result_plot.items()}
+
+result_plot = {key if key != 'ante' else 'fluctuante': value for key, value in result_plot.items()}
+del result_plot['f'], result_plot['luc'], result_plot['tu']
+
+# Mise en forme pour affichage
+txt = list(result_plot.keys()) # Le texte
+txt_data = (list(map(( lambda x: x+' '), txt)),)
+val = list(result_plot.values()) # Les valeurs
+txt_values = np.array([val])
+
+# Création de l'objet shap et affichage
+test = shap._explanation.Explanation(values=txt_values)
+test.data = txt_data
+test.base_values = np.array([0.])
+shap.plots.text(test[0])
