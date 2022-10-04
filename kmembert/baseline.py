@@ -53,7 +53,7 @@ def main(args):
     assert args.model in ["RF", "MLP"], "model argument should be either RF or MLP"
     if args.model == "RF":
         ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
-                        ('rf', RandomForestRegressor(verbose = args.verbose*1, n_estimators=1000)),
+                        ('rf', RandomForestRegressor(verbose = args.verbose*1, n_estimators=args.n_estimators)),
                         ], verbose=args.verbose)
     else :
         ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
@@ -119,5 +119,7 @@ if __name__ == "__main__":
         help = "Model to use for decoding : RF, MLP")
     parser.add_argument("-mtf", "--min_tf", type=int, default=50,
         help = "Minimum number of count for a word to be taken into account in tf idf")
+    parser.add_argument("-nest", "--n_estimators", type=int, default=100,
+        help = "Number of estimators to use in the Random Forest Model")
     
     main(parser.parse_args())
