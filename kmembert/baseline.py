@@ -61,8 +61,14 @@ def main(args):
                         ], verbose=args.verbose)
 
     print("Lauching training... {} chosen as decoder with tf idf min count {}".format(args.model, args.min_tf))
-
-    ehr_regressor.fit(texts["train"], labels["train"])
+    
+    print(texts['train'][:args.n_train_tfidf])
+    ehr_regressor['tfidf'].fit(texts["train"][:args.n_train_tfidf])
+    X_tfidf = ehr_regressor['tfidf'].transform(texts["train"])
+    ehr_regressor['rf'].fit(X_tfidf, labels["train"])
+    
+    #ehr_regressor.fit(texts["train"], labels["train"])
+    
     print("Vocabualry size : {}".format(len(ehr_regressor['tfidf'].vocabulary_)))
 
     predictions = ehr_regressor.predict(texts["val"])
@@ -124,5 +130,7 @@ if __name__ == "__main__":
         help = "Minimum number of count for a word to be taken into account in tf idf")
     parser.add_argument("-mf", "--max_f", type=int,default=None, 
 	help = "Maximum term frequency across the corpus")
+    parser.add_argument("--n_train_tfidf", type=int, default=50000,
+        help = "Number of reports used to train TFIDF")
     
     main(parser.parse_args())
