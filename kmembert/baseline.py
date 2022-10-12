@@ -53,7 +53,7 @@ def main(args):
     assert args.model in ["RF", "MLP"], "model argument should be either RF or MLP"
     if args.model == "RF":
         ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
-                        ('rf', RandomForestRegressor(verbose = args.verbose*1, n_estimators=args.n_estimators)),
+                        ('rf', RandomForestRegressor(verbose = args.verbose*1, n_estimators=args.n_estimators, n_jobs=1)),
                         ], verbose=args.verbose)
     else :
         ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
