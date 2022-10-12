@@ -21,12 +21,12 @@ from .utils import get_root, get_label
 from .preprocesser import EHRPreprocesser
 import json
 
-
 def main(args):
     # Load data and split it
     path_root = get_root()
     results = {}
-
+    
+    print('load data')
     path_data = os.path.join(path_root, "data", args.data_folder)
     df = pd.read_csv(os.path.join(path_data, "train.csv"), nrows=args.nrows)
 
@@ -52,8 +52,8 @@ def main(args):
     # Build model, train and evaluate
     assert args.model in ["RF", "MLP"], "model argument should be either RF or MLP"
     if args.model == "RF":
-        ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
-                        ('rf', RandomForestRegressor(verbose = args.verbose*1, n_estimators=args.n_estimators, n_jobs=1)),
+        ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf, max_features=args.max_f)),
+                        ('rf', RandomForestRegressor(verbose = args.verbose*1, n_jobs=-1)),
                         ], verbose=args.verbose)
     else :
         ehr_regressor = Pipeline([('tfidf', TfidfVectorizer(min_df=args.min_tf)),
@@ -64,7 +64,6 @@ def main(args):
 
     ehr_regressor.fit(texts["train"], labels["train"])
     print("Vocabualry size : {}".format(len(ehr_regressor['tfidf'].vocabulary_)))
-    results['Vocabulary size'] = len(ehr_regressor['tfidf'].vocabulary_)
 
     predictions = ehr_regressor.predict(texts["val"])
     rmse = mean_squared_error(labels["val"], predictions)**0.5
@@ -80,28 +79,32 @@ def main(args):
     try:
         auc = roc_auc_score(bin_labels, bin_predictions).tolist()
     except:
-        auc = -1
+        auc = None
 
     print("RMSE validation set : {}\tMAE : {}\tBalanced Accuracy : {}\tCorrelation : {}\tF1 : {}\tAUC : {}\t".format(round(rmse,1), round(mae,1), round(acc*100,1), round(corr,4), f1, auc))
-    
+
     results['RMSE'] = rmse
     results['MAE'] = mae
     results['Balanced accuracy'] = acc
     results['f1'] = f1
-    results['AUC'] = -1
-    
-    # Save the model
+    results['AUC'] = auc
+    results['corr'] = corr
+      
+    # path to savings
     path_to_save = os.path.join(path_root, args.folder_to_save)
-    if not os.path.isdir(path_to_save):
-        os.mkdir(path_to_save)
-        
-    model_name = "model_mae" + str(round(mae,1))+".pkl"
     
-    joblib.dump(ehr_regressor, os.path.join(path_to_save, "model.pkl"), compress = 1)
-    
+    # Save the results
+	    
     with open(os.path.join(path_to_save, "results.json"), "w") as fp:
         json.dump(results, fp)
-        
+	        
+    # Save the model
+   
+    if not os.path.isdir(path_to_save):
+        os.mkdir(path_to_save)
+    model_name = "model_mae" + str(round(mae,1))+".pkl"
+    joblib.dump(ehr_regressor, os.path.join(path_to_save, "model.pkl"), compress = 1)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -119,7 +122,7 @@ if __name__ == "__main__":
         help = "Model to use for decoding : RF, MLP")
     parser.add_argument("-mtf", "--min_tf", type=int, default=50,
         help = "Minimum number of count for a word to be taken into account in tf idf")
-    parser.add_argument("-nest", "--n_estimators", type=int, default=100,
-        help = "Number of estimators to use in the Random Forest Model")
+    parser.add_argument("-mf", "--max_f", type=int,default=None, 
+	help = "Maximum term frequency across the corpus")
     
     main(parser.parse_args())
