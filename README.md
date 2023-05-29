@@ -2,6 +2,10 @@
 
 Estimation of cancer patients survival time based on french medical reports and using Transformers
 
+## Online demo
+
+If you want to try out the model without any installation, visit the following [website](https://fd21dde0-4a7b-44bc-b011-b5de469557ea.pub.instances.scw.cloud/). This is nothing but a demonstration site and no data is stored after the prediction is finished.
+
 ## Getting started
 
 Please make sure you have python >= 3.7. **Every** script has to be executed at the root of the project using the `-m` option (please consider the doc about [using the module option](https://docs.python.org/3/using/cmdline.html)).
